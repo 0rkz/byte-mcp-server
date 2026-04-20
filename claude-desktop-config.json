@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "byte-protocol": {
+      "command": "node",
+      "args": ["/path/to/mcp-server/dist/index.js"],
+      "env": {
+        "PRIVATE_KEY": "0x...",
+        "RPC_URL": "https://sepolia-rollup.arbitrum.io/rpc",
+        "INDEXER_URL": "http://localhost:8080"
+      }
+    }
+  }
+}
