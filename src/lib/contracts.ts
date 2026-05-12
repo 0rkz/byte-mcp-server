@@ -21,18 +21,21 @@ export const DataRegistryAbi = [
       {
         name: "",
         type: "tuple",
+        // IMPORTANT: field order must match Solidity struct exactly. Viem decodes
+        // tuples by position, not by name — wrong order silently returns wrong
+        // values for every field past the first mismatch.
         components: [
           { name: "status", type: "uint8" },
           { name: "tier", type: "uint8" },
-          { name: "stake", type: "uint256" },
+          { name: "stakedAmount", type: "uint256" },
+          { name: "sandboxStartTime", type: "uint256" },
+          { name: "registeredAt", type: "uint256" },
           { name: "subscriberCount", type: "uint256" },
           { name: "messageCount", type: "uint256" },
-          { name: "revenue", type: "uint256" },
-          { name: "registeredAt", type: "uint256" },
-          { name: "lastActive", type: "uint256" },
-          { name: "slashCount", type: "uint256" },
+          { name: "totalRevenue", type: "uint256" },
+          { name: "lastActiveTimestamp", type: "uint256" },
           { name: "publicKey", type: "bytes32" },
-          { name: "sandboxExpiry", type: "uint256" },
+          { name: "slashCount", type: "uint256" },
         ],
       },
     ],
@@ -63,6 +66,13 @@ export const DataRegistryAbi = [
   },
   {
     name: "subscribe",
+    type: "function",
+    stateMutability: "nonpayable",
+    inputs: [{ name: "publisher", type: "address" }],
+    outputs: [],
+  },
+  {
+    name: "unsubscribe",
     type: "function",
     stateMutability: "nonpayable",
     inputs: [{ name: "publisher", type: "address" }],
@@ -153,7 +163,7 @@ export const SchemaRegistryAbi = [
           { name: "publisherClass", type: "uint8" },
           { name: "verificationType", type: "uint8" },
           { name: "methodologyHash", type: "bytes32" },
-          { name: "topicHash", type: "bytes32" },
+          { name: "topic", type: "bytes32" },
           { name: "pricePerKB", type: "uint256" },
           { name: "active", type: "bool" },
           { name: "registeredAt", type: "uint256" },
@@ -172,7 +182,7 @@ export const SchemaRegistryAbi = [
       { name: "publisherClass", type: "uint8" },
       { name: "verificationType", type: "uint8" },
       { name: "methodologyHash", type: "bytes32" },
-      { name: "topicHash", type: "bytes32" },
+      { name: "topic", type: "bytes32" },
       { name: "pricePerKB", type: "uint256" },
     ],
     outputs: [],
@@ -240,12 +250,15 @@ export const PQSVerifierAbi = [
       {
         name: "",
         type: "tuple",
+        // Canonical on-chain PQS composite: four sub-scores + aggregate + timestamp.
+        // Weights per PQSVerifier.sol _computeComposite: dispute 40%, retention 25%,
+        // freshness 15%, revenue 20%.
         components: [
-          { name: "overall", type: "uint256" },
-          { name: "freshness", type: "uint256" },
-          { name: "accuracy", type: "uint256" },
-          { name: "availability", type: "uint256" },
-          { name: "completeness", type: "uint256" },
+          { name: "disputeScore", type: "uint256" },
+          { name: "retentionScore", type: "uint256" },
+          { name: "freshnessScore", type: "uint256" },
+          { name: "revenueQuality", type: "uint256" },
+          { name: "composite", type: "uint256" },
           { name: "timestamp", type: "uint256" },
         ],
       },

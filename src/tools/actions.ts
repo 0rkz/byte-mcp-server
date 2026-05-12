@@ -12,6 +12,36 @@ import {
 import { ADDRESSES, GAS_LIMITS } from "../lib/config.js";
 
 /**
+ * Unsubscribes from a publisher's data feed. Takes effect in the next block —
+ * no more billing, no more data flow. Reversible via `subscribe(publisher)`
+ * later. Use when a publisher pivots content, goes dormant, or you just don't
+ * want the feed anymore.
+ * @param publisher - Publisher address to unsubscribe from.
+ */
+export async function unsubscribe(publisher: string) {
+  const wallet = getWalletClient();
+  const account = getWalletAddress();
+  const pub = publisher as Address;
+
+  const hash = await wallet.writeContract({
+    address: ADDRESSES.DataRegistry,
+    abi: DataRegistryAbi,
+    functionName: "unsubscribe",
+    args: [pub],
+    gas: (GAS_LIMITS as Record<string, bigint>).subscribe ?? BigInt(200_000),
+  });
+
+  const receipt = await publicClient.waitForTransactionReceipt({ hash });
+  return {
+    subscriber: account,
+    publisher: pub,
+    txHash: receipt.transactionHash,
+    status: receipt.status,
+    blockNumber: receipt.blockNumber.toString(),
+  };
+}
+
+/**
  * Requests testnet PPB tokens from the faucet.
  * Subject to 24h cooldown and 1000 PPB lifetime cap.
  */

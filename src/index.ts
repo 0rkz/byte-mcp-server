@@ -4,18 +4,26 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { z } from "zod";
 import { searchPublishers, listFeeds } from "./tools/search.js";
 import { getPublisher, getNetworkStats } from "./tools/publisher.js";
-import { getTokenBalances, checkSubscription } from "./tools/wallet.js";
+import {
+  getTokenBalances,
+  checkSubscription,
+  listMySubscriptions,
+  getSubscriptionHealth,
+} from "./tools/wallet.js";
 import {
   dripFaucet,
   subscribe,
+  unsubscribe,
   registerPublisher,
   publishData,
 } from "./tools/actions.js";
 
 const server = new McpServer({
   name: "byte-protocol",
-  version: "0.1.0",
+  version: "0.2.0",
 });
+
+const DEFAULT_INDEXER_URL = process.env.BYTE_INDEXER_URL ?? "http://localhost:8080";
 
 // ─── Read-only tools ────────────────────────────────────────────────────────
 
@@ -221,7 +229,110 @@ server.tool(
   }
 );
 
+server.tool(
+  "byte_list_my_subscriptions",
+  "List every active subscription for a given wallet address. Each entry has the publisher address, topic, tier, PQS score (0-10000 BPS), when you subscribed, messages received in 7/30 days, USDC spent in 7/30 days, and the timestamp of the last message received. Use this to see what you're currently paying for and decide whether to unsubscribe.",
+  {
+    subscriber: z
+      .string()
+      .regex(/^0x[a-fA-F0-9]{40}$/, "Must be a 0x-prefixed 40-hex-char address")
+      .describe("Wallet address to list subscriptions for"),
+    indexerUrl: z
+      .string()
+      .url()
+      .optional()
+      .describe("Optional indexer URL override (default: BYTE_INDEXER_URL env or http://localhost:8080)"),
+  },
+  async ({ subscriber, indexerUrl }) => {
+    try {
+      const results = await listMySubscriptions(subscriber, indexerUrl ?? DEFAULT_INDEXER_URL);
+      return {
+        content: [
+          { type: "text" as const, text: JSON.stringify(results, null, 2) },
+        ],
+      };
+    } catch (error) {
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: `Error listing subscriptions: ${error instanceof Error ? error.message : String(error)}`,
+          },
+        ],
+        isError: true,
+      };
+    }
+  }
+);
+
+server.tool(
+  "byte_subscription_health",
+  "Get the content-drift signal for a publisher. Compares their last 7 days of publishing activity (cadence, message count) against their 23-day baseline (days 8-30). Returns 'stable' (steady publishing), 'moderate' (20-50% cadence shift or 24-48h silence), 'significant' (>50% shift or >48h silence), or 'unknown' (new publisher, insufficient baseline). Use this to detect when a publisher you subscribe to has pivoted content or gone dormant.",
+  {
+    publisher: z
+      .string()
+      .regex(/^0x[a-fA-F0-9]{40}$/, "Must be a 0x-prefixed 40-hex-char address")
+      .describe("Publisher address to check"),
+    indexerUrl: z
+      .string()
+      .url()
+      .optional()
+      .describe("Optional indexer URL override"),
+  },
+  async ({ publisher, indexerUrl }) => {
+    try {
+      const result = await getSubscriptionHealth(publisher, indexerUrl ?? DEFAULT_INDEXER_URL);
+      return {
+        content: [
+          { type: "text" as const, text: JSON.stringify(result, null, 2) },
+        ],
+      };
+    } catch (error) {
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: `Error fetching drift signal: ${error instanceof Error ? error.message : String(error)}`,
+          },
+        ],
+        isError: true,
+      };
+    }
+  }
+);
+
 // ─── Write tools (require PRIVATE_KEY) ──────────────────────────────────────
+
+server.tool(
+  "byte_unsubscribe",
+  "Unsubscribe from a publisher's data feed. Takes effect next block: no more billing, no more data flow. Reversible — you can resubscribe later via byte_subscribe. Use this when a publisher has pivoted content (check with byte_subscription_health first) or when you simply don't want the feed anymore. Requires PRIVATE_KEY for the connected wallet.",
+  {
+    publisher: z
+      .string()
+      .regex(/^0x[a-fA-F0-9]{40}$/, "Must be a 0x-prefixed 40-hex-char address")
+      .describe("Publisher address to unsubscribe from"),
+  },
+  async ({ publisher }) => {
+    try {
+      const result = await unsubscribe(publisher);
+      return {
+        content: [
+          { type: "text" as const, text: JSON.stringify(result, null, 2) },
+        ],
+      };
+    } catch (error) {
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: `Error unsubscribing: ${error instanceof Error ? error.message : String(error)}`,
+          },
+        ],
+        isError: true,
+      };
+    }
+  }
+);
 
 server.tool(
   "byte_drip_faucet",
@@ -285,11 +396,11 @@ server.tool(
 
 server.tool(
   "byte_register_publisher",
-  "Register as a data publisher on Byte Protocol. This registers a schema, approves PPB token stake, and registers the publisher on-chain. Requires PRIVATE_KEY.",
+  "Register as a data publisher on Byte Protocol. This registers a schema, approves PPB token stake, and registers the publisher on-chain. Requires PRIVATE_KEY. Draft 7.5 tier gates: stake determines your ceiling tier — NEW 25 / ESTABLISHED 50 / TRUSTED 100 / PREMIUM 200 / ELITE 350 PPB. Register with at least the stake for the tier you want to reach; otherwise you're capped regardless of PQS performance.",
   {
     stake: z
       .string()
-      .describe("PPB tokens to stake (e.g. '25' for 25 PPB). Min 25, max 10000."),
+      .describe("PPB tokens to stake (min 25, max 2000). Stake caps your max reachable tier per Draft 7.5: 25=NEW (35% take), 50=ESTABLISHED (42%), 100=TRUSTED (50%), 200=PREMIUM (60%), 350=ELITE (70%)."),
     topic: z
       .string()
       .describe("Data feed topic (e.g. 'eth-price', 'weather-nyc', 'gas-tracker')"),

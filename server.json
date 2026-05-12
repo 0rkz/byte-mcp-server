@@ -1,0 +1,36 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.0rkz/byte-protocol",
+  "description": "Discover, evaluate, subscribe, and unsubscribe from Byte Protocol data feeds. 13 tools (read + write), zero API keys. Per-byte USDC settlement on Arbitrum.",
+  "repository": {
+    "url": "https://github.com/0rkz/byte-mcp-server",
+    "source": "github"
+  },
+  "version": "0.3.1",
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "byte-mcp-server",
+      "version": "0.3.1",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "description": "Ethereum private key for write operations (subscribe, publish, drip faucet). Not required for read-only tools.",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": true,
+          "name": "PRIVATE_KEY"
+        },
+        {
+          "description": "Arbitrum RPC URL. Defaults to Arbitrum Sepolia public RPC.",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false,
+          "name": "RPC_URL"
+        }
+      ]
+    }
+  ]
+}
