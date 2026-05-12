@@ -1,0 +1,13 @@
+node_modules
+src
+test
+*.log
+*.md
+.git
+.gitignore
+.env
+.env.example
+.mcpregistry_*
+claude-desktop-config.json
+tsconfig.json
+smithery.yaml
