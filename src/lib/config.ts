@@ -17,7 +17,7 @@ export const ADDRESSES = {
   PPBToken: "0x37a86eD3ee87109ff8cF96B3fe45c70a2ebB69f3" as const,
   MockUSDC: "0x93BfEbF99AF028ee57B138Fd17a26cAe76a01Fd2" as const,
   TestnetFaucet: "0x19d25F286b8Dca21886bCBe9c21334C6F0C532FB" as const,
-  ReputationEngine: "0x3b842Aac0b932D546ed6C87895350EaeF0bEbcc3" as const,
+  ReputationEngine: "0xa6D4BA149cB9CF32fAC6351158E1dDf3d9287283" as const,
   PQSVerifier: "0x67F97fc5E45889d3BFf7dcBA114Ca210f1896b0d" as const,
 } as const;
 
