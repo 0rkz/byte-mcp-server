@@ -17,10 +17,11 @@ import {
   registerPublisher,
   publishData,
 } from "./tools/actions.js";
+import { queryFact } from "./tools/fact.js";
 
 const server = new McpServer({
   name: "byte-protocol",
-  version: "0.2.0",
+  version: "0.4.0",
 });
 
 const DEFAULT_INDEXER_URL = process.env.BYTE_INDEXER_URL ?? "http://localhost:8080";
@@ -465,6 +466,82 @@ server.tool(
           {
             type: "text" as const,
             text: `Error publishing data: ${error instanceof Error ? error.message : String(error)}`,
+          },
+        ],
+        isError: true,
+      };
+    }
+  }
+);
+
+// ─── Fact-oracle tool (NEW in v0.4.0) ──────────────────────────────────────
+
+server.tool(
+  "byte_query_fact",
+  "Query a Byte Protocol fact-oracle publisher for a verified factual answer with citations. Posts the question to a registered fact-oracle publisher (topic='fact-oracle'), waits for the on-chain BroadcastStreamed response, returns the answer + structured citation URLs + the publisher's PQS. Use for grounding LLM outputs in real-time verified information — publishers stake reputation against accuracy, so bad answers are economically slashable.",
+  {
+    question: z
+      .string()
+      .min(3)
+      .max(2048)
+      .describe(
+        "The factual question to ask (e.g. 'What was last night's Lakers vs Warriors score?'). Should be specific and verifiable."
+      ),
+    subscriber_address: z
+      .string()
+      .regex(/^0x[0-9a-fA-F]{40}$/)
+      .describe(
+        "Your wallet address. You MUST be subscribed to the chosen publisher (with sufficient USDC escrow) or the publisher's on-chain broadcast will be skipped."
+      ),
+    max_byte_cost: z
+      .number()
+      .min(100)
+      .max(10000)
+      .optional()
+      .describe(
+        "Max response payload bytes you're willing to pay for (defaults to 2000, ≈$1 at $0.0005/byte). Publisher refuses if can't fit answer."
+      ),
+    topic_filter: z
+      .string()
+      .optional()
+      .describe(
+        "Optional topic filter (e.g. 'fact-oracle' default; future: 'sports', 'finance')."
+      ),
+    min_publisher_pqs: z
+      .number()
+      .min(0)
+      .max(10000)
+      .optional()
+      .describe(
+        "Minimum PQS to consider (BPS scale, 0-10000). 9000 = Elite-only, 7500 = Premium+."
+      ),
+    max_response_latency_ms: z
+      .number()
+      .min(5000)
+      .max(60000)
+      .optional()
+      .describe(
+        "Max time to wait for the publisher's broadcast (default 30000 ms). Publishers using SelfCheckGPT self-check take ~50s; passthrough mode ~20s."
+      ),
+  },
+  async (params) => {
+    try {
+      const result = await queryFact(params);
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: JSON.stringify(result, null, 2),
+          },
+        ],
+        isError: "error" in result,
+      };
+    } catch (error) {
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: `Error querying fact-oracle: ${error instanceof Error ? error.message : String(error)}`,
           },
         ],
         isError: true,

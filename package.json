@@ -1,6 +1,6 @@
 {
   "name": "byte-mcp-server",
-  "version": "0.3.1",
+  "version": "0.4.1",
   "description": "MCP server for Byte Protocol — AI agents can discover publishers, check reputation, subscribe to feeds, monitor subscription health, and unsubscribe. Per-byte USDC settlement on Arbitrum.",
   "mcpName": "io.github.0rkz/byte-protocol",
   "type": "module",
