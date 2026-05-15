@@ -243,7 +243,8 @@ async function fetchPayload(
     // Archive wraps payloads — `.payload` is the actual envelope.
     // 2026-05-15: was `.body` (never existed — would always fall through and
     // return the wrapper record instead of the envelope, breaking request_id
-    // matching downstream). Verified against /home/orkz/byte/data-feeds/archive/*.json.
+    // matching downstream). Verified against the local archive directory's
+    // `<payload-hash>.json` records that the discovery-api serves.
     if (
       typeof data === "object" &&
       data !== null &&
