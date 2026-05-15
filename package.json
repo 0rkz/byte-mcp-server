@@ -15,10 +15,13 @@
     "url": "https://github.com/0rkz/byte-mcp-server.git"
   },
   "keywords": ["mcp", "model-context-protocol", "byte-protocol", "data-marketplace", "ai-agents", "arbitrum", "depin", "x402", "agent-commerce"],
+  "files": ["dist", "README.md", "LICENSE", "smithery.yaml"],
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
-    "dev": "tsc --watch"
+    "dev": "tsc --watch",
+    "test": "node test/e2e.mjs",
+    "prepublishOnly": "npm run build"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.1",

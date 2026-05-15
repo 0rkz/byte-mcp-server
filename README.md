@@ -8,7 +8,7 @@ The Model Context Protocol is an open standard that lets AI assistants (like Cla
 
 ## Tools
 
-This server exposes **10 tools** across read and write operations:
+This server exposes **14 tools** across read and write operations:
 
 ### Read-only (no wallet required)
 
@@ -18,8 +18,11 @@ This server exposes **10 tools** across read and write operations:
 | `byte_get_publisher` | Get detailed on-chain info for a publisher (status, tier, stake, PQS breakdown) |
 | `byte_get_network_stats` | Get network-wide stats (total publishers, messages, fees, revenue) |
 | `byte_check_subscription` | Check if an address is subscribed to a specific publisher |
+| `byte_list_my_subscriptions` | List all publishers a subscriber is currently subscribed to |
+| `byte_subscription_health` | Check escrow + allowance health for a subscription pair |
 | `byte_get_token_balances` | Get PPB, USDC, and ETH balances for any address |
 | `byte_list_feeds` | List all active data feeds with pricing and quality scores |
+| `byte_query_fact` | Query a Byte Protocol fact-oracle publisher for a grounded answer with citations |
 
 ### Write (require `PRIVATE_KEY`)
 
@@ -27,16 +30,26 @@ This server exposes **10 tools** across read and write operations:
 |------|-------------|
 | `byte_drip_faucet` | Request 500 testnet PPB tokens (24h cooldown, 1000 PPB lifetime cap) |
 | `byte_subscribe` | Subscribe to a publisher's data feed |
+| `byte_unsubscribe` | Unsubscribe from a publisher's data feed |
 | `byte_register_publisher` | Register as a data publisher (schema + stake + on-chain registration) |
 | `byte_publish_data` | Publish data to a subscriber via the DataStream contract |
 
 ## Installation
 
+### From npm (recommended)
+
 ```bash
-git clone https://github.com/byte-protocol/mcp-server.git
-cd mcp-server
+npx -y byte-mcp-server
+```
+
+### From source
+
+```bash
+git clone https://github.com/0rkz/byte-mcp-server.git
+cd byte-mcp-server
 npm install
 npm run build
+node dist/index.js
 ```
 
 ## Configuration

@@ -1,7 +1,11 @@
 node_modules/
-dist/
 .env
 *.log
+
+# dist/ IS committed — Glama + downstream installers clone from the GH repo and
+# run `node dist/index.js` directly (also see Dockerfile, smithery.yaml). Keep
+# the compiled output in source control so the repo is install-able without a
+# build step. Removed from gitignore 2026-05-15 after Glama "cannot install" diag.
 
 # mcp-publisher credentials (NEVER commit)
 .mcpregistry_*
