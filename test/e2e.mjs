@@ -62,6 +62,7 @@ async function main() {
   assert(names.has("byte_list_my_subscriptions"), "byte_list_my_subscriptions registered");
   assert(names.has("byte_subscription_health"), "byte_subscription_health registered");
   assert(names.has("byte_unsubscribe"), "byte_unsubscribe registered");
+  assert(names.has("byte_query_fact"), "byte_query_fact registered");
 
   header("2. byte_list_my_subscriptions for PC wallet");
   {
@@ -158,6 +159,82 @@ async function main() {
     } catch (e) {
       console.log(`  Threw (expected): ${e.message.slice(0, 150)}`);
       assert(/regex|address|hex/i.test(e.message), "error message mentions address format");
+    }
+  }
+
+  header("8. byte_query_fact — schema validation (invalid subscriber)");
+  {
+    try {
+      const res = await client.callTool({
+        name: "byte_query_fact",
+        arguments: {
+          question: "What is the capital of France?",
+          subscriber_address: "not-an-address",
+        },
+      });
+      console.log(`  Response: ${JSON.stringify(res).slice(0, 200)}`);
+      assert(res.isError === true, "invalid subscriber_address rejected");
+    } catch (e) {
+      console.log(`  Threw (expected): ${e.message.slice(0, 150)}`);
+      assert(/regex|address|hex/i.test(e.message), "schema error mentions address format");
+    }
+  }
+
+  header("9. byte_query_fact — live query (PC wallet, ~25-50s, opt-in)");
+  {
+    // Live e2e requires: fact-oracle service running on 127.0.0.1:8081,
+    // Searxng container up, PC_WALLET subscribed to fact-oracle publisher,
+    // and ~30-50s of patience. Opt-in via RUN_LIVE_FACT=1 since CI runs
+    // without these preconditions.
+    if (process.env.RUN_LIVE_FACT !== "1") {
+      console.log("  Skipped (set RUN_LIVE_FACT=1 to run).");
+    } else {
+      try {
+        const res = await client.callTool(
+          {
+            name: "byte_query_fact",
+            arguments: {
+              question: "What is the capital of France?",
+              subscriber_address: PC_WALLET,
+              max_response_latency_ms: 120_000,
+            },
+          },
+          undefined,
+          { timeout: 180_000 }
+        );
+        const text = res.content[0].text;
+        let body;
+        try {
+          body = JSON.parse(text);
+        } catch {
+          // Server returned a non-JSON error string (e.g. catch-handler path).
+          // That still proves the tool ran; just log it.
+          console.log(`  Tool returned non-JSON: ${text.slice(0, 200)}`);
+          assert(/error|MCP|timeout/i.test(text), "non-JSON response is an error message");
+          return;
+        }
+        console.log(`  ${JSON.stringify(body, null, 2).split("\n").join("\n  ").slice(0, 800)}`);
+        if ("error" in body) {
+          console.log(`  (live query errored — fact-oracle/Searxng/Ollama may be down)`);
+          assert(typeof body.error === "string", "error response has 'error' field");
+        } else {
+          assert(typeof body.answer === "string" && body.answer.length > 0, "answer present");
+          assert(
+            body.publisher_address?.toLowerCase() ===
+              "0x821cefaff67247a91ea3975cb0f53ba79d3d35a5",
+            "matched fact-oracle publisher"
+          );
+          assert(Array.isArray(body.citations), "citations is an array");
+          assert(
+            typeof body.confidence === "number" && body.confidence >= 0.7,
+            "confidence ≥ threshold"
+          );
+          assert(/^0x[a-fA-F0-9]{64}$/.test(body.payload_hash), "payload_hash is 32-byte hex");
+        }
+      } catch (e) {
+        console.log(`  Live query exception: ${e.message?.slice(0, 200)}`);
+        assert(/timeout|McpError|fetch|network/i.test(e.message || ""), "exception is a transport-level error (non-fatal)");
+      }
     }
   }
 

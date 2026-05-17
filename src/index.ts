@@ -518,10 +518,10 @@ server.tool(
     max_response_latency_ms: z
       .number()
       .min(5000)
-      .max(60000)
+      .max(180000)
       .optional()
       .describe(
-        "Max time to wait for the publisher's broadcast (default 30000 ms). Publishers using SelfCheckGPT self-check take ~50s; passthrough mode ~20s."
+        "Max time to wait for the publisher's broadcast (default 30000 ms). Local-LLM publishers (Ollama + Searxng + 3-sample NLI gate) take ~30-60s; Anthropic + passthrough takes ~10-20s. Hard ceiling 180s."
       ),
   },
   async (params) => {
