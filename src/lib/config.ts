@@ -18,7 +18,7 @@ export const ADDRESSES = {
   MockUSDC: "0x93BfEbF99AF028ee57B138Fd17a26cAe76a01Fd2" as const,
   TestnetFaucet: "0x19d25F286b8Dca21886bCBe9c21334C6F0C532FB" as const,
   ReputationEngine: "0xCef13B96028e4AAEa5889cD99b8740A4f48F5EA0" as const,
-  PQSVerifier: "0x67F97fc5E45889d3BFf7dcBA114Ca210f1896b0d" as const,
+  PQSVerifier: "0xD7c8423296a6E2Dd36466AC0e41884846a27cdE9" as const,
 } as const;
 
 /** Gas limits for write operations. */

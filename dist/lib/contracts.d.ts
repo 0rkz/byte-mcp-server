@@ -26025,7 +26025,7 @@ export declare function getPQSVerifier(): {
             timestamp: bigint;
         }>;
     };
-    address: "0x67F97fc5E45889d3BFf7dcBA114Ca210f1896b0d";
+    address: "0xD7c8423296a6E2Dd36466AC0e41884846a27cdE9";
     abi: readonly [{
         readonly name: "getVerifiedPQS";
         readonly type: "function";
