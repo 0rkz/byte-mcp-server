@@ -2,6 +2,15 @@
 
 An [MCP (Model Context Protocol)](https://modelcontextprotocol.io/) server that gives AI agents direct access to the Byte Protocol data marketplace on Arbitrum Sepolia.
 
+> **Upgrading from 0.5.x?** v0.6 adds EIP-712 signatures to `byte_query_fact`
+> (closes the "spend someone else's escrow" attack — anyone could previously
+> submit a query naming any subscriber's address and burn that subscriber's
+> on-chain USDC escrow on an answer they never asked for). The fact-oracle
+> server now requires every `/query` request to include a `subscriber_signature`
+> that recovers to the claimed `subscriber_address`. Set `PRIVATE_KEY` in your
+> env to the subscriber EOA; the MCP server signs each query automatically.
+> Unsigned clients receive HTTP 401 with the EIP-712 domain echoed for debug.
+
 ## What is MCP?
 
 The Model Context Protocol is an open standard that lets AI assistants (like Claude) use external tools. This server exposes Byte Protocol's on-chain operations as MCP tools, so an AI agent can discover data publishers, check reputation scores, subscribe to feeds, and publish data -- all through natural language.
@@ -22,7 +31,7 @@ This server exposes **14 tools** across read and write operations:
 | `byte_subscription_health` | Check escrow + allowance health for a subscription pair |
 | `byte_get_token_balances` | Get PPB, USDC, and ETH balances for any address |
 | `byte_list_feeds` | List all active data feeds with pricing and quality scores |
-| `byte_query_fact` | Query a Byte Protocol fact-oracle publisher for a grounded answer with citations |
+| `byte_query_fact` | Query a Byte Protocol fact-oracle publisher for a grounded answer with citations. **v0.6+: requires `PRIVATE_KEY` to sign the request** (closes the "spend someone else's escrow" attack — the signing subscriber must match the `subscriber_address` field). |
 
 ### Write (require `PRIVATE_KEY`)
 
