@@ -15,8 +15,10 @@
  * FACT_ORACLE_RESEARCH_2026-05-14.md §7. Tool name locked: byte_query_fact.
  */
 
-import { createPublicClient, http, parseAbi } from "viem";
+import { createPublicClient, http, parseAbi, bytesToHex } from "viem";
+import { privateKeyToAccount } from "viem/accounts";
 import { arbitrumSepolia } from "viem/chains";
+import { randomBytes } from "node:crypto";
 import { CONFIG, ADDRESSES } from "../lib/config.js";
 
 const DATASTREAM_EVENT_ABI = parseAbi([
@@ -28,6 +30,27 @@ const PAYLOAD_ARCHIVE_BASE =
 
 const DEFAULT_TIMEOUT_MS = 30_000;
 const DEFAULT_MAX_BYTE_COST = 2000;
+
+// v0.6 §7 — Subscriber-signed request authentication.
+// Domain MUST match fact-oracle/server.py exactly.
+const EIP712_DOMAIN_NAME = "Byte Protocol Fact Oracle";
+const EIP712_DOMAIN_VERSION = "0.6";
+// Server caps deadline horizon at 600s (FACT_MAX_DEADLINE_HORIZON_S). We stay
+// safely below: max 540s ahead. The signature lifetime is bounded by either
+// (timeout_ms / 1000) for the agent's intent OR this ceiling, whichever is
+// smaller — prevents leaked keys from being usable far in the future.
+const MAX_SIGNATURE_HORIZON_S = 540;
+
+const FACT_QUERY_TYPES = {
+  FactQuery: [
+    { name: "publisher", type: "address" },
+    { name: "subscriber", type: "address" },
+    { name: "question", type: "string" },
+    { name: "maxByteCost", type: "uint256" },
+    { name: "nonce", type: "bytes32" },
+    { name: "deadline", type: "uint256" },
+  ],
+} as const;
 
 interface QueryFactParams {
   question: string;
@@ -135,8 +158,79 @@ async function getRequestEndpoint(publisher: string): Promise<string | null> {
 }
 
 /**
+ * Sign an EIP-712 FactQuery message with the subscriber's private key.
+ * Returns the signature, nonce, and deadline that must be sent in the
+ * POST body alongside the existing fields. Throws if CONFIG.privateKey
+ * isn't configured.
+ *
+ * v0.6 §7 — Closes the "spend someone else's escrow" attack. Without
+ * this, any actor could submit /query naming any subscriber_address
+ * and burn that subscriber's on-chain USDC escrow.
+ */
+async function signFactQuery(opts: {
+  publisher: `0x${string}`;
+  subscriber: `0x${string}`;
+  question: string;
+  maxByteCost: number;
+  timeoutMs: number;
+}): Promise<{
+  subscriber_signature: `0x${string}`;
+  request_nonce: `0x${string}`;
+  deadline_unix: number;
+}> {
+  if (!CONFIG.privateKey) {
+    throw new Error(
+      "PRIVATE_KEY env required to sign fact-query requests (v0.6 §7). " +
+        "Set the subscriber's EOA private key in your MCP server env."
+    );
+  }
+  const account = privateKeyToAccount(CONFIG.privateKey);
+  if (account.address.toLowerCase() !== opts.subscriber.toLowerCase()) {
+    throw new Error(
+      `signer address ${account.address} doesn't match subscriber_address ${opts.subscriber} — ` +
+        `PRIVATE_KEY in env must correspond to the subscriber EOA`
+    );
+  }
+
+  const now = Math.floor(Date.now() / 1000);
+  const desiredHorizon = Math.floor(opts.timeoutMs / 1000) + 30; // 30s buffer over agent timeout
+  const horizon = Math.min(desiredHorizon, MAX_SIGNATURE_HORIZON_S);
+  const deadline_unix = now + horizon;
+
+  // Cryptographically-random 32-byte nonce. Prevents replay.
+  const nonce_bytes = randomBytes(32);
+  const request_nonce = bytesToHex(nonce_bytes) as `0x${string}`;
+
+  const signature = await account.signTypedData({
+    domain: {
+      name: EIP712_DOMAIN_NAME,
+      version: EIP712_DOMAIN_VERSION,
+      chainId: CONFIG.chainId,
+      verifyingContract: opts.publisher,
+    },
+    types: FACT_QUERY_TYPES,
+    primaryType: "FactQuery",
+    message: {
+      publisher: opts.publisher,
+      subscriber: opts.subscriber,
+      question: opts.question,
+      maxByteCost: BigInt(opts.maxByteCost),
+      nonce: request_nonce,
+      deadline: BigInt(deadline_unix),
+    },
+  });
+
+  return { subscriber_signature: signature, request_nonce, deadline_unix };
+}
+
+/**
  * POST the question to the publisher's HTTP endpoint. Returns the 202 ACK body
  * (request_id + est_eta_ms) or null on transport/HTTP failure.
+ *
+ * v0.6 §7: body now includes subscriber_signature + request_nonce +
+ * deadline_unix. The publisher's server rejects (401) any request whose
+ * signature doesn't recover to subscriber_address or whose nonce has been
+ * seen before or whose deadline has passed.
  */
 async function postQuery(
   endpoint: string,
@@ -145,6 +239,9 @@ async function postQuery(
     subscriber_address: string;
     max_byte_cost: number;
     deadline_ms: number;
+    subscriber_signature: `0x${string}`;
+    request_nonce: `0x${string}`;
+    deadline_unix: number;
   }
 ): Promise<{ request_id: string; est_eta_ms: number; publisher: string } | null> {
   try {
@@ -304,11 +401,32 @@ export async function queryFact(
     const endpoint = await getRequestEndpoint(pub.address);
     if (!endpoint) continue;
 
+    // v0.6 §7: sign the request before posting. Bound to THIS publisher,
+    // THIS subscriber, THIS question, THIS cost cap, THIS deadline. Server
+    // rejects 401 on any tamper / replay / expiry.
+    let signed;
+    try {
+      signed = await signFactQuery({
+        publisher: pub.address as `0x${string}`,
+        subscriber: params.subscriber_address as `0x${string}`,
+        question: params.question,
+        maxByteCost: max_byte_cost,
+        timeoutMs: timeout_ms,
+      });
+    } catch (e) {
+      return {
+        error: `Cannot sign request: ${e instanceof Error ? e.message : String(e)}`,
+      };
+    }
+
     const ack = await postQuery(endpoint, {
       question: params.question,
       subscriber_address: params.subscriber_address,
       max_byte_cost,
       deadline_ms: Date.now() + timeout_ms,
+      subscriber_signature: signed.subscriber_signature,
+      request_nonce: signed.request_nonce,
+      deadline_unix: signed.deadline_unix,
     });
     if (!ack) continue;
 
