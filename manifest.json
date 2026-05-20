@@ -30,22 +30,6 @@
       }
     }
   },
-  "tools": [
-    { "name": "byte_search_publishers", "description": "Search publishers by topic, minimum PQS score, and sort order" },
-    { "name": "byte_get_publisher", "description": "Get detailed on-chain info for a publisher (status, tier, stake, PQS breakdown)" },
-    { "name": "byte_get_network_stats", "description": "Get network-wide stats (total publishers, messages, fees, revenue)" },
-    { "name": "byte_check_subscription", "description": "Check if an address is subscribed to a specific publisher" },
-    { "name": "byte_list_my_subscriptions", "description": "List all publishers a subscriber is currently subscribed to" },
-    { "name": "byte_subscription_health", "description": "Check escrow and allowance health for a subscription pair" },
-    { "name": "byte_get_token_balances", "description": "Get PPB, USDC, and ETH balances for any address" },
-    { "name": "byte_list_feeds", "description": "List all active data feeds with pricing and quality scores" },
-    { "name": "byte_query_fact", "description": "Query a Byte Protocol fact-oracle publisher for a grounded answer with citations" },
-    { "name": "byte_drip_faucet", "description": "Request testnet PPB tokens from the faucet" },
-    { "name": "byte_subscribe", "description": "Subscribe to a publisher's data feed" },
-    { "name": "byte_unsubscribe", "description": "Unsubscribe from a publisher's data feed" },
-    { "name": "byte_register_publisher", "description": "Register as a data publisher (schema, stake, on-chain registration)" },
-    { "name": "byte_publish_data", "description": "Publish data to a subscriber via the DataStream contract" }
-  ],
   "user_config": {
     "private_key": {
       "type": "string",
