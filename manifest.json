@@ -1,0 +1,77 @@
+{
+  "manifest_version": "0.2",
+  "name": "byte-mcp-server",
+  "display_name": "BYTE Protocol",
+  "version": "0.6.0",
+  "description": "Per-byte USDC data marketplace for AI agents. Publishers slashed on-chain for bad data.",
+  "long_description": "An MCP server for the Byte Protocol data marketplace on Arbitrum. AI agents can discover data publishers, check on-chain Proof-of-Quality Scores (PQS), subscribe to feeds, monitor subscription health, query slashable fact-oracles, and publish data — all settled per-byte in USDC. The nine read-only tools need no wallet; the five write tools require a private key.",
+  "author": {
+    "name": "0rkz",
+    "url": "https://www.payperbyte.io"
+  },
+  "homepage": "https://www.payperbyte.io",
+  "documentation": "https://github.com/0rkz/byte-mcp-server#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/0rkz/byte-mcp-server"
+  },
+  "license": "MIT",
+  "keywords": ["mcp", "byte-protocol", "data-marketplace", "ai-agents", "arbitrum", "x402", "agent-commerce", "depin"],
+  "server": {
+    "type": "node",
+    "entry_point": "dist/index.js",
+    "mcp_config": {
+      "command": "node",
+      "args": ["${__dirname}/dist/index.js"],
+      "env": {
+        "PRIVATE_KEY": "${user_config.private_key}",
+        "RPC_URL": "${user_config.rpc_url}",
+        "INDEXER_URL": "${user_config.indexer_url}"
+      }
+    }
+  },
+  "tools": [
+    { "name": "byte_search_publishers", "description": "Search publishers by topic, minimum PQS score, and sort order" },
+    { "name": "byte_get_publisher", "description": "Get detailed on-chain info for a publisher (status, tier, stake, PQS breakdown)" },
+    { "name": "byte_get_network_stats", "description": "Get network-wide stats (total publishers, messages, fees, revenue)" },
+    { "name": "byte_check_subscription", "description": "Check if an address is subscribed to a specific publisher" },
+    { "name": "byte_list_my_subscriptions", "description": "List all publishers a subscriber is currently subscribed to" },
+    { "name": "byte_subscription_health", "description": "Check escrow and allowance health for a subscription pair" },
+    { "name": "byte_get_token_balances", "description": "Get PPB, USDC, and ETH balances for any address" },
+    { "name": "byte_list_feeds", "description": "List all active data feeds with pricing and quality scores" },
+    { "name": "byte_query_fact", "description": "Query a Byte Protocol fact-oracle publisher for a grounded answer with citations" },
+    { "name": "byte_drip_faucet", "description": "Request testnet PPB tokens from the faucet" },
+    { "name": "byte_subscribe", "description": "Subscribe to a publisher's data feed" },
+    { "name": "byte_unsubscribe", "description": "Unsubscribe from a publisher's data feed" },
+    { "name": "byte_register_publisher", "description": "Register as a data publisher (schema, stake, on-chain registration)" },
+    { "name": "byte_publish_data", "description": "Publish data to a subscriber via the DataStream contract" }
+  ],
+  "user_config": {
+    "private_key": {
+      "type": "string",
+      "title": "Wallet Private Key",
+      "description": "Ethereum private key for write operations (subscribe, publish, faucet). Leave blank for read-only mode.",
+      "sensitive": true,
+      "required": false
+    },
+    "rpc_url": {
+      "type": "string",
+      "title": "Arbitrum RPC URL",
+      "description": "Arbitrum Sepolia RPC endpoint. Uses a public default if blank.",
+      "required": false,
+      "default": "https://sepolia-rollup.arbitrum.io/rpc"
+    },
+    "indexer_url": {
+      "type": "string",
+      "title": "Indexer API URL",
+      "description": "Byte Protocol indexer API URL. Uses the hosted default if blank.",
+      "required": false,
+      "default": "https://feeds.payperbyte.io"
+    }
+  },
+  "compatibility": {
+    "runtimes": {
+      "node": ">=18.0.0"
+    }
+  }
+}
