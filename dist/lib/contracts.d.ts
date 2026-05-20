@@ -23188,7 +23188,7 @@ export declare function getDataRegistry(): {
             verifyHash?: ((client: import("viem").Client, parameters: import("viem").VerifyHashActionParameters) => Promise<import("viem").VerifyHashActionReturnType>) | undefined;
         }, undefined, chainOverride>, "address" | "abi" | "functionName" | "args"> extends infer T ? { [K in keyof T]: T[K]; } : never>(args: readonly [stake: bigint, publicKey: `0x${string}`], options: options) => Promise<import("viem").WriteContractReturnType>;
     };
-    address: "0x05D89769A066549115b1B4408bFf899D2737F30b";
+    address: "0x85868CEF6db4531c8c6E378b725BC2813233e014";
     abi: readonly [{
         readonly name: "getPublisher";
         readonly type: "function";
@@ -24118,7 +24118,7 @@ export declare function getDataStream(): {
             verifyHash?: ((client: import("viem").Client, parameters: import("viem").VerifyHashActionParameters) => Promise<import("viem").VerifyHashActionReturnType>) | undefined;
         }, undefined, chainOverride>, "address" | "abi" | "functionName" | "args"> extends infer T ? { [K in keyof T]: T[K]; } : never>(args: readonly [subscriber: `0x${string}`, `0x${string}`, bigint, bigint], options: options) => Promise<import("viem").WriteContractReturnType>;
     };
-    address: "0x7E12bF2B0d43B9Ea0Bc37A06EcAC36b810351F35";
+    address: "0x8a20759a89f037B9c2062758f2789A1f858b0b27";
     abi: readonly [{
         readonly name: "totalMessages";
         readonly type: "function";

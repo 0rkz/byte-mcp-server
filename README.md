@@ -2,6 +2,16 @@
 
 An [MCP (Model Context Protocol)](https://modelcontextprotocol.io/) server that gives AI agents direct access to the Byte Protocol data marketplace on Arbitrum Sepolia.
 
+> **⚠ Breaking change in 0.7.0 — v0.6 contract redeploy.** The Byte Protocol
+> v0.6 bundled redeploy went live on Arbitrum Sepolia (chain 421614) on
+> 2026-05-20, and v0.5 is now paused. This release re-points the bundled
+> default contract addresses to the v0.6 deployment: `DataRegistry`,
+> `DataStream`, `ReputationEngine`, and the USDC token (now `MockUSDC3009`,
+> EIP-3009-enabled) all changed. `SchemaRegistry`, `PPBToken`, and
+> `PQSVerifier` are reused from v0.5 and unchanged. Any client pinned to
+> `0.6.x` keeps talking to the paused v0.5 contracts — upgrade to `0.7.0`
+> to transact against the live v0.6 deployment.
+
 > **Upgrading from 0.5.x?** v0.6 adds EIP-712 signatures to `byte_query_fact`
 > (closes the "spend someone else's escrow" attack — anyone could previously
 > submit a query naming any subscriber's address and burn that subscriber's
