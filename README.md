@@ -148,6 +148,6 @@ MIT -- see [LICENSE](LICENSE).
 
 ## Links
 
-- [Byte Protocol](https://byte.protocol)
+- [Byte Protocol](https://www.payperbyte.io)
 - [Model Context Protocol](https://modelcontextprotocol.io/)
 - [MCP TypeScript SDK](https://github.com/modelcontextprotocol/typescript-sdk)
