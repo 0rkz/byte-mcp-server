@@ -1,24 +1,24 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-09-16/server.schema.json",
   "name": "io.github.0rkz/byte-protocol",
-  "description": "Per-byte USDC data marketplace for AI agents. Publishers slashed on-chain for bad data.",
+  "description": "Per-byte USDC data feeds and oracles for AI agents. Verifiable, no token, no API keys.",
   "repository": {
     "url": "https://github.com/0rkz/byte-mcp-server",
     "source": "github"
   },
-  "version": "0.7.2",
+  "version": "0.7.3",
   "packages": [
     {
       "registryType": "npm",
       "registryBaseUrl": "https://registry.npmjs.org",
       "identifier": "byte-mcp-server",
-      "version": "0.7.2",
+      "version": "0.7.3",
       "transport": {
         "type": "stdio"
       },
       "environmentVariables": [
         {
-          "description": "Ethereum private key for write operations (subscribe, publish, drip faucet). Not required for read-only tools.",
+          "description": "Ethereum private key for write operations (subscribe, unsubscribe, publish). Not required for read-only tools.",
           "isRequired": false,
           "format": "string",
           "isSecret": true,
