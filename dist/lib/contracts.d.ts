@@ -23188,7 +23188,7 @@ export declare function getDataRegistry(): {
             verifyHash?: ((client: import("viem").Client, parameters: import("viem").VerifyHashActionParameters) => Promise<import("viem").VerifyHashActionReturnType>) | undefined;
         }, undefined, chainOverride>, "address" | "abi" | "functionName" | "args"> extends infer T ? { [K in keyof T]: T[K]; } : never>(args: readonly [stake: bigint, publicKey: `0x${string}`], options: options) => Promise<import("viem").WriteContractReturnType>;
     };
-    address: "0x85868CEF6db4531c8c6E378b725BC2813233e014";
+    address: "0x086990937Cf931e36E01487CD63407f281f1Fc6A";
     abi: readonly [{
         readonly name: "getPublisher";
         readonly type: "function";
@@ -24118,7 +24118,7 @@ export declare function getDataStream(): {
             verifyHash?: ((client: import("viem").Client, parameters: import("viem").VerifyHashActionParameters) => Promise<import("viem").VerifyHashActionReturnType>) | undefined;
         }, undefined, chainOverride>, "address" | "abi" | "functionName" | "args"> extends infer T ? { [K in keyof T]: T[K]; } : never>(args: readonly [subscriber: `0x${string}`, `0x${string}`, bigint, bigint], options: options) => Promise<import("viem").WriteContractReturnType>;
     };
-    address: "0x8a20759a89f037B9c2062758f2789A1f858b0b27";
+    address: "0x4b24006bc32A08176D5e2E779f8328Ce4384c053";
     abi: readonly [{
         readonly name: "totalMessages";
         readonly type: "function";
@@ -25185,7 +25185,7 @@ export declare function getSchemaRegistry(): {
             verifyHash?: ((client: import("viem").Client, parameters: import("viem").VerifyHashActionParameters) => Promise<import("viem").VerifyHashActionReturnType>) | undefined;
         }, undefined, chainOverride>, "address" | "abi" | "functionName" | "args"> extends infer T ? { [K in keyof T]: T[K]; } : never>(args: readonly [number, number, number, number, number, `0x${string}`, `0x${string}`, bigint], options: options) => Promise<import("viem").WriteContractReturnType>;
     };
-    address: "0x2e490F33180F3d387d46c213ADf776135c052acf";
+    address: "0x4102BA342A3e9f495bD553D99D1590470C32EE88";
     abi: readonly [{
         readonly name: "getSchema";
         readonly type: "function";

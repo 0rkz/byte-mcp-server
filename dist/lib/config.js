@@ -8,13 +8,15 @@ export const CONFIG = {
     chainId: 421614,
 };
 /** Deployed contract addresses on Arbitrum Sepolia (testnet).
- *  v0.6 bundled redeploy 2026-05-20 — DataRegistry, DataStream,
- *  ReputationEngine, and USDC (now MockUSDC3009) migrated to fresh
- *  addresses; SchemaRegistry, PPBToken, and PQSVerifier are reused. */
+ *  BYTE Library v1 (first-party MVP), deployed 2026-05-22 — DataRegistry,
+ *  DataStream and SchemaRegistry are the BYTE Library set; MockUSDC and
+ *  PQSVerifier are reused. PPBToken / ReputationEngine are not part of
+ *  BYTE Library (no token, no dispute engine) — kept here only so existing
+ *  tool code referencing them still type-checks. */
 export const ADDRESSES = {
-    DataRegistry: "0x85868CEF6db4531c8c6E378b725BC2813233e014",
-    DataStream: "0x8a20759a89f037B9c2062758f2789A1f858b0b27",
-    SchemaRegistry: "0x2e490F33180F3d387d46c213ADf776135c052acf",
+    DataRegistry: "0x086990937Cf931e36E01487CD63407f281f1Fc6A",
+    DataStream: "0x4b24006bc32A08176D5e2E779f8328Ce4384c053",
+    SchemaRegistry: "0x4102BA342A3e9f495bD553D99D1590470C32EE88",
     PPBToken: "0x37a86eD3ee87109ff8cF96B3fe45c70a2ebB69f3",
     MockUSDC: "0x1c16659aeb3aE28467E90348fAAB8874a0D3A4d3",
     TestnetFaucet: "0x19d25F286b8Dca21886bCBe9c21334C6F0C532FB",
