@@ -1,15 +1,17 @@
 import {
   createPublicClient,
-  createWalletClient,
   http,
   type Address,
   getContract,
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
+import { createWalletClient } from "viem";
 import { arbitrumSepolia } from "viem/chains";
 import { CONFIG, ADDRESSES } from "./config.js";
 
 // ─── ABIs (minimal, only the functions we call) ─────────────────────────────
+// Verified against the compiled BYTE Library contracts:
+//   contracts/out/DataRegistryLib.sol, contracts/out/DataStreamLib.sol.
 
 export const DataRegistryAbi = [
   {
@@ -113,13 +115,6 @@ export const DataStreamAbi = [
     outputs: [{ name: "", type: "uint256" }],
   },
   {
-    name: "totalPublishingFees",
-    type: "function",
-    stateMutability: "view",
-    inputs: [],
-    outputs: [{ name: "", type: "uint256" }],
-  },
-  {
     name: "streamData",
     type: "function",
     stateMutability: "nonpayable",
@@ -132,17 +127,16 @@ export const DataStreamAbi = [
     outputs: [],
   },
   {
+    // DataStreamLib.estimateFee returns a single USDC fee (µUSDC). The old
+    // v0.6 two-value (subscriberFee, publisherFee) signature is gone.
     name: "estimateFee",
     type: "function",
     stateMutability: "view",
     inputs: [
       { name: "publisher", type: "address" },
-      { name: "payloadSize", type: "uint256" },
+      { name: "payloadLength", type: "uint256" },
     ],
-    outputs: [
-      { name: "subscriberFee", type: "uint256" },
-      { name: "publisherFee", type: "uint256" },
-    ],
+    outputs: [{ name: "fee", type: "uint256" }],
   },
 ] as const;
 
@@ -203,7 +197,8 @@ export const SchemaRegistryAbi = [
   },
 ] as const;
 
-export const PPBTokenAbi = [
+/** Minimal ERC-20 ABI — used for USDC (balances and the registration stake approve). */
+export const Erc20Abi = [
   {
     name: "balanceOf",
     type: "function",
@@ -229,70 +224,6 @@ export const PPBTokenAbi = [
       { name: "owner", type: "address" },
       { name: "spender", type: "address" },
     ],
-    outputs: [{ name: "", type: "uint256" }],
-  },
-  {
-    name: "totalSupply",
-    type: "function",
-    stateMutability: "view",
-    inputs: [],
-    outputs: [{ name: "", type: "uint256" }],
-  },
-] as const;
-
-export const PQSVerifierAbi = [
-  {
-    name: "getVerifiedPQS",
-    type: "function",
-    stateMutability: "view",
-    inputs: [{ name: "publisher", type: "address" }],
-    outputs: [
-      {
-        name: "",
-        type: "tuple",
-        // Canonical on-chain PQS composite: four sub-scores + aggregate + timestamp.
-        // Weights per PQSVerifier.sol _computeComposite: dispute 40%, retention 25%,
-        // freshness 15%, revenue 20%.
-        components: [
-          { name: "disputeScore", type: "uint256" },
-          { name: "retentionScore", type: "uint256" },
-          { name: "freshnessScore", type: "uint256" },
-          { name: "revenueQuality", type: "uint256" },
-          { name: "composite", type: "uint256" },
-          { name: "timestamp", type: "uint256" },
-        ],
-      },
-    ],
-  },
-] as const;
-
-export const TestnetFaucetAbi = [
-  {
-    name: "drip",
-    type: "function",
-    stateMutability: "nonpayable",
-    inputs: [],
-    outputs: [],
-  },
-  {
-    name: "timeUntilNextDrip",
-    type: "function",
-    stateMutability: "view",
-    inputs: [{ name: "account", type: "address" }],
-    outputs: [{ name: "", type: "uint256" }],
-  },
-  {
-    name: "remainingAllowance",
-    type: "function",
-    stateMutability: "view",
-    inputs: [{ name: "account", type: "address" }],
-    outputs: [{ name: "", type: "uint256" }],
-  },
-  {
-    name: "dripAmount",
-    type: "function",
-    stateMutability: "view",
-    inputs: [],
     outputs: [{ name: "", type: "uint256" }],
   },
 ] as const;
@@ -361,33 +292,6 @@ export function getSchemaRegistry() {
   return getContract({
     address: ADDRESSES.SchemaRegistry,
     abi: SchemaRegistryAbi,
-    client: publicClient,
-  });
-}
-
-/** Returns a read-only PPBToken (ERC-20) contract instance. */
-export function getPPBToken() {
-  return getContract({
-    address: ADDRESSES.PPBToken,
-    abi: PPBTokenAbi,
-    client: publicClient,
-  });
-}
-
-/** Returns a read-only PQSVerifier contract instance. */
-export function getPQSVerifier() {
-  return getContract({
-    address: ADDRESSES.PQSVerifier,
-    abi: PQSVerifierAbi,
-    client: publicClient,
-  });
-}
-
-/** Returns a read-only TestnetFaucet contract instance. */
-export function getTestnetFaucet() {
-  return getContract({
-    address: ADDRESSES.TestnetFaucet,
-    abi: TestnetFaucetAbi,
     client: publicClient,
   });
 }

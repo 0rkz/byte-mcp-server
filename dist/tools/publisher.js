@@ -1,18 +1,16 @@
-import { formatEther } from "viem";
-import { publicClient, DataRegistryAbi, DataStreamAbi, SchemaRegistryAbi, PQSVerifierAbi, } from "../lib/contracts.js";
-import { ADDRESSES } from "../lib/config.js";
-/** Human-readable tier names indexed by on-chain enum value. */
-const TIER_NAMES = ["Sandbox", "New", "Established", "Trusted", "Premium", "Elite"];
-/** Human-readable status names indexed by on-chain enum value. */
-const STATUS_NAMES = ["Inactive", "Active", "Suspended", "Banned"];
+import { formatUnits } from "viem";
+import { publicClient, DataRegistryAbi, DataStreamAbi, SchemaRegistryAbi, } from "../lib/contracts.js";
+import { ADDRESSES, USDC_DECIMALS } from "../lib/config.js";
+/** Human-readable status names indexed by the on-chain PublisherStatus enum. */
+const STATUS_NAMES = ["Unregistered", "Sandbox", "Active", "Suspended", "Banned"];
 /**
- * Fetches detailed on-chain info for a publisher including status, tier,
- * stake, schema config, and PQS (Publisher Quality Score) breakdown.
+ * Fetches on-chain info for a publisher: status, usage counts, USDC revenue,
+ * and the registered schema (size bounds, cadence, price-per-KB).
  * @param address - Publisher Ethereum address.
  */
 export async function getPublisher(address) {
     const addr = address;
-    const [publisher, schema, pqs] = await Promise.all([
+    const [publisher, schema] = await Promise.all([
         publicClient.readContract({
             address: ADDRESSES.DataRegistry,
             abi: DataRegistryAbi,
@@ -25,49 +23,31 @@ export async function getPublisher(address) {
             functionName: "getSchema",
             args: [addr],
         }),
-        publicClient.readContract({
-            address: ADDRESSES.PQSVerifier,
-            abi: PQSVerifierAbi,
-            functionName: "getVerifiedPQS",
-            args: [addr],
-        }),
     ]);
     return {
         address: addr,
         status: STATUS_NAMES[Number(publisher.status)] || "Unknown",
-        tier: TIER_NAMES[Number(publisher.tier)] || "Unknown",
-        stake: formatEther(publisher.stakedAmount),
-        sandboxStartTime: Number(publisher.sandboxStartTime),
         subscribers: Number(publisher.subscriberCount),
         messages: Number(publisher.messageCount),
-        revenue: formatEther(publisher.totalRevenue),
+        revenueUsdc: formatUnits(publisher.totalRevenue, USDC_DECIMALS),
         registeredAt: Number(publisher.registeredAt),
         lastActive: Number(publisher.lastActiveTimestamp),
-        slashCount: Number(publisher.slashCount),
         schema: {
             expectedSize: Number(schema.expectedSize),
             maxSize: Number(schema.maxSize),
             frequency: Number(schema.frequency),
-            pricePerKB: formatEther(schema.pricePerKB),
+            pricePerKBUsdc: formatUnits(schema.pricePerKB, USDC_DECIMALS),
             active: schema.active,
             topic: schema.topic,
-        },
-        pqs: {
-            composite: Number(pqs.composite),
-            disputeScore: Number(pqs.disputeScore),
-            retentionScore: Number(pqs.retentionScore),
-            freshnessScore: Number(pqs.freshnessScore),
-            revenueQuality: Number(pqs.revenueQuality),
-            lastUpdated: Number(pqs.timestamp),
         },
     };
 }
 /**
- * Fetches network-wide statistics: total publishers, messages,
- * subscriber fees, publishing fees, and total revenue.
+ * Fetches BYTE Library network-wide statistics: total publishers, messages
+ * streamed, and total subscriber fees settled (USDC).
  */
 export async function getNetworkStats() {
-    const [totalMessages, publisherCount, totalSubFees, totalPubFees] = await Promise.all([
+    const [totalMessages, publisherCount, totalSubFees] = await Promise.all([
         publicClient.readContract({
             address: ADDRESSES.DataStream,
             abi: DataStreamAbi,
@@ -83,17 +63,10 @@ export async function getNetworkStats() {
             abi: DataStreamAbi,
             functionName: "totalSubscriberFees",
         }),
-        publicClient.readContract({
-            address: ADDRESSES.DataStream,
-            abi: DataStreamAbi,
-            functionName: "totalPublishingFees",
-        }),
     ]);
     return {
         publishers: Number(publisherCount),
         messages: Number(totalMessages),
-        totalSubscriberFees: formatEther(totalSubFees),
-        totalPublishingFees: formatEther(totalPubFees),
-        totalRevenue: formatEther(totalSubFees + totalPubFees),
+        totalSubscriberFeesUsdc: formatUnits(totalSubFees, USDC_DECIMALS),
     };
 }

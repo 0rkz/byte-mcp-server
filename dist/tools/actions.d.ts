@@ -13,16 +13,6 @@ export declare function unsubscribe(publisher: string): Promise<{
     blockNumber: string;
 }>;
 /**
- * Requests testnet PPB tokens from the faucet.
- * Subject to 24h cooldown and 1000 PPB lifetime cap.
- */
-export declare function dripFaucet(): Promise<{
-    success: boolean;
-    txHash: `0x${string}`;
-    amount: string;
-    recipient: `0x${string}`;
-}>;
-/**
  * Subscribes the connected wallet to a publisher's data feed.
  * @param publisher - Publisher Ethereum address to subscribe to.
  */
@@ -32,8 +22,10 @@ export declare function subscribe(publisher: string): Promise<{
     publisher: string;
 }>;
 /**
- * Registers a new data publisher on Byte Protocol.
- * Performs three on-chain transactions: register schema, approve stake, register publisher.
+ * Registers a new data publisher on BYTE Library.
+ * Registers a schema, then registers the publisher on-chain. An optional USDC
+ * reputation stake (0 by default — BYTE Library v1 publishers are first-party
+ * and unstaked) is approved to DataRegistry first when non-zero.
  */
 export declare function registerPublisher(params: {
     stake: string;
@@ -46,14 +38,14 @@ export declare function registerPublisher(params: {
     success: boolean;
     txHash: `0x${string}`;
     schemaTxHash: `0x${string}`;
-    approveTxHash: `0x${string}`;
+    approveTxHash: `0x${string}` | undefined;
     publisher: `0x${string}`;
-    stake: string;
+    stakeUsdc: string;
     topic: string;
 }>;
 /**
  * Publishes data to a subscriber via the DataStream contract.
- * Hashes the payload and records size on-chain.
+ * Hashes the payload, records size on-chain, and settles the fee in USDC.
  */
 export declare function publishData(params: {
     subscriber: string;

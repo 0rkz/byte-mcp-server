@@ -140,15 +140,6 @@ export declare const DataStreamAbi: readonly [{
         readonly type: "uint256";
     }];
 }, {
-    readonly name: "totalPublishingFees";
-    readonly type: "function";
-    readonly stateMutability: "view";
-    readonly inputs: readonly [];
-    readonly outputs: readonly [{
-        readonly name: "";
-        readonly type: "uint256";
-    }];
-}, {
     readonly name: "streamData";
     readonly type: "function";
     readonly stateMutability: "nonpayable";
@@ -174,14 +165,11 @@ export declare const DataStreamAbi: readonly [{
         readonly name: "publisher";
         readonly type: "address";
     }, {
-        readonly name: "payloadSize";
+        readonly name: "payloadLength";
         readonly type: "uint256";
     }];
     readonly outputs: readonly [{
-        readonly name: "subscriberFee";
-        readonly type: "uint256";
-    }, {
-        readonly name: "publisherFee";
+        readonly name: "fee";
         readonly type: "uint256";
     }];
 }];
@@ -280,7 +268,8 @@ export declare const SchemaRegistryAbi: readonly [{
         readonly type: "bool";
     }];
 }];
-export declare const PPBTokenAbi: readonly [{
+/** Minimal ERC-20 ABI — used for USDC (balances and the registration stake approve). */
+export declare const Erc20Abi: readonly [{
     readonly name: "balanceOf";
     readonly type: "function";
     readonly stateMutability: "view";
@@ -318,87 +307,6 @@ export declare const PPBTokenAbi: readonly [{
         readonly name: "spender";
         readonly type: "address";
     }];
-    readonly outputs: readonly [{
-        readonly name: "";
-        readonly type: "uint256";
-    }];
-}, {
-    readonly name: "totalSupply";
-    readonly type: "function";
-    readonly stateMutability: "view";
-    readonly inputs: readonly [];
-    readonly outputs: readonly [{
-        readonly name: "";
-        readonly type: "uint256";
-    }];
-}];
-export declare const PQSVerifierAbi: readonly [{
-    readonly name: "getVerifiedPQS";
-    readonly type: "function";
-    readonly stateMutability: "view";
-    readonly inputs: readonly [{
-        readonly name: "publisher";
-        readonly type: "address";
-    }];
-    readonly outputs: readonly [{
-        readonly name: "";
-        readonly type: "tuple";
-        readonly components: readonly [{
-            readonly name: "disputeScore";
-            readonly type: "uint256";
-        }, {
-            readonly name: "retentionScore";
-            readonly type: "uint256";
-        }, {
-            readonly name: "freshnessScore";
-            readonly type: "uint256";
-        }, {
-            readonly name: "revenueQuality";
-            readonly type: "uint256";
-        }, {
-            readonly name: "composite";
-            readonly type: "uint256";
-        }, {
-            readonly name: "timestamp";
-            readonly type: "uint256";
-        }];
-    }];
-}];
-export declare const TestnetFaucetAbi: readonly [{
-    readonly name: "drip";
-    readonly type: "function";
-    readonly stateMutability: "nonpayable";
-    readonly inputs: readonly [];
-    readonly outputs: readonly [];
-}, {
-    readonly name: "timeUntilNextDrip";
-    readonly type: "function";
-    readonly stateMutability: "view";
-    readonly inputs: readonly [{
-        readonly name: "account";
-        readonly type: "address";
-    }];
-    readonly outputs: readonly [{
-        readonly name: "";
-        readonly type: "uint256";
-    }];
-}, {
-    readonly name: "remainingAllowance";
-    readonly type: "function";
-    readonly stateMutability: "view";
-    readonly inputs: readonly [{
-        readonly name: "account";
-        readonly type: "address";
-    }];
-    readonly outputs: readonly [{
-        readonly name: "";
-        readonly type: "uint256";
-    }];
-}, {
-    readonly name: "dripAmount";
-    readonly type: "function";
-    readonly stateMutability: "view";
-    readonly inputs: readonly [];
     readonly outputs: readonly [{
         readonly name: "";
         readonly type: "uint256";
@@ -707,7 +615,6 @@ export declare const publicClient: {
     getBlobBaseFee: () => Promise<import("viem").GetBlobBaseFeeReturnType>;
     getBlock: <includeTransactions extends boolean = false, blockTag extends import("viem").BlockTag = "latest">(args?: import("viem").GetBlockParameters<includeTransactions, blockTag> | undefined) => Promise<{
         number: blockTag extends "pending" ? null : bigint;
-        timestamp: bigint;
         hash: blockTag extends "pending" ? null : `0x${string}`;
         nonce: blockTag extends "pending" ? null : `0x${string}`;
         logsBloom: blockTag extends "pending" ? null : `0x${string}`;
@@ -727,6 +634,7 @@ export declare const publicClient: {
         sha3Uncles: import("viem").Hash;
         size: bigint;
         stateRoot: import("viem").Hash;
+        timestamp: bigint;
         totalDifficulty: bigint | null;
         transactionsRoot: import("viem").Hash;
         uncles: import("viem").Hash[];
@@ -5221,15 +5129,15 @@ export declare function getWalletClient(): {
             [x: `uint32[${string}]`]: undefined;
             [x: `bytes[${string}]`]: undefined;
             [x: `bytes1[${string}]`]: undefined;
+            [x: `bytes6[${string}]`]: undefined;
             [x: `bytes11[${string}]`]: undefined;
             [x: `bytes2[${string}]`]: undefined;
             [x: `bytes8[${string}]`]: undefined;
             [x: `bytes4[${string}]`]: undefined;
-            [x: `bytes5[${string}]`]: undefined;
             [x: `bytes10[${string}]`]: undefined;
-            [x: `bytes6[${string}]`]: undefined;
-            [x: `bytes18[${string}]`]: undefined;
             [x: `bytes3[${string}]`]: undefined;
+            [x: `bytes18[${string}]`]: undefined;
+            [x: `bytes5[${string}]`]: undefined;
             [x: `bytes7[${string}]`]: undefined;
             [x: `bytes9[${string}]`]: undefined;
             [x: `bytes12[${string}]`]: undefined;
@@ -5323,15 +5231,15 @@ export declare function getWalletClient(): {
             uint32?: undefined;
             bytes?: undefined;
             bytes1?: undefined;
+            bytes6?: undefined;
             bytes11?: undefined;
             bytes2?: undefined;
             bytes8?: undefined;
             bytes4?: undefined;
-            bytes5?: undefined;
             bytes10?: undefined;
-            bytes6?: undefined;
-            bytes18?: undefined;
             bytes3?: undefined;
+            bytes18?: undefined;
+            bytes5?: undefined;
             bytes7?: undefined;
             bytes9?: undefined;
             bytes12?: undefined;
@@ -5426,15 +5334,15 @@ export declare function getWalletClient(): {
             [x: `uint32[${string}]`]: undefined;
             [x: `bytes[${string}]`]: undefined;
             [x: `bytes1[${string}]`]: undefined;
+            [x: `bytes6[${string}]`]: undefined;
             [x: `bytes11[${string}]`]: undefined;
             [x: `bytes2[${string}]`]: undefined;
             [x: `bytes8[${string}]`]: undefined;
             [x: `bytes4[${string}]`]: undefined;
-            [x: `bytes5[${string}]`]: undefined;
             [x: `bytes10[${string}]`]: undefined;
-            [x: `bytes6[${string}]`]: undefined;
-            [x: `bytes18[${string}]`]: undefined;
             [x: `bytes3[${string}]`]: undefined;
+            [x: `bytes18[${string}]`]: undefined;
+            [x: `bytes5[${string}]`]: undefined;
             [x: `bytes7[${string}]`]: undefined;
             [x: `bytes9[${string}]`]: undefined;
             [x: `bytes12[${string}]`]: undefined;
@@ -5528,15 +5436,15 @@ export declare function getWalletClient(): {
             uint32?: undefined;
             bytes?: undefined;
             bytes1?: undefined;
+            bytes6?: undefined;
             bytes11?: undefined;
             bytes2?: undefined;
             bytes8?: undefined;
             bytes4?: undefined;
-            bytes5?: undefined;
             bytes10?: undefined;
-            bytes6?: undefined;
-            bytes18?: undefined;
             bytes3?: undefined;
+            bytes18?: undefined;
+            bytes5?: undefined;
             bytes7?: undefined;
             bytes9?: undefined;
             bytes12?: undefined;
@@ -5693,15 +5601,15 @@ export declare function getWalletClient(): {
             [x: `uint32[${string}]`]: undefined;
             [x: `bytes[${string}]`]: undefined;
             [x: `bytes1[${string}]`]: undefined;
+            [x: `bytes6[${string}]`]: undefined;
             [x: `bytes11[${string}]`]: undefined;
             [x: `bytes2[${string}]`]: undefined;
             [x: `bytes8[${string}]`]: undefined;
             [x: `bytes4[${string}]`]: undefined;
-            [x: `bytes5[${string}]`]: undefined;
             [x: `bytes10[${string}]`]: undefined;
-            [x: `bytes6[${string}]`]: undefined;
-            [x: `bytes18[${string}]`]: undefined;
             [x: `bytes3[${string}]`]: undefined;
+            [x: `bytes18[${string}]`]: undefined;
+            [x: `bytes5[${string}]`]: undefined;
             [x: `bytes7[${string}]`]: undefined;
             [x: `bytes9[${string}]`]: undefined;
             [x: `bytes12[${string}]`]: undefined;
@@ -5795,15 +5703,15 @@ export declare function getWalletClient(): {
             uint32?: undefined;
             bytes?: undefined;
             bytes1?: undefined;
+            bytes6?: undefined;
             bytes11?: undefined;
             bytes2?: undefined;
             bytes8?: undefined;
             bytes4?: undefined;
-            bytes5?: undefined;
             bytes10?: undefined;
-            bytes6?: undefined;
-            bytes18?: undefined;
             bytes3?: undefined;
+            bytes18?: undefined;
+            bytes5?: undefined;
             bytes7?: undefined;
             bytes9?: undefined;
             bytes12?: undefined;
@@ -5898,15 +5806,15 @@ export declare function getWalletClient(): {
             [x: `uint32[${string}]`]: undefined;
             [x: `bytes[${string}]`]: undefined;
             [x: `bytes1[${string}]`]: undefined;
+            [x: `bytes6[${string}]`]: undefined;
             [x: `bytes11[${string}]`]: undefined;
             [x: `bytes2[${string}]`]: undefined;
             [x: `bytes8[${string}]`]: undefined;
             [x: `bytes4[${string}]`]: undefined;
-            [x: `bytes5[${string}]`]: undefined;
             [x: `bytes10[${string}]`]: undefined;
-            [x: `bytes6[${string}]`]: undefined;
-            [x: `bytes18[${string}]`]: undefined;
             [x: `bytes3[${string}]`]: undefined;
+            [x: `bytes18[${string}]`]: undefined;
+            [x: `bytes5[${string}]`]: undefined;
             [x: `bytes7[${string}]`]: undefined;
             [x: `bytes9[${string}]`]: undefined;
             [x: `bytes12[${string}]`]: undefined;
@@ -6000,15 +5908,15 @@ export declare function getWalletClient(): {
             uint32?: undefined;
             bytes?: undefined;
             bytes1?: undefined;
+            bytes6?: undefined;
             bytes11?: undefined;
             bytes2?: undefined;
             bytes8?: undefined;
             bytes4?: undefined;
-            bytes5?: undefined;
             bytes10?: undefined;
-            bytes6?: undefined;
-            bytes18?: undefined;
             bytes3?: undefined;
+            bytes18?: undefined;
+            bytes5?: undefined;
             bytes7?: undefined;
             bytes9?: undefined;
             bytes12?: undefined;
@@ -6170,15 +6078,15 @@ export declare function getWalletClient(): {
             [x: `uint32[${string}]`]: undefined;
             [x: `bytes[${string}]`]: undefined;
             [x: `bytes1[${string}]`]: undefined;
+            [x: `bytes6[${string}]`]: undefined;
             [x: `bytes11[${string}]`]: undefined;
             [x: `bytes2[${string}]`]: undefined;
             [x: `bytes8[${string}]`]: undefined;
             [x: `bytes4[${string}]`]: undefined;
-            [x: `bytes5[${string}]`]: undefined;
             [x: `bytes10[${string}]`]: undefined;
-            [x: `bytes6[${string}]`]: undefined;
-            [x: `bytes18[${string}]`]: undefined;
             [x: `bytes3[${string}]`]: undefined;
+            [x: `bytes18[${string}]`]: undefined;
+            [x: `bytes5[${string}]`]: undefined;
             [x: `bytes7[${string}]`]: undefined;
             [x: `bytes9[${string}]`]: undefined;
             [x: `bytes12[${string}]`]: undefined;
@@ -6272,15 +6180,15 @@ export declare function getWalletClient(): {
             uint32?: undefined;
             bytes?: undefined;
             bytes1?: undefined;
+            bytes6?: undefined;
             bytes11?: undefined;
             bytes2?: undefined;
             bytes8?: undefined;
             bytes4?: undefined;
-            bytes5?: undefined;
             bytes10?: undefined;
-            bytes6?: undefined;
-            bytes18?: undefined;
             bytes3?: undefined;
+            bytes18?: undefined;
+            bytes5?: undefined;
             bytes7?: undefined;
             bytes9?: undefined;
             bytes12?: undefined;
@@ -6375,15 +6283,15 @@ export declare function getWalletClient(): {
             [x: `uint32[${string}]`]: undefined;
             [x: `bytes[${string}]`]: undefined;
             [x: `bytes1[${string}]`]: undefined;
+            [x: `bytes6[${string}]`]: undefined;
             [x: `bytes11[${string}]`]: undefined;
             [x: `bytes2[${string}]`]: undefined;
             [x: `bytes8[${string}]`]: undefined;
             [x: `bytes4[${string}]`]: undefined;
-            [x: `bytes5[${string}]`]: undefined;
             [x: `bytes10[${string}]`]: undefined;
-            [x: `bytes6[${string}]`]: undefined;
-            [x: `bytes18[${string}]`]: undefined;
             [x: `bytes3[${string}]`]: undefined;
+            [x: `bytes18[${string}]`]: undefined;
+            [x: `bytes5[${string}]`]: undefined;
             [x: `bytes7[${string}]`]: undefined;
             [x: `bytes9[${string}]`]: undefined;
             [x: `bytes12[${string}]`]: undefined;
@@ -6477,15 +6385,15 @@ export declare function getWalletClient(): {
             uint32?: undefined;
             bytes?: undefined;
             bytes1?: undefined;
+            bytes6?: undefined;
             bytes11?: undefined;
             bytes2?: undefined;
             bytes8?: undefined;
             bytes4?: undefined;
-            bytes5?: undefined;
             bytes10?: undefined;
-            bytes6?: undefined;
-            bytes18?: undefined;
             bytes3?: undefined;
+            bytes18?: undefined;
+            bytes5?: undefined;
             bytes7?: undefined;
             bytes9?: undefined;
             bytes12?: undefined;
@@ -6686,15 +6594,15 @@ export declare function getWalletClient(): {
             [x: `uint32[${string}]`]: undefined;
             [x: `bytes[${string}]`]: undefined;
             [x: `bytes1[${string}]`]: undefined;
+            [x: `bytes6[${string}]`]: undefined;
             [x: `bytes11[${string}]`]: undefined;
             [x: `bytes2[${string}]`]: undefined;
             [x: `bytes8[${string}]`]: undefined;
             [x: `bytes4[${string}]`]: undefined;
-            [x: `bytes5[${string}]`]: undefined;
             [x: `bytes10[${string}]`]: undefined;
-            [x: `bytes6[${string}]`]: undefined;
-            [x: `bytes18[${string}]`]: undefined;
             [x: `bytes3[${string}]`]: undefined;
+            [x: `bytes18[${string}]`]: undefined;
+            [x: `bytes5[${string}]`]: undefined;
             [x: `bytes7[${string}]`]: undefined;
             [x: `bytes9[${string}]`]: undefined;
             [x: `bytes12[${string}]`]: undefined;
@@ -6788,15 +6696,15 @@ export declare function getWalletClient(): {
             uint32?: undefined;
             bytes?: undefined;
             bytes1?: undefined;
+            bytes6?: undefined;
             bytes11?: undefined;
             bytes2?: undefined;
             bytes8?: undefined;
             bytes4?: undefined;
-            bytes5?: undefined;
             bytes10?: undefined;
-            bytes6?: undefined;
-            bytes18?: undefined;
             bytes3?: undefined;
+            bytes18?: undefined;
+            bytes5?: undefined;
             bytes7?: undefined;
             bytes9?: undefined;
             bytes12?: undefined;
@@ -6891,15 +6799,15 @@ export declare function getWalletClient(): {
             [x: `uint32[${string}]`]: undefined;
             [x: `bytes[${string}]`]: undefined;
             [x: `bytes1[${string}]`]: undefined;
+            [x: `bytes6[${string}]`]: undefined;
             [x: `bytes11[${string}]`]: undefined;
             [x: `bytes2[${string}]`]: undefined;
             [x: `bytes8[${string}]`]: undefined;
             [x: `bytes4[${string}]`]: undefined;
-            [x: `bytes5[${string}]`]: undefined;
             [x: `bytes10[${string}]`]: undefined;
-            [x: `bytes6[${string}]`]: undefined;
-            [x: `bytes18[${string}]`]: undefined;
             [x: `bytes3[${string}]`]: undefined;
+            [x: `bytes18[${string}]`]: undefined;
+            [x: `bytes5[${string}]`]: undefined;
             [x: `bytes7[${string}]`]: undefined;
             [x: `bytes9[${string}]`]: undefined;
             [x: `bytes12[${string}]`]: undefined;
@@ -6993,15 +6901,15 @@ export declare function getWalletClient(): {
             uint32?: undefined;
             bytes?: undefined;
             bytes1?: undefined;
+            bytes6?: undefined;
             bytes11?: undefined;
             bytes2?: undefined;
             bytes8?: undefined;
             bytes4?: undefined;
-            bytes5?: undefined;
             bytes10?: undefined;
-            bytes6?: undefined;
-            bytes18?: undefined;
             bytes3?: undefined;
+            bytes18?: undefined;
+            bytes5?: undefined;
             bytes7?: undefined;
             bytes9?: undefined;
             bytes12?: undefined;
@@ -7249,15 +7157,15 @@ export declare function getWalletClient(): {
             [x: `uint32[${string}]`]: undefined;
             [x: `bytes[${string}]`]: undefined;
             [x: `bytes1[${string}]`]: undefined;
+            [x: `bytes6[${string}]`]: undefined;
             [x: `bytes11[${string}]`]: undefined;
             [x: `bytes2[${string}]`]: undefined;
             [x: `bytes8[${string}]`]: undefined;
             [x: `bytes4[${string}]`]: undefined;
-            [x: `bytes5[${string}]`]: undefined;
             [x: `bytes10[${string}]`]: undefined;
-            [x: `bytes6[${string}]`]: undefined;
-            [x: `bytes18[${string}]`]: undefined;
             [x: `bytes3[${string}]`]: undefined;
+            [x: `bytes18[${string}]`]: undefined;
+            [x: `bytes5[${string}]`]: undefined;
             [x: `bytes7[${string}]`]: undefined;
             [x: `bytes9[${string}]`]: undefined;
             [x: `bytes12[${string}]`]: undefined;
@@ -7351,15 +7259,15 @@ export declare function getWalletClient(): {
             uint32?: undefined;
             bytes?: undefined;
             bytes1?: undefined;
+            bytes6?: undefined;
             bytes11?: undefined;
             bytes2?: undefined;
             bytes8?: undefined;
             bytes4?: undefined;
-            bytes5?: undefined;
             bytes10?: undefined;
-            bytes6?: undefined;
-            bytes18?: undefined;
             bytes3?: undefined;
+            bytes18?: undefined;
+            bytes5?: undefined;
             bytes7?: undefined;
             bytes9?: undefined;
             bytes12?: undefined;
@@ -7454,15 +7362,15 @@ export declare function getWalletClient(): {
             [x: `uint32[${string}]`]: undefined;
             [x: `bytes[${string}]`]: undefined;
             [x: `bytes1[${string}]`]: undefined;
+            [x: `bytes6[${string}]`]: undefined;
             [x: `bytes11[${string}]`]: undefined;
             [x: `bytes2[${string}]`]: undefined;
             [x: `bytes8[${string}]`]: undefined;
             [x: `bytes4[${string}]`]: undefined;
-            [x: `bytes5[${string}]`]: undefined;
             [x: `bytes10[${string}]`]: undefined;
-            [x: `bytes6[${string}]`]: undefined;
-            [x: `bytes18[${string}]`]: undefined;
             [x: `bytes3[${string}]`]: undefined;
+            [x: `bytes18[${string}]`]: undefined;
+            [x: `bytes5[${string}]`]: undefined;
             [x: `bytes7[${string}]`]: undefined;
             [x: `bytes9[${string}]`]: undefined;
             [x: `bytes12[${string}]`]: undefined;
@@ -7556,15 +7464,15 @@ export declare function getWalletClient(): {
             uint32?: undefined;
             bytes?: undefined;
             bytes1?: undefined;
+            bytes6?: undefined;
             bytes11?: undefined;
             bytes2?: undefined;
             bytes8?: undefined;
             bytes4?: undefined;
-            bytes5?: undefined;
             bytes10?: undefined;
-            bytes6?: undefined;
-            bytes18?: undefined;
             bytes3?: undefined;
+            bytes18?: undefined;
+            bytes5?: undefined;
             bytes7?: undefined;
             bytes9?: undefined;
             bytes12?: undefined;
@@ -7676,15 +7584,15 @@ export declare function getWalletClient(): {
             [x: `uint32[${string}]`]: undefined;
             [x: `bytes[${string}]`]: undefined;
             [x: `bytes1[${string}]`]: undefined;
+            [x: `bytes6[${string}]`]: undefined;
             [x: `bytes11[${string}]`]: undefined;
             [x: `bytes2[${string}]`]: undefined;
             [x: `bytes8[${string}]`]: undefined;
             [x: `bytes4[${string}]`]: undefined;
-            [x: `bytes5[${string}]`]: undefined;
             [x: `bytes10[${string}]`]: undefined;
-            [x: `bytes6[${string}]`]: undefined;
-            [x: `bytes18[${string}]`]: undefined;
             [x: `bytes3[${string}]`]: undefined;
+            [x: `bytes18[${string}]`]: undefined;
+            [x: `bytes5[${string}]`]: undefined;
             [x: `bytes7[${string}]`]: undefined;
             [x: `bytes9[${string}]`]: undefined;
             [x: `bytes12[${string}]`]: undefined;
@@ -7778,15 +7686,15 @@ export declare function getWalletClient(): {
             uint32?: undefined;
             bytes?: undefined;
             bytes1?: undefined;
+            bytes6?: undefined;
             bytes11?: undefined;
             bytes2?: undefined;
             bytes8?: undefined;
             bytes4?: undefined;
-            bytes5?: undefined;
             bytes10?: undefined;
-            bytes6?: undefined;
-            bytes18?: undefined;
             bytes3?: undefined;
+            bytes18?: undefined;
+            bytes5?: undefined;
             bytes7?: undefined;
             bytes9?: undefined;
             bytes12?: undefined;
@@ -7881,15 +7789,15 @@ export declare function getWalletClient(): {
             [x: `uint32[${string}]`]: undefined;
             [x: `bytes[${string}]`]: undefined;
             [x: `bytes1[${string}]`]: undefined;
+            [x: `bytes6[${string}]`]: undefined;
             [x: `bytes11[${string}]`]: undefined;
             [x: `bytes2[${string}]`]: undefined;
             [x: `bytes8[${string}]`]: undefined;
             [x: `bytes4[${string}]`]: undefined;
-            [x: `bytes5[${string}]`]: undefined;
             [x: `bytes10[${string}]`]: undefined;
-            [x: `bytes6[${string}]`]: undefined;
-            [x: `bytes18[${string}]`]: undefined;
             [x: `bytes3[${string}]`]: undefined;
+            [x: `bytes18[${string}]`]: undefined;
+            [x: `bytes5[${string}]`]: undefined;
             [x: `bytes7[${string}]`]: undefined;
             [x: `bytes9[${string}]`]: undefined;
             [x: `bytes12[${string}]`]: undefined;
@@ -7983,15 +7891,15 @@ export declare function getWalletClient(): {
             uint32?: undefined;
             bytes?: undefined;
             bytes1?: undefined;
+            bytes6?: undefined;
             bytes11?: undefined;
             bytes2?: undefined;
             bytes8?: undefined;
             bytes4?: undefined;
-            bytes5?: undefined;
             bytes10?: undefined;
-            bytes6?: undefined;
-            bytes18?: undefined;
             bytes3?: undefined;
+            bytes18?: undefined;
+            bytes5?: undefined;
             bytes7?: undefined;
             bytes9?: undefined;
             bytes12?: undefined;
@@ -11402,15 +11310,15 @@ export declare function getWalletClient(): {
             [x: `uint32[${string}]`]: undefined;
             [x: `bytes[${string}]`]: undefined;
             [x: `bytes1[${string}]`]: undefined;
+            [x: `bytes6[${string}]`]: undefined;
             [x: `bytes11[${string}]`]: undefined;
             [x: `bytes2[${string}]`]: undefined;
             [x: `bytes8[${string}]`]: undefined;
             [x: `bytes4[${string}]`]: undefined;
-            [x: `bytes5[${string}]`]: undefined;
             [x: `bytes10[${string}]`]: undefined;
-            [x: `bytes6[${string}]`]: undefined;
-            [x: `bytes18[${string}]`]: undefined;
             [x: `bytes3[${string}]`]: undefined;
+            [x: `bytes18[${string}]`]: undefined;
+            [x: `bytes5[${string}]`]: undefined;
             [x: `bytes7[${string}]`]: undefined;
             [x: `bytes9[${string}]`]: undefined;
             [x: `bytes12[${string}]`]: undefined;
@@ -11504,15 +11412,15 @@ export declare function getWalletClient(): {
             uint32?: undefined;
             bytes?: undefined;
             bytes1?: undefined;
+            bytes6?: undefined;
             bytes11?: undefined;
             bytes2?: undefined;
             bytes8?: undefined;
             bytes4?: undefined;
-            bytes5?: undefined;
             bytes10?: undefined;
-            bytes6?: undefined;
-            bytes18?: undefined;
             bytes3?: undefined;
+            bytes18?: undefined;
+            bytes5?: undefined;
             bytes7?: undefined;
             bytes9?: undefined;
             bytes12?: undefined;
@@ -11607,15 +11515,15 @@ export declare function getWalletClient(): {
             [x: `uint32[${string}]`]: undefined;
             [x: `bytes[${string}]`]: undefined;
             [x: `bytes1[${string}]`]: undefined;
+            [x: `bytes6[${string}]`]: undefined;
             [x: `bytes11[${string}]`]: undefined;
             [x: `bytes2[${string}]`]: undefined;
             [x: `bytes8[${string}]`]: undefined;
             [x: `bytes4[${string}]`]: undefined;
-            [x: `bytes5[${string}]`]: undefined;
             [x: `bytes10[${string}]`]: undefined;
-            [x: `bytes6[${string}]`]: undefined;
-            [x: `bytes18[${string}]`]: undefined;
             [x: `bytes3[${string}]`]: undefined;
+            [x: `bytes18[${string}]`]: undefined;
+            [x: `bytes5[${string}]`]: undefined;
             [x: `bytes7[${string}]`]: undefined;
             [x: `bytes9[${string}]`]: undefined;
             [x: `bytes12[${string}]`]: undefined;
@@ -11709,15 +11617,15 @@ export declare function getWalletClient(): {
             uint32?: undefined;
             bytes?: undefined;
             bytes1?: undefined;
+            bytes6?: undefined;
             bytes11?: undefined;
             bytes2?: undefined;
             bytes8?: undefined;
             bytes4?: undefined;
-            bytes5?: undefined;
             bytes10?: undefined;
-            bytes6?: undefined;
-            bytes18?: undefined;
             bytes3?: undefined;
+            bytes18?: undefined;
+            bytes5?: undefined;
             bytes7?: undefined;
             bytes9?: undefined;
             bytes12?: undefined;
@@ -11879,15 +11787,15 @@ export declare function getWalletClient(): {
             [x: `uint32[${string}]`]: undefined;
             [x: `bytes[${string}]`]: undefined;
             [x: `bytes1[${string}]`]: undefined;
+            [x: `bytes6[${string}]`]: undefined;
             [x: `bytes11[${string}]`]: undefined;
             [x: `bytes2[${string}]`]: undefined;
             [x: `bytes8[${string}]`]: undefined;
             [x: `bytes4[${string}]`]: undefined;
-            [x: `bytes5[${string}]`]: undefined;
             [x: `bytes10[${string}]`]: undefined;
-            [x: `bytes6[${string}]`]: undefined;
-            [x: `bytes18[${string}]`]: undefined;
             [x: `bytes3[${string}]`]: undefined;
+            [x: `bytes18[${string}]`]: undefined;
+            [x: `bytes5[${string}]`]: undefined;
             [x: `bytes7[${string}]`]: undefined;
             [x: `bytes9[${string}]`]: undefined;
             [x: `bytes12[${string}]`]: undefined;
@@ -11981,15 +11889,15 @@ export declare function getWalletClient(): {
             uint32?: undefined;
             bytes?: undefined;
             bytes1?: undefined;
+            bytes6?: undefined;
             bytes11?: undefined;
             bytes2?: undefined;
             bytes8?: undefined;
             bytes4?: undefined;
-            bytes5?: undefined;
             bytes10?: undefined;
-            bytes6?: undefined;
-            bytes18?: undefined;
             bytes3?: undefined;
+            bytes18?: undefined;
+            bytes5?: undefined;
             bytes7?: undefined;
             bytes9?: undefined;
             bytes12?: undefined;
@@ -12084,15 +11992,15 @@ export declare function getWalletClient(): {
             [x: `uint32[${string}]`]: undefined;
             [x: `bytes[${string}]`]: undefined;
             [x: `bytes1[${string}]`]: undefined;
+            [x: `bytes6[${string}]`]: undefined;
             [x: `bytes11[${string}]`]: undefined;
             [x: `bytes2[${string}]`]: undefined;
             [x: `bytes8[${string}]`]: undefined;
             [x: `bytes4[${string}]`]: undefined;
-            [x: `bytes5[${string}]`]: undefined;
             [x: `bytes10[${string}]`]: undefined;
-            [x: `bytes6[${string}]`]: undefined;
-            [x: `bytes18[${string}]`]: undefined;
             [x: `bytes3[${string}]`]: undefined;
+            [x: `bytes18[${string}]`]: undefined;
+            [x: `bytes5[${string}]`]: undefined;
             [x: `bytes7[${string}]`]: undefined;
             [x: `bytes9[${string}]`]: undefined;
             [x: `bytes12[${string}]`]: undefined;
@@ -12186,15 +12094,15 @@ export declare function getWalletClient(): {
             uint32?: undefined;
             bytes?: undefined;
             bytes1?: undefined;
+            bytes6?: undefined;
             bytes11?: undefined;
             bytes2?: undefined;
             bytes8?: undefined;
             bytes4?: undefined;
-            bytes5?: undefined;
             bytes10?: undefined;
-            bytes6?: undefined;
-            bytes18?: undefined;
             bytes3?: undefined;
+            bytes18?: undefined;
+            bytes5?: undefined;
             bytes7?: undefined;
             bytes9?: undefined;
             bytes12?: undefined;
@@ -12410,15 +12318,15 @@ export declare function getWalletClient(): {
             [x: `uint32[${string}]`]: undefined;
             [x: `bytes[${string}]`]: undefined;
             [x: `bytes1[${string}]`]: undefined;
+            [x: `bytes6[${string}]`]: undefined;
             [x: `bytes11[${string}]`]: undefined;
             [x: `bytes2[${string}]`]: undefined;
             [x: `bytes8[${string}]`]: undefined;
             [x: `bytes4[${string}]`]: undefined;
-            [x: `bytes5[${string}]`]: undefined;
             [x: `bytes10[${string}]`]: undefined;
-            [x: `bytes6[${string}]`]: undefined;
-            [x: `bytes18[${string}]`]: undefined;
             [x: `bytes3[${string}]`]: undefined;
+            [x: `bytes18[${string}]`]: undefined;
+            [x: `bytes5[${string}]`]: undefined;
             [x: `bytes7[${string}]`]: undefined;
             [x: `bytes9[${string}]`]: undefined;
             [x: `bytes12[${string}]`]: undefined;
@@ -12512,15 +12420,15 @@ export declare function getWalletClient(): {
             uint32?: undefined;
             bytes?: undefined;
             bytes1?: undefined;
+            bytes6?: undefined;
             bytes11?: undefined;
             bytes2?: undefined;
             bytes8?: undefined;
             bytes4?: undefined;
-            bytes5?: undefined;
             bytes10?: undefined;
-            bytes6?: undefined;
-            bytes18?: undefined;
             bytes3?: undefined;
+            bytes18?: undefined;
+            bytes5?: undefined;
             bytes7?: undefined;
             bytes9?: undefined;
             bytes12?: undefined;
@@ -12615,15 +12523,15 @@ export declare function getWalletClient(): {
             [x: `uint32[${string}]`]: undefined;
             [x: `bytes[${string}]`]: undefined;
             [x: `bytes1[${string}]`]: undefined;
+            [x: `bytes6[${string}]`]: undefined;
             [x: `bytes11[${string}]`]: undefined;
             [x: `bytes2[${string}]`]: undefined;
             [x: `bytes8[${string}]`]: undefined;
             [x: `bytes4[${string}]`]: undefined;
-            [x: `bytes5[${string}]`]: undefined;
             [x: `bytes10[${string}]`]: undefined;
-            [x: `bytes6[${string}]`]: undefined;
-            [x: `bytes18[${string}]`]: undefined;
             [x: `bytes3[${string}]`]: undefined;
+            [x: `bytes18[${string}]`]: undefined;
+            [x: `bytes5[${string}]`]: undefined;
             [x: `bytes7[${string}]`]: undefined;
             [x: `bytes9[${string}]`]: undefined;
             [x: `bytes12[${string}]`]: undefined;
@@ -12717,15 +12625,15 @@ export declare function getWalletClient(): {
             uint32?: undefined;
             bytes?: undefined;
             bytes1?: undefined;
+            bytes6?: undefined;
             bytes11?: undefined;
             bytes2?: undefined;
             bytes8?: undefined;
             bytes4?: undefined;
-            bytes5?: undefined;
             bytes10?: undefined;
-            bytes6?: undefined;
-            bytes18?: undefined;
             bytes3?: undefined;
+            bytes18?: undefined;
+            bytes5?: undefined;
             bytes7?: undefined;
             bytes9?: undefined;
             bytes12?: undefined;
@@ -12926,15 +12834,15 @@ export declare function getWalletClient(): {
             [x: `uint32[${string}]`]: undefined;
             [x: `bytes[${string}]`]: undefined;
             [x: `bytes1[${string}]`]: undefined;
+            [x: `bytes6[${string}]`]: undefined;
             [x: `bytes11[${string}]`]: undefined;
             [x: `bytes2[${string}]`]: undefined;
             [x: `bytes8[${string}]`]: undefined;
             [x: `bytes4[${string}]`]: undefined;
-            [x: `bytes5[${string}]`]: undefined;
             [x: `bytes10[${string}]`]: undefined;
-            [x: `bytes6[${string}]`]: undefined;
-            [x: `bytes18[${string}]`]: undefined;
             [x: `bytes3[${string}]`]: undefined;
+            [x: `bytes18[${string}]`]: undefined;
+            [x: `bytes5[${string}]`]: undefined;
             [x: `bytes7[${string}]`]: undefined;
             [x: `bytes9[${string}]`]: undefined;
             [x: `bytes12[${string}]`]: undefined;
@@ -13028,15 +12936,15 @@ export declare function getWalletClient(): {
             uint32?: undefined;
             bytes?: undefined;
             bytes1?: undefined;
+            bytes6?: undefined;
             bytes11?: undefined;
             bytes2?: undefined;
             bytes8?: undefined;
             bytes4?: undefined;
-            bytes5?: undefined;
             bytes10?: undefined;
-            bytes6?: undefined;
-            bytes18?: undefined;
             bytes3?: undefined;
+            bytes18?: undefined;
+            bytes5?: undefined;
             bytes7?: undefined;
             bytes9?: undefined;
             bytes12?: undefined;
@@ -13131,15 +13039,15 @@ export declare function getWalletClient(): {
             [x: `uint32[${string}]`]: undefined;
             [x: `bytes[${string}]`]: undefined;
             [x: `bytes1[${string}]`]: undefined;
+            [x: `bytes6[${string}]`]: undefined;
             [x: `bytes11[${string}]`]: undefined;
             [x: `bytes2[${string}]`]: undefined;
             [x: `bytes8[${string}]`]: undefined;
             [x: `bytes4[${string}]`]: undefined;
-            [x: `bytes5[${string}]`]: undefined;
             [x: `bytes10[${string}]`]: undefined;
-            [x: `bytes6[${string}]`]: undefined;
-            [x: `bytes18[${string}]`]: undefined;
             [x: `bytes3[${string}]`]: undefined;
+            [x: `bytes18[${string}]`]: undefined;
+            [x: `bytes5[${string}]`]: undefined;
             [x: `bytes7[${string}]`]: undefined;
             [x: `bytes9[${string}]`]: undefined;
             [x: `bytes12[${string}]`]: undefined;
@@ -13233,15 +13141,15 @@ export declare function getWalletClient(): {
             uint32?: undefined;
             bytes?: undefined;
             bytes1?: undefined;
+            bytes6?: undefined;
             bytes11?: undefined;
             bytes2?: undefined;
             bytes8?: undefined;
             bytes4?: undefined;
-            bytes5?: undefined;
             bytes10?: undefined;
-            bytes6?: undefined;
-            bytes18?: undefined;
             bytes3?: undefined;
+            bytes18?: undefined;
+            bytes5?: undefined;
             bytes7?: undefined;
             bytes9?: undefined;
             bytes12?: undefined;
@@ -13355,15 +13263,15 @@ export declare function getWalletClient(): {
             [x: `uint32[${string}]`]: undefined;
             [x: `bytes[${string}]`]: undefined;
             [x: `bytes1[${string}]`]: undefined;
+            [x: `bytes6[${string}]`]: undefined;
             [x: `bytes11[${string}]`]: undefined;
             [x: `bytes2[${string}]`]: undefined;
             [x: `bytes8[${string}]`]: undefined;
             [x: `bytes4[${string}]`]: undefined;
-            [x: `bytes5[${string}]`]: undefined;
             [x: `bytes10[${string}]`]: undefined;
-            [x: `bytes6[${string}]`]: undefined;
-            [x: `bytes18[${string}]`]: undefined;
             [x: `bytes3[${string}]`]: undefined;
+            [x: `bytes18[${string}]`]: undefined;
+            [x: `bytes5[${string}]`]: undefined;
             [x: `bytes7[${string}]`]: undefined;
             [x: `bytes9[${string}]`]: undefined;
             [x: `bytes12[${string}]`]: undefined;
@@ -13457,15 +13365,15 @@ export declare function getWalletClient(): {
             uint32?: undefined;
             bytes?: undefined;
             bytes1?: undefined;
+            bytes6?: undefined;
             bytes11?: undefined;
             bytes2?: undefined;
             bytes8?: undefined;
             bytes4?: undefined;
-            bytes5?: undefined;
             bytes10?: undefined;
-            bytes6?: undefined;
-            bytes18?: undefined;
             bytes3?: undefined;
+            bytes18?: undefined;
+            bytes5?: undefined;
             bytes7?: undefined;
             bytes9?: undefined;
             bytes12?: undefined;
@@ -13560,15 +13468,15 @@ export declare function getWalletClient(): {
             [x: `uint32[${string}]`]: undefined;
             [x: `bytes[${string}]`]: undefined;
             [x: `bytes1[${string}]`]: undefined;
+            [x: `bytes6[${string}]`]: undefined;
             [x: `bytes11[${string}]`]: undefined;
             [x: `bytes2[${string}]`]: undefined;
             [x: `bytes8[${string}]`]: undefined;
             [x: `bytes4[${string}]`]: undefined;
-            [x: `bytes5[${string}]`]: undefined;
             [x: `bytes10[${string}]`]: undefined;
-            [x: `bytes6[${string}]`]: undefined;
-            [x: `bytes18[${string}]`]: undefined;
             [x: `bytes3[${string}]`]: undefined;
+            [x: `bytes18[${string}]`]: undefined;
+            [x: `bytes5[${string}]`]: undefined;
             [x: `bytes7[${string}]`]: undefined;
             [x: `bytes9[${string}]`]: undefined;
             [x: `bytes12[${string}]`]: undefined;
@@ -13662,15 +13570,15 @@ export declare function getWalletClient(): {
             uint32?: undefined;
             bytes?: undefined;
             bytes1?: undefined;
+            bytes6?: undefined;
             bytes11?: undefined;
             bytes2?: undefined;
             bytes8?: undefined;
             bytes4?: undefined;
-            bytes5?: undefined;
             bytes10?: undefined;
-            bytes6?: undefined;
-            bytes18?: undefined;
             bytes3?: undefined;
+            bytes18?: undefined;
+            bytes5?: undefined;
             bytes7?: undefined;
             bytes9?: undefined;
             bytes12?: undefined;
@@ -13783,15 +13691,15 @@ export declare function getWalletClient(): {
             [x: `uint32[${string}]`]: undefined;
             [x: `bytes[${string}]`]: undefined;
             [x: `bytes1[${string}]`]: undefined;
+            [x: `bytes6[${string}]`]: undefined;
             [x: `bytes11[${string}]`]: undefined;
             [x: `bytes2[${string}]`]: undefined;
             [x: `bytes8[${string}]`]: undefined;
             [x: `bytes4[${string}]`]: undefined;
-            [x: `bytes5[${string}]`]: undefined;
             [x: `bytes10[${string}]`]: undefined;
-            [x: `bytes6[${string}]`]: undefined;
-            [x: `bytes18[${string}]`]: undefined;
             [x: `bytes3[${string}]`]: undefined;
+            [x: `bytes18[${string}]`]: undefined;
+            [x: `bytes5[${string}]`]: undefined;
             [x: `bytes7[${string}]`]: undefined;
             [x: `bytes9[${string}]`]: undefined;
             [x: `bytes12[${string}]`]: undefined;
@@ -13885,15 +13793,15 @@ export declare function getWalletClient(): {
             uint32?: undefined;
             bytes?: undefined;
             bytes1?: undefined;
+            bytes6?: undefined;
             bytes11?: undefined;
             bytes2?: undefined;
             bytes8?: undefined;
             bytes4?: undefined;
-            bytes5?: undefined;
             bytes10?: undefined;
-            bytes6?: undefined;
-            bytes18?: undefined;
             bytes3?: undefined;
+            bytes18?: undefined;
+            bytes5?: undefined;
             bytes7?: undefined;
             bytes9?: undefined;
             bytes12?: undefined;
@@ -13988,15 +13896,15 @@ export declare function getWalletClient(): {
             [x: `uint32[${string}]`]: undefined;
             [x: `bytes[${string}]`]: undefined;
             [x: `bytes1[${string}]`]: undefined;
+            [x: `bytes6[${string}]`]: undefined;
             [x: `bytes11[${string}]`]: undefined;
             [x: `bytes2[${string}]`]: undefined;
             [x: `bytes8[${string}]`]: undefined;
             [x: `bytes4[${string}]`]: undefined;
-            [x: `bytes5[${string}]`]: undefined;
             [x: `bytes10[${string}]`]: undefined;
-            [x: `bytes6[${string}]`]: undefined;
-            [x: `bytes18[${string}]`]: undefined;
             [x: `bytes3[${string}]`]: undefined;
+            [x: `bytes18[${string}]`]: undefined;
+            [x: `bytes5[${string}]`]: undefined;
             [x: `bytes7[${string}]`]: undefined;
             [x: `bytes9[${string}]`]: undefined;
             [x: `bytes12[${string}]`]: undefined;
@@ -14090,15 +13998,15 @@ export declare function getWalletClient(): {
             uint32?: undefined;
             bytes?: undefined;
             bytes1?: undefined;
+            bytes6?: undefined;
             bytes11?: undefined;
             bytes2?: undefined;
             bytes8?: undefined;
             bytes4?: undefined;
-            bytes5?: undefined;
             bytes10?: undefined;
-            bytes6?: undefined;
-            bytes18?: undefined;
             bytes3?: undefined;
+            bytes18?: undefined;
+            bytes5?: undefined;
             bytes7?: undefined;
             bytes9?: undefined;
             bytes12?: undefined;
@@ -14343,15 +14251,15 @@ export declare function getWalletClient(): {
             [x: `uint32[${string}]`]: undefined;
             [x: `bytes[${string}]`]: undefined;
             [x: `bytes1[${string}]`]: undefined;
+            [x: `bytes6[${string}]`]: undefined;
             [x: `bytes11[${string}]`]: undefined;
             [x: `bytes2[${string}]`]: undefined;
             [x: `bytes8[${string}]`]: undefined;
             [x: `bytes4[${string}]`]: undefined;
-            [x: `bytes5[${string}]`]: undefined;
             [x: `bytes10[${string}]`]: undefined;
-            [x: `bytes6[${string}]`]: undefined;
-            [x: `bytes18[${string}]`]: undefined;
             [x: `bytes3[${string}]`]: undefined;
+            [x: `bytes18[${string}]`]: undefined;
+            [x: `bytes5[${string}]`]: undefined;
             [x: `bytes7[${string}]`]: undefined;
             [x: `bytes9[${string}]`]: undefined;
             [x: `bytes12[${string}]`]: undefined;
@@ -14445,15 +14353,15 @@ export declare function getWalletClient(): {
             uint32?: undefined;
             bytes?: undefined;
             bytes1?: undefined;
+            bytes6?: undefined;
             bytes11?: undefined;
             bytes2?: undefined;
             bytes8?: undefined;
             bytes4?: undefined;
-            bytes5?: undefined;
             bytes10?: undefined;
-            bytes6?: undefined;
-            bytes18?: undefined;
             bytes3?: undefined;
+            bytes18?: undefined;
+            bytes5?: undefined;
             bytes7?: undefined;
             bytes9?: undefined;
             bytes12?: undefined;
@@ -14548,15 +14456,15 @@ export declare function getWalletClient(): {
             [x: `uint32[${string}]`]: undefined;
             [x: `bytes[${string}]`]: undefined;
             [x: `bytes1[${string}]`]: undefined;
+            [x: `bytes6[${string}]`]: undefined;
             [x: `bytes11[${string}]`]: undefined;
             [x: `bytes2[${string}]`]: undefined;
             [x: `bytes8[${string}]`]: undefined;
             [x: `bytes4[${string}]`]: undefined;
-            [x: `bytes5[${string}]`]: undefined;
             [x: `bytes10[${string}]`]: undefined;
-            [x: `bytes6[${string}]`]: undefined;
-            [x: `bytes18[${string}]`]: undefined;
             [x: `bytes3[${string}]`]: undefined;
+            [x: `bytes18[${string}]`]: undefined;
+            [x: `bytes5[${string}]`]: undefined;
             [x: `bytes7[${string}]`]: undefined;
             [x: `bytes9[${string}]`]: undefined;
             [x: `bytes12[${string}]`]: undefined;
@@ -14650,15 +14558,15 @@ export declare function getWalletClient(): {
             uint32?: undefined;
             bytes?: undefined;
             bytes1?: undefined;
+            bytes6?: undefined;
             bytes11?: undefined;
             bytes2?: undefined;
             bytes8?: undefined;
             bytes4?: undefined;
-            bytes5?: undefined;
             bytes10?: undefined;
-            bytes6?: undefined;
-            bytes18?: undefined;
             bytes3?: undefined;
+            bytes18?: undefined;
+            bytes5?: undefined;
             bytes7?: undefined;
             bytes9?: undefined;
             bytes12?: undefined;
@@ -15649,15 +15557,15 @@ export declare function getWalletClient(): {
         [x: `uint32[${string}]`]: undefined;
         [x: `bytes[${string}]`]: undefined;
         [x: `bytes1[${string}]`]: undefined;
+        [x: `bytes6[${string}]`]: undefined;
         [x: `bytes11[${string}]`]: undefined;
         [x: `bytes2[${string}]`]: undefined;
         [x: `bytes8[${string}]`]: undefined;
         [x: `bytes4[${string}]`]: undefined;
-        [x: `bytes5[${string}]`]: undefined;
         [x: `bytes10[${string}]`]: undefined;
-        [x: `bytes6[${string}]`]: undefined;
-        [x: `bytes18[${string}]`]: undefined;
         [x: `bytes3[${string}]`]: undefined;
+        [x: `bytes18[${string}]`]: undefined;
+        [x: `bytes5[${string}]`]: undefined;
         [x: `bytes7[${string}]`]: undefined;
         [x: `bytes9[${string}]`]: undefined;
         [x: `bytes12[${string}]`]: undefined;
@@ -15751,15 +15659,15 @@ export declare function getWalletClient(): {
         uint32?: undefined;
         bytes?: undefined;
         bytes1?: undefined;
+        bytes6?: undefined;
         bytes11?: undefined;
         bytes2?: undefined;
         bytes8?: undefined;
         bytes4?: undefined;
-        bytes5?: undefined;
         bytes10?: undefined;
-        bytes6?: undefined;
-        bytes18?: undefined;
         bytes3?: undefined;
+        bytes18?: undefined;
+        bytes5?: undefined;
         bytes7?: undefined;
         bytes9?: undefined;
         bytes12?: undefined;
@@ -15869,15 +15777,15 @@ export declare function getWalletClient(): {
             [x: `uint32[${string}]`]: undefined;
             [x: `bytes[${string}]`]: undefined;
             [x: `bytes1[${string}]`]: undefined;
+            [x: `bytes6[${string}]`]: undefined;
             [x: `bytes11[${string}]`]: undefined;
             [x: `bytes2[${string}]`]: undefined;
             [x: `bytes8[${string}]`]: undefined;
             [x: `bytes4[${string}]`]: undefined;
-            [x: `bytes5[${string}]`]: undefined;
             [x: `bytes10[${string}]`]: undefined;
-            [x: `bytes6[${string}]`]: undefined;
-            [x: `bytes18[${string}]`]: undefined;
             [x: `bytes3[${string}]`]: undefined;
+            [x: `bytes18[${string}]`]: undefined;
+            [x: `bytes5[${string}]`]: undefined;
             [x: `bytes7[${string}]`]: undefined;
             [x: `bytes9[${string}]`]: undefined;
             [x: `bytes12[${string}]`]: undefined;
@@ -15971,15 +15879,15 @@ export declare function getWalletClient(): {
             uint32?: undefined;
             bytes?: undefined;
             bytes1?: undefined;
+            bytes6?: undefined;
             bytes11?: undefined;
             bytes2?: undefined;
             bytes8?: undefined;
             bytes4?: undefined;
-            bytes5?: undefined;
             bytes10?: undefined;
-            bytes6?: undefined;
-            bytes18?: undefined;
             bytes3?: undefined;
+            bytes18?: undefined;
+            bytes5?: undefined;
             bytes7?: undefined;
             bytes9?: undefined;
             bytes12?: undefined;
@@ -16074,15 +15982,15 @@ export declare function getWalletClient(): {
             [x: `uint32[${string}]`]: undefined;
             [x: `bytes[${string}]`]: undefined;
             [x: `bytes1[${string}]`]: undefined;
+            [x: `bytes6[${string}]`]: undefined;
             [x: `bytes11[${string}]`]: undefined;
             [x: `bytes2[${string}]`]: undefined;
             [x: `bytes8[${string}]`]: undefined;
             [x: `bytes4[${string}]`]: undefined;
-            [x: `bytes5[${string}]`]: undefined;
             [x: `bytes10[${string}]`]: undefined;
-            [x: `bytes6[${string}]`]: undefined;
-            [x: `bytes18[${string}]`]: undefined;
             [x: `bytes3[${string}]`]: undefined;
+            [x: `bytes18[${string}]`]: undefined;
+            [x: `bytes5[${string}]`]: undefined;
             [x: `bytes7[${string}]`]: undefined;
             [x: `bytes9[${string}]`]: undefined;
             [x: `bytes12[${string}]`]: undefined;
@@ -16176,15 +16084,15 @@ export declare function getWalletClient(): {
             uint32?: undefined;
             bytes?: undefined;
             bytes1?: undefined;
+            bytes6?: undefined;
             bytes11?: undefined;
             bytes2?: undefined;
             bytes8?: undefined;
             bytes4?: undefined;
-            bytes5?: undefined;
             bytes10?: undefined;
-            bytes6?: undefined;
-            bytes18?: undefined;
             bytes3?: undefined;
+            bytes18?: undefined;
+            bytes5?: undefined;
             bytes7?: undefined;
             bytes9?: undefined;
             bytes12?: undefined;
@@ -16344,15 +16252,15 @@ export declare function getWalletClient(): {
             [x: `uint32[${string}]`]: undefined;
             [x: `bytes[${string}]`]: undefined;
             [x: `bytes1[${string}]`]: undefined;
+            [x: `bytes6[${string}]`]: undefined;
             [x: `bytes11[${string}]`]: undefined;
             [x: `bytes2[${string}]`]: undefined;
             [x: `bytes8[${string}]`]: undefined;
             [x: `bytes4[${string}]`]: undefined;
-            [x: `bytes5[${string}]`]: undefined;
             [x: `bytes10[${string}]`]: undefined;
-            [x: `bytes6[${string}]`]: undefined;
-            [x: `bytes18[${string}]`]: undefined;
             [x: `bytes3[${string}]`]: undefined;
+            [x: `bytes18[${string}]`]: undefined;
+            [x: `bytes5[${string}]`]: undefined;
             [x: `bytes7[${string}]`]: undefined;
             [x: `bytes9[${string}]`]: undefined;
             [x: `bytes12[${string}]`]: undefined;
@@ -16446,15 +16354,15 @@ export declare function getWalletClient(): {
             uint32?: undefined;
             bytes?: undefined;
             bytes1?: undefined;
+            bytes6?: undefined;
             bytes11?: undefined;
             bytes2?: undefined;
             bytes8?: undefined;
             bytes4?: undefined;
-            bytes5?: undefined;
             bytes10?: undefined;
-            bytes6?: undefined;
-            bytes18?: undefined;
             bytes3?: undefined;
+            bytes18?: undefined;
+            bytes5?: undefined;
             bytes7?: undefined;
             bytes9?: undefined;
             bytes12?: undefined;
@@ -16549,15 +16457,15 @@ export declare function getWalletClient(): {
             [x: `uint32[${string}]`]: undefined;
             [x: `bytes[${string}]`]: undefined;
             [x: `bytes1[${string}]`]: undefined;
+            [x: `bytes6[${string}]`]: undefined;
             [x: `bytes11[${string}]`]: undefined;
             [x: `bytes2[${string}]`]: undefined;
             [x: `bytes8[${string}]`]: undefined;
             [x: `bytes4[${string}]`]: undefined;
-            [x: `bytes5[${string}]`]: undefined;
             [x: `bytes10[${string}]`]: undefined;
-            [x: `bytes6[${string}]`]: undefined;
-            [x: `bytes18[${string}]`]: undefined;
             [x: `bytes3[${string}]`]: undefined;
+            [x: `bytes18[${string}]`]: undefined;
+            [x: `bytes5[${string}]`]: undefined;
             [x: `bytes7[${string}]`]: undefined;
             [x: `bytes9[${string}]`]: undefined;
             [x: `bytes12[${string}]`]: undefined;
@@ -16651,15 +16559,15 @@ export declare function getWalletClient(): {
             uint32?: undefined;
             bytes?: undefined;
             bytes1?: undefined;
+            bytes6?: undefined;
             bytes11?: undefined;
             bytes2?: undefined;
             bytes8?: undefined;
             bytes4?: undefined;
-            bytes5?: undefined;
             bytes10?: undefined;
-            bytes6?: undefined;
-            bytes18?: undefined;
             bytes3?: undefined;
+            bytes18?: undefined;
+            bytes5?: undefined;
             bytes7?: undefined;
             bytes9?: undefined;
             bytes12?: undefined;
@@ -16816,15 +16724,15 @@ export declare function getWalletClient(): {
             [x: `uint32[${string}]`]: undefined;
             [x: `bytes[${string}]`]: undefined;
             [x: `bytes1[${string}]`]: undefined;
+            [x: `bytes6[${string}]`]: undefined;
             [x: `bytes11[${string}]`]: undefined;
             [x: `bytes2[${string}]`]: undefined;
             [x: `bytes8[${string}]`]: undefined;
             [x: `bytes4[${string}]`]: undefined;
-            [x: `bytes5[${string}]`]: undefined;
             [x: `bytes10[${string}]`]: undefined;
-            [x: `bytes6[${string}]`]: undefined;
-            [x: `bytes18[${string}]`]: undefined;
             [x: `bytes3[${string}]`]: undefined;
+            [x: `bytes18[${string}]`]: undefined;
+            [x: `bytes5[${string}]`]: undefined;
             [x: `bytes7[${string}]`]: undefined;
             [x: `bytes9[${string}]`]: undefined;
             [x: `bytes12[${string}]`]: undefined;
@@ -16918,15 +16826,15 @@ export declare function getWalletClient(): {
             uint32?: undefined;
             bytes?: undefined;
             bytes1?: undefined;
+            bytes6?: undefined;
             bytes11?: undefined;
             bytes2?: undefined;
             bytes8?: undefined;
             bytes4?: undefined;
-            bytes5?: undefined;
             bytes10?: undefined;
-            bytes6?: undefined;
-            bytes18?: undefined;
             bytes3?: undefined;
+            bytes18?: undefined;
+            bytes5?: undefined;
             bytes7?: undefined;
             bytes9?: undefined;
             bytes12?: undefined;
@@ -17021,15 +16929,15 @@ export declare function getWalletClient(): {
             [x: `uint32[${string}]`]: undefined;
             [x: `bytes[${string}]`]: undefined;
             [x: `bytes1[${string}]`]: undefined;
+            [x: `bytes6[${string}]`]: undefined;
             [x: `bytes11[${string}]`]: undefined;
             [x: `bytes2[${string}]`]: undefined;
             [x: `bytes8[${string}]`]: undefined;
             [x: `bytes4[${string}]`]: undefined;
-            [x: `bytes5[${string}]`]: undefined;
             [x: `bytes10[${string}]`]: undefined;
-            [x: `bytes6[${string}]`]: undefined;
-            [x: `bytes18[${string}]`]: undefined;
             [x: `bytes3[${string}]`]: undefined;
+            [x: `bytes18[${string}]`]: undefined;
+            [x: `bytes5[${string}]`]: undefined;
             [x: `bytes7[${string}]`]: undefined;
             [x: `bytes9[${string}]`]: undefined;
             [x: `bytes12[${string}]`]: undefined;
@@ -17123,15 +17031,15 @@ export declare function getWalletClient(): {
             uint32?: undefined;
             bytes?: undefined;
             bytes1?: undefined;
+            bytes6?: undefined;
             bytes11?: undefined;
             bytes2?: undefined;
             bytes8?: undefined;
             bytes4?: undefined;
-            bytes5?: undefined;
             bytes10?: undefined;
-            bytes6?: undefined;
-            bytes18?: undefined;
             bytes3?: undefined;
+            bytes18?: undefined;
+            bytes5?: undefined;
             bytes7?: undefined;
             bytes9?: undefined;
             bytes12?: undefined;
@@ -17304,15 +17212,15 @@ export declare function getWalletClient(): {
             [x: `uint32[${string}]`]: undefined;
             [x: `bytes[${string}]`]: undefined;
             [x: `bytes1[${string}]`]: undefined;
+            [x: `bytes6[${string}]`]: undefined;
             [x: `bytes11[${string}]`]: undefined;
             [x: `bytes2[${string}]`]: undefined;
             [x: `bytes8[${string}]`]: undefined;
             [x: `bytes4[${string}]`]: undefined;
-            [x: `bytes5[${string}]`]: undefined;
             [x: `bytes10[${string}]`]: undefined;
-            [x: `bytes6[${string}]`]: undefined;
-            [x: `bytes18[${string}]`]: undefined;
             [x: `bytes3[${string}]`]: undefined;
+            [x: `bytes18[${string}]`]: undefined;
+            [x: `bytes5[${string}]`]: undefined;
             [x: `bytes7[${string}]`]: undefined;
             [x: `bytes9[${string}]`]: undefined;
             [x: `bytes12[${string}]`]: undefined;
@@ -17406,15 +17314,15 @@ export declare function getWalletClient(): {
             uint32?: undefined;
             bytes?: undefined;
             bytes1?: undefined;
+            bytes6?: undefined;
             bytes11?: undefined;
             bytes2?: undefined;
             bytes8?: undefined;
             bytes4?: undefined;
-            bytes5?: undefined;
             bytes10?: undefined;
-            bytes6?: undefined;
-            bytes18?: undefined;
             bytes3?: undefined;
+            bytes18?: undefined;
+            bytes5?: undefined;
             bytes7?: undefined;
             bytes9?: undefined;
             bytes12?: undefined;
@@ -17509,15 +17417,15 @@ export declare function getWalletClient(): {
             [x: `uint32[${string}]`]: undefined;
             [x: `bytes[${string}]`]: undefined;
             [x: `bytes1[${string}]`]: undefined;
+            [x: `bytes6[${string}]`]: undefined;
             [x: `bytes11[${string}]`]: undefined;
             [x: `bytes2[${string}]`]: undefined;
             [x: `bytes8[${string}]`]: undefined;
             [x: `bytes4[${string}]`]: undefined;
-            [x: `bytes5[${string}]`]: undefined;
             [x: `bytes10[${string}]`]: undefined;
-            [x: `bytes6[${string}]`]: undefined;
-            [x: `bytes18[${string}]`]: undefined;
             [x: `bytes3[${string}]`]: undefined;
+            [x: `bytes18[${string}]`]: undefined;
+            [x: `bytes5[${string}]`]: undefined;
             [x: `bytes7[${string}]`]: undefined;
             [x: `bytes9[${string}]`]: undefined;
             [x: `bytes12[${string}]`]: undefined;
@@ -17611,15 +17519,15 @@ export declare function getWalletClient(): {
             uint32?: undefined;
             bytes?: undefined;
             bytes1?: undefined;
+            bytes6?: undefined;
             bytes11?: undefined;
             bytes2?: undefined;
             bytes8?: undefined;
             bytes4?: undefined;
-            bytes5?: undefined;
             bytes10?: undefined;
-            bytes6?: undefined;
-            bytes18?: undefined;
             bytes3?: undefined;
+            bytes18?: undefined;
+            bytes5?: undefined;
             bytes7?: undefined;
             bytes9?: undefined;
             bytes12?: undefined;
@@ -17775,15 +17683,15 @@ export declare function getWalletClient(): {
             [x: `uint32[${string}]`]: undefined;
             [x: `bytes[${string}]`]: undefined;
             [x: `bytes1[${string}]`]: undefined;
+            [x: `bytes6[${string}]`]: undefined;
             [x: `bytes11[${string}]`]: undefined;
             [x: `bytes2[${string}]`]: undefined;
             [x: `bytes8[${string}]`]: undefined;
             [x: `bytes4[${string}]`]: undefined;
-            [x: `bytes5[${string}]`]: undefined;
             [x: `bytes10[${string}]`]: undefined;
-            [x: `bytes6[${string}]`]: undefined;
-            [x: `bytes18[${string}]`]: undefined;
             [x: `bytes3[${string}]`]: undefined;
+            [x: `bytes18[${string}]`]: undefined;
+            [x: `bytes5[${string}]`]: undefined;
             [x: `bytes7[${string}]`]: undefined;
             [x: `bytes9[${string}]`]: undefined;
             [x: `bytes12[${string}]`]: undefined;
@@ -17877,15 +17785,15 @@ export declare function getWalletClient(): {
             uint32?: undefined;
             bytes?: undefined;
             bytes1?: undefined;
+            bytes6?: undefined;
             bytes11?: undefined;
             bytes2?: undefined;
             bytes8?: undefined;
             bytes4?: undefined;
-            bytes5?: undefined;
             bytes10?: undefined;
-            bytes6?: undefined;
-            bytes18?: undefined;
             bytes3?: undefined;
+            bytes18?: undefined;
+            bytes5?: undefined;
             bytes7?: undefined;
             bytes9?: undefined;
             bytes12?: undefined;
@@ -17980,15 +17888,15 @@ export declare function getWalletClient(): {
             [x: `uint32[${string}]`]: undefined;
             [x: `bytes[${string}]`]: undefined;
             [x: `bytes1[${string}]`]: undefined;
+            [x: `bytes6[${string}]`]: undefined;
             [x: `bytes11[${string}]`]: undefined;
             [x: `bytes2[${string}]`]: undefined;
             [x: `bytes8[${string}]`]: undefined;
             [x: `bytes4[${string}]`]: undefined;
-            [x: `bytes5[${string}]`]: undefined;
             [x: `bytes10[${string}]`]: undefined;
-            [x: `bytes6[${string}]`]: undefined;
-            [x: `bytes18[${string}]`]: undefined;
             [x: `bytes3[${string}]`]: undefined;
+            [x: `bytes18[${string}]`]: undefined;
+            [x: `bytes5[${string}]`]: undefined;
             [x: `bytes7[${string}]`]: undefined;
             [x: `bytes9[${string}]`]: undefined;
             [x: `bytes12[${string}]`]: undefined;
@@ -18082,15 +17990,15 @@ export declare function getWalletClient(): {
             uint32?: undefined;
             bytes?: undefined;
             bytes1?: undefined;
+            bytes6?: undefined;
             bytes11?: undefined;
             bytes2?: undefined;
             bytes8?: undefined;
             bytes4?: undefined;
-            bytes5?: undefined;
             bytes10?: undefined;
-            bytes6?: undefined;
-            bytes18?: undefined;
             bytes3?: undefined;
+            bytes18?: undefined;
+            bytes5?: undefined;
             bytes7?: undefined;
             bytes9?: undefined;
             bytes12?: undefined;
@@ -18246,15 +18154,15 @@ export declare function getWalletClient(): {
             [x: `uint32[${string}]`]: undefined;
             [x: `bytes[${string}]`]: undefined;
             [x: `bytes1[${string}]`]: undefined;
+            [x: `bytes6[${string}]`]: undefined;
             [x: `bytes11[${string}]`]: undefined;
             [x: `bytes2[${string}]`]: undefined;
             [x: `bytes8[${string}]`]: undefined;
             [x: `bytes4[${string}]`]: undefined;
-            [x: `bytes5[${string}]`]: undefined;
             [x: `bytes10[${string}]`]: undefined;
-            [x: `bytes6[${string}]`]: undefined;
-            [x: `bytes18[${string}]`]: undefined;
             [x: `bytes3[${string}]`]: undefined;
+            [x: `bytes18[${string}]`]: undefined;
+            [x: `bytes5[${string}]`]: undefined;
             [x: `bytes7[${string}]`]: undefined;
             [x: `bytes9[${string}]`]: undefined;
             [x: `bytes12[${string}]`]: undefined;
@@ -18348,15 +18256,15 @@ export declare function getWalletClient(): {
             uint32?: undefined;
             bytes?: undefined;
             bytes1?: undefined;
+            bytes6?: undefined;
             bytes11?: undefined;
             bytes2?: undefined;
             bytes8?: undefined;
             bytes4?: undefined;
-            bytes5?: undefined;
             bytes10?: undefined;
-            bytes6?: undefined;
-            bytes18?: undefined;
             bytes3?: undefined;
+            bytes18?: undefined;
+            bytes5?: undefined;
             bytes7?: undefined;
             bytes9?: undefined;
             bytes12?: undefined;
@@ -18451,15 +18359,15 @@ export declare function getWalletClient(): {
             [x: `uint32[${string}]`]: undefined;
             [x: `bytes[${string}]`]: undefined;
             [x: `bytes1[${string}]`]: undefined;
+            [x: `bytes6[${string}]`]: undefined;
             [x: `bytes11[${string}]`]: undefined;
             [x: `bytes2[${string}]`]: undefined;
             [x: `bytes8[${string}]`]: undefined;
             [x: `bytes4[${string}]`]: undefined;
-            [x: `bytes5[${string}]`]: undefined;
             [x: `bytes10[${string}]`]: undefined;
-            [x: `bytes6[${string}]`]: undefined;
-            [x: `bytes18[${string}]`]: undefined;
             [x: `bytes3[${string}]`]: undefined;
+            [x: `bytes18[${string}]`]: undefined;
+            [x: `bytes5[${string}]`]: undefined;
             [x: `bytes7[${string}]`]: undefined;
             [x: `bytes9[${string}]`]: undefined;
             [x: `bytes12[${string}]`]: undefined;
@@ -18553,15 +18461,15 @@ export declare function getWalletClient(): {
             uint32?: undefined;
             bytes?: undefined;
             bytes1?: undefined;
+            bytes6?: undefined;
             bytes11?: undefined;
             bytes2?: undefined;
             bytes8?: undefined;
             bytes4?: undefined;
-            bytes5?: undefined;
             bytes10?: undefined;
-            bytes6?: undefined;
-            bytes18?: undefined;
             bytes3?: undefined;
+            bytes18?: undefined;
+            bytes5?: undefined;
             bytes7?: undefined;
             bytes9?: undefined;
             bytes12?: undefined;
@@ -18717,15 +18625,15 @@ export declare function getWalletClient(): {
             [x: `uint32[${string}]`]: undefined;
             [x: `bytes[${string}]`]: undefined;
             [x: `bytes1[${string}]`]: undefined;
+            [x: `bytes6[${string}]`]: undefined;
             [x: `bytes11[${string}]`]: undefined;
             [x: `bytes2[${string}]`]: undefined;
             [x: `bytes8[${string}]`]: undefined;
             [x: `bytes4[${string}]`]: undefined;
-            [x: `bytes5[${string}]`]: undefined;
             [x: `bytes10[${string}]`]: undefined;
-            [x: `bytes6[${string}]`]: undefined;
-            [x: `bytes18[${string}]`]: undefined;
             [x: `bytes3[${string}]`]: undefined;
+            [x: `bytes18[${string}]`]: undefined;
+            [x: `bytes5[${string}]`]: undefined;
             [x: `bytes7[${string}]`]: undefined;
             [x: `bytes9[${string}]`]: undefined;
             [x: `bytes12[${string}]`]: undefined;
@@ -18819,15 +18727,15 @@ export declare function getWalletClient(): {
             uint32?: undefined;
             bytes?: undefined;
             bytes1?: undefined;
+            bytes6?: undefined;
             bytes11?: undefined;
             bytes2?: undefined;
             bytes8?: undefined;
             bytes4?: undefined;
-            bytes5?: undefined;
             bytes10?: undefined;
-            bytes6?: undefined;
-            bytes18?: undefined;
             bytes3?: undefined;
+            bytes18?: undefined;
+            bytes5?: undefined;
             bytes7?: undefined;
             bytes9?: undefined;
             bytes12?: undefined;
@@ -18922,15 +18830,15 @@ export declare function getWalletClient(): {
             [x: `uint32[${string}]`]: undefined;
             [x: `bytes[${string}]`]: undefined;
             [x: `bytes1[${string}]`]: undefined;
+            [x: `bytes6[${string}]`]: undefined;
             [x: `bytes11[${string}]`]: undefined;
             [x: `bytes2[${string}]`]: undefined;
             [x: `bytes8[${string}]`]: undefined;
             [x: `bytes4[${string}]`]: undefined;
-            [x: `bytes5[${string}]`]: undefined;
             [x: `bytes10[${string}]`]: undefined;
-            [x: `bytes6[${string}]`]: undefined;
-            [x: `bytes18[${string}]`]: undefined;
             [x: `bytes3[${string}]`]: undefined;
+            [x: `bytes18[${string}]`]: undefined;
+            [x: `bytes5[${string}]`]: undefined;
             [x: `bytes7[${string}]`]: undefined;
             [x: `bytes9[${string}]`]: undefined;
             [x: `bytes12[${string}]`]: undefined;
@@ -19024,15 +18932,15 @@ export declare function getWalletClient(): {
             uint32?: undefined;
             bytes?: undefined;
             bytes1?: undefined;
+            bytes6?: undefined;
             bytes11?: undefined;
             bytes2?: undefined;
             bytes8?: undefined;
             bytes4?: undefined;
-            bytes5?: undefined;
             bytes10?: undefined;
-            bytes6?: undefined;
-            bytes18?: undefined;
             bytes3?: undefined;
+            bytes18?: undefined;
+            bytes5?: undefined;
             bytes7?: undefined;
             bytes9?: undefined;
             bytes12?: undefined;
@@ -19188,15 +19096,15 @@ export declare function getWalletClient(): {
             [x: `uint32[${string}]`]: undefined;
             [x: `bytes[${string}]`]: undefined;
             [x: `bytes1[${string}]`]: undefined;
+            [x: `bytes6[${string}]`]: undefined;
             [x: `bytes11[${string}]`]: undefined;
             [x: `bytes2[${string}]`]: undefined;
             [x: `bytes8[${string}]`]: undefined;
             [x: `bytes4[${string}]`]: undefined;
-            [x: `bytes5[${string}]`]: undefined;
             [x: `bytes10[${string}]`]: undefined;
-            [x: `bytes6[${string}]`]: undefined;
-            [x: `bytes18[${string}]`]: undefined;
             [x: `bytes3[${string}]`]: undefined;
+            [x: `bytes18[${string}]`]: undefined;
+            [x: `bytes5[${string}]`]: undefined;
             [x: `bytes7[${string}]`]: undefined;
             [x: `bytes9[${string}]`]: undefined;
             [x: `bytes12[${string}]`]: undefined;
@@ -19290,15 +19198,15 @@ export declare function getWalletClient(): {
             uint32?: undefined;
             bytes?: undefined;
             bytes1?: undefined;
+            bytes6?: undefined;
             bytes11?: undefined;
             bytes2?: undefined;
             bytes8?: undefined;
             bytes4?: undefined;
-            bytes5?: undefined;
             bytes10?: undefined;
-            bytes6?: undefined;
-            bytes18?: undefined;
             bytes3?: undefined;
+            bytes18?: undefined;
+            bytes5?: undefined;
             bytes7?: undefined;
             bytes9?: undefined;
             bytes12?: undefined;
@@ -19393,15 +19301,15 @@ export declare function getWalletClient(): {
             [x: `uint32[${string}]`]: undefined;
             [x: `bytes[${string}]`]: undefined;
             [x: `bytes1[${string}]`]: undefined;
+            [x: `bytes6[${string}]`]: undefined;
             [x: `bytes11[${string}]`]: undefined;
             [x: `bytes2[${string}]`]: undefined;
             [x: `bytes8[${string}]`]: undefined;
             [x: `bytes4[${string}]`]: undefined;
-            [x: `bytes5[${string}]`]: undefined;
             [x: `bytes10[${string}]`]: undefined;
-            [x: `bytes6[${string}]`]: undefined;
-            [x: `bytes18[${string}]`]: undefined;
             [x: `bytes3[${string}]`]: undefined;
+            [x: `bytes18[${string}]`]: undefined;
+            [x: `bytes5[${string}]`]: undefined;
             [x: `bytes7[${string}]`]: undefined;
             [x: `bytes9[${string}]`]: undefined;
             [x: `bytes12[${string}]`]: undefined;
@@ -19495,15 +19403,15 @@ export declare function getWalletClient(): {
             uint32?: undefined;
             bytes?: undefined;
             bytes1?: undefined;
+            bytes6?: undefined;
             bytes11?: undefined;
             bytes2?: undefined;
             bytes8?: undefined;
             bytes4?: undefined;
-            bytes5?: undefined;
             bytes10?: undefined;
-            bytes6?: undefined;
-            bytes18?: undefined;
             bytes3?: undefined;
+            bytes18?: undefined;
+            bytes5?: undefined;
             bytes7?: undefined;
             bytes9?: undefined;
             bytes12?: undefined;
@@ -19659,15 +19567,15 @@ export declare function getWalletClient(): {
             [x: `uint32[${string}]`]: undefined;
             [x: `bytes[${string}]`]: undefined;
             [x: `bytes1[${string}]`]: undefined;
+            [x: `bytes6[${string}]`]: undefined;
             [x: `bytes11[${string}]`]: undefined;
             [x: `bytes2[${string}]`]: undefined;
             [x: `bytes8[${string}]`]: undefined;
             [x: `bytes4[${string}]`]: undefined;
-            [x: `bytes5[${string}]`]: undefined;
             [x: `bytes10[${string}]`]: undefined;
-            [x: `bytes6[${string}]`]: undefined;
-            [x: `bytes18[${string}]`]: undefined;
             [x: `bytes3[${string}]`]: undefined;
+            [x: `bytes18[${string}]`]: undefined;
+            [x: `bytes5[${string}]`]: undefined;
             [x: `bytes7[${string}]`]: undefined;
             [x: `bytes9[${string}]`]: undefined;
             [x: `bytes12[${string}]`]: undefined;
@@ -19761,15 +19669,15 @@ export declare function getWalletClient(): {
             uint32?: undefined;
             bytes?: undefined;
             bytes1?: undefined;
+            bytes6?: undefined;
             bytes11?: undefined;
             bytes2?: undefined;
             bytes8?: undefined;
             bytes4?: undefined;
-            bytes5?: undefined;
             bytes10?: undefined;
-            bytes6?: undefined;
-            bytes18?: undefined;
             bytes3?: undefined;
+            bytes18?: undefined;
+            bytes5?: undefined;
             bytes7?: undefined;
             bytes9?: undefined;
             bytes12?: undefined;
@@ -19864,15 +19772,15 @@ export declare function getWalletClient(): {
             [x: `uint32[${string}]`]: undefined;
             [x: `bytes[${string}]`]: undefined;
             [x: `bytes1[${string}]`]: undefined;
+            [x: `bytes6[${string}]`]: undefined;
             [x: `bytes11[${string}]`]: undefined;
             [x: `bytes2[${string}]`]: undefined;
             [x: `bytes8[${string}]`]: undefined;
             [x: `bytes4[${string}]`]: undefined;
-            [x: `bytes5[${string}]`]: undefined;
             [x: `bytes10[${string}]`]: undefined;
-            [x: `bytes6[${string}]`]: undefined;
-            [x: `bytes18[${string}]`]: undefined;
             [x: `bytes3[${string}]`]: undefined;
+            [x: `bytes18[${string}]`]: undefined;
+            [x: `bytes5[${string}]`]: undefined;
             [x: `bytes7[${string}]`]: undefined;
             [x: `bytes9[${string}]`]: undefined;
             [x: `bytes12[${string}]`]: undefined;
@@ -19966,15 +19874,15 @@ export declare function getWalletClient(): {
             uint32?: undefined;
             bytes?: undefined;
             bytes1?: undefined;
+            bytes6?: undefined;
             bytes11?: undefined;
             bytes2?: undefined;
             bytes8?: undefined;
             bytes4?: undefined;
-            bytes5?: undefined;
             bytes10?: undefined;
-            bytes6?: undefined;
-            bytes18?: undefined;
             bytes3?: undefined;
+            bytes18?: undefined;
+            bytes5?: undefined;
             bytes7?: undefined;
             bytes9?: undefined;
             bytes12?: undefined;
@@ -23334,15 +23242,6 @@ export declare function getDataStream(): {
                 readonly type: "uint256";
             }];
         }, {
-            readonly name: "totalPublishingFees";
-            readonly type: "function";
-            readonly stateMutability: "view";
-            readonly inputs: readonly [];
-            readonly outputs: readonly [{
-                readonly name: "";
-                readonly type: "uint256";
-            }];
-        }, {
             readonly name: "streamData";
             readonly type: "function";
             readonly stateMutability: "nonpayable";
@@ -23368,14 +23267,11 @@ export declare function getDataStream(): {
                 readonly name: "publisher";
                 readonly type: "address";
             }, {
-                readonly name: "payloadSize";
+                readonly name: "payloadLength";
                 readonly type: "uint256";
             }];
             readonly outputs: readonly [{
-                readonly name: "subscriberFee";
-                readonly type: "uint256";
-            }, {
-                readonly name: "publisherFee";
+                readonly name: "fee";
                 readonly type: "uint256";
             }];
         }], "totalMessages", readonly []>, "address" | "abi" | "functionName" | "args">> | undefined) => Promise<bigint>;
@@ -23398,15 +23294,6 @@ export declare function getDataStream(): {
                 readonly type: "uint256";
             }];
         }, {
-            readonly name: "totalPublishingFees";
-            readonly type: "function";
-            readonly stateMutability: "view";
-            readonly inputs: readonly [];
-            readonly outputs: readonly [{
-                readonly name: "";
-                readonly type: "uint256";
-            }];
-        }, {
             readonly name: "streamData";
             readonly type: "function";
             readonly stateMutability: "nonpayable";
@@ -23432,81 +23319,14 @@ export declare function getDataStream(): {
                 readonly name: "publisher";
                 readonly type: "address";
             }, {
-                readonly name: "payloadSize";
+                readonly name: "payloadLength";
                 readonly type: "uint256";
             }];
             readonly outputs: readonly [{
-                readonly name: "subscriberFee";
-                readonly type: "uint256";
-            }, {
-                readonly name: "publisherFee";
+                readonly name: "fee";
                 readonly type: "uint256";
             }];
         }], "totalSubscriberFees", readonly []>, "address" | "abi" | "functionName" | "args">> | undefined) => Promise<bigint>;
-        totalPublishingFees: (options?: import("viem").Prettify<import("viem").UnionOmit<import("viem").ReadContractParameters<readonly [{
-            readonly name: "totalMessages";
-            readonly type: "function";
-            readonly stateMutability: "view";
-            readonly inputs: readonly [];
-            readonly outputs: readonly [{
-                readonly name: "";
-                readonly type: "uint256";
-            }];
-        }, {
-            readonly name: "totalSubscriberFees";
-            readonly type: "function";
-            readonly stateMutability: "view";
-            readonly inputs: readonly [];
-            readonly outputs: readonly [{
-                readonly name: "";
-                readonly type: "uint256";
-            }];
-        }, {
-            readonly name: "totalPublishingFees";
-            readonly type: "function";
-            readonly stateMutability: "view";
-            readonly inputs: readonly [];
-            readonly outputs: readonly [{
-                readonly name: "";
-                readonly type: "uint256";
-            }];
-        }, {
-            readonly name: "streamData";
-            readonly type: "function";
-            readonly stateMutability: "nonpayable";
-            readonly inputs: readonly [{
-                readonly name: "subscriber";
-                readonly type: "address";
-            }, {
-                readonly name: "payloadHash";
-                readonly type: "bytes32";
-            }, {
-                readonly name: "payloadSize";
-                readonly type: "uint256";
-            }, {
-                readonly name: "maxFee";
-                readonly type: "uint256";
-            }];
-            readonly outputs: readonly [];
-        }, {
-            readonly name: "estimateFee";
-            readonly type: "function";
-            readonly stateMutability: "view";
-            readonly inputs: readonly [{
-                readonly name: "publisher";
-                readonly type: "address";
-            }, {
-                readonly name: "payloadSize";
-                readonly type: "uint256";
-            }];
-            readonly outputs: readonly [{
-                readonly name: "subscriberFee";
-                readonly type: "uint256";
-            }, {
-                readonly name: "publisherFee";
-                readonly type: "uint256";
-            }];
-        }], "totalPublishingFees", readonly []>, "address" | "abi" | "functionName" | "args">> | undefined) => Promise<bigint>;
         estimateFee: (args: readonly [`0x${string}`, bigint], options?: import("viem").Prettify<import("viem").UnionOmit<import("viem").ReadContractParameters<readonly [{
             readonly name: "totalMessages";
             readonly type: "function";
@@ -23526,15 +23346,6 @@ export declare function getDataStream(): {
                 readonly type: "uint256";
             }];
         }, {
-            readonly name: "totalPublishingFees";
-            readonly type: "function";
-            readonly stateMutability: "view";
-            readonly inputs: readonly [];
-            readonly outputs: readonly [{
-                readonly name: "";
-                readonly type: "uint256";
-            }];
-        }, {
             readonly name: "streamData";
             readonly type: "function";
             readonly stateMutability: "nonpayable";
@@ -23560,17 +23371,14 @@ export declare function getDataStream(): {
                 readonly name: "publisher";
                 readonly type: "address";
             }, {
-                readonly name: "payloadSize";
+                readonly name: "payloadLength";
                 readonly type: "uint256";
             }];
             readonly outputs: readonly [{
-                readonly name: "subscriberFee";
-                readonly type: "uint256";
-            }, {
-                readonly name: "publisherFee";
+                readonly name: "fee";
                 readonly type: "uint256";
             }];
-        }], "estimateFee", readonly [`0x${string}`, bigint]>, "address" | "abi" | "functionName" | "args">> | undefined) => Promise<readonly [bigint, bigint]>;
+        }], "estimateFee", readonly [`0x${string}`, bigint]>, "address" | "abi" | "functionName" | "args">> | undefined) => Promise<bigint>;
     };
     estimateGas: {
         streamData: (args: readonly [subscriber: `0x${string}`, `0x${string}`, bigint, bigint], options: import("viem").Prettify<import("viem").UnionOmit<import("viem").EstimateContractGasParameters<readonly [{
@@ -23592,15 +23400,6 @@ export declare function getDataStream(): {
                 readonly type: "uint256";
             }];
         }, {
-            readonly name: "totalPublishingFees";
-            readonly type: "function";
-            readonly stateMutability: "view";
-            readonly inputs: readonly [];
-            readonly outputs: readonly [{
-                readonly name: "";
-                readonly type: "uint256";
-            }];
-        }, {
             readonly name: "streamData";
             readonly type: "function";
             readonly stateMutability: "nonpayable";
@@ -23626,14 +23425,11 @@ export declare function getDataStream(): {
                 readonly name: "publisher";
                 readonly type: "address";
             }, {
-                readonly name: "payloadSize";
+                readonly name: "payloadLength";
                 readonly type: "uint256";
             }];
             readonly outputs: readonly [{
-                readonly name: "subscriberFee";
-                readonly type: "uint256";
-            }, {
-                readonly name: "publisherFee";
+                readonly name: "fee";
                 readonly type: "uint256";
             }];
         }], "streamData", readonly [subscriber: `0x${string}`, `0x${string}`, bigint, bigint], {
@@ -23701,15 +23497,6 @@ export declare function getDataStream(): {
                 readonly type: "uint256";
             }];
         }, {
-            readonly name: "totalPublishingFees";
-            readonly type: "function";
-            readonly stateMutability: "view";
-            readonly inputs: readonly [];
-            readonly outputs: readonly [{
-                readonly name: "";
-                readonly type: "uint256";
-            }];
-        }, {
             readonly name: "streamData";
             readonly type: "function";
             readonly stateMutability: "nonpayable";
@@ -23735,14 +23522,11 @@ export declare function getDataStream(): {
                 readonly name: "publisher";
                 readonly type: "address";
             }, {
-                readonly name: "payloadSize";
+                readonly name: "payloadLength";
                 readonly type: "uint256";
             }];
             readonly outputs: readonly [{
-                readonly name: "subscriberFee";
-                readonly type: "uint256";
-            }, {
-                readonly name: "publisherFee";
+                readonly name: "fee";
                 readonly type: "uint256";
             }];
         }], "streamData", readonly [subscriber: `0x${string}`, `0x${string}`, bigint, bigint], {
@@ -23811,15 +23595,6 @@ export declare function getDataStream(): {
                 readonly type: "uint256";
             }];
         }, {
-            readonly name: "totalPublishingFees";
-            readonly type: "function";
-            readonly stateMutability: "view";
-            readonly inputs: readonly [];
-            readonly outputs: readonly [{
-                readonly name: "";
-                readonly type: "uint256";
-            }];
-        }, {
             readonly name: "streamData";
             readonly type: "function";
             readonly stateMutability: "nonpayable";
@@ -23845,14 +23620,11 @@ export declare function getDataStream(): {
                 readonly name: "publisher";
                 readonly type: "address";
             }, {
-                readonly name: "payloadSize";
+                readonly name: "payloadLength";
                 readonly type: "uint256";
             }];
             readonly outputs: readonly [{
-                readonly name: "subscriberFee";
-                readonly type: "uint256";
-            }, {
-                readonly name: "publisherFee";
+                readonly name: "fee";
                 readonly type: "uint256";
             }];
         }], "streamData", readonly [subscriber: `0x${string}`, `0x${string}`, bigint, bigint], {
@@ -23918,15 +23690,6 @@ export declare function getDataStream(): {
                 readonly type: "uint256";
             }];
         }, {
-            readonly name: "totalPublishingFees";
-            readonly type: "function";
-            readonly stateMutability: "view";
-            readonly inputs: readonly [];
-            readonly outputs: readonly [{
-                readonly name: "";
-                readonly type: "uint256";
-            }];
-        }, {
             readonly name: "streamData";
             readonly type: "function";
             readonly stateMutability: "nonpayable";
@@ -23952,14 +23715,11 @@ export declare function getDataStream(): {
                 readonly name: "publisher";
                 readonly type: "address";
             }, {
-                readonly name: "payloadSize";
+                readonly name: "payloadLength";
                 readonly type: "uint256";
             }];
             readonly outputs: readonly [{
-                readonly name: "subscriberFee";
-                readonly type: "uint256";
-            }, {
-                readonly name: "publisherFee";
+                readonly name: "fee";
                 readonly type: "uint256";
             }];
         }], "streamData", readonly [subscriber: `0x${string}`, `0x${string}`, bigint, bigint], {
@@ -24028,15 +23788,6 @@ export declare function getDataStream(): {
                 readonly type: "uint256";
             }];
         }, {
-            readonly name: "totalPublishingFees";
-            readonly type: "function";
-            readonly stateMutability: "view";
-            readonly inputs: readonly [];
-            readonly outputs: readonly [{
-                readonly name: "";
-                readonly type: "uint256";
-            }];
-        }, {
             readonly name: "streamData";
             readonly type: "function";
             readonly stateMutability: "nonpayable";
@@ -24062,14 +23813,11 @@ export declare function getDataStream(): {
                 readonly name: "publisher";
                 readonly type: "address";
             }, {
-                readonly name: "payloadSize";
+                readonly name: "payloadLength";
                 readonly type: "uint256";
             }];
             readonly outputs: readonly [{
-                readonly name: "subscriberFee";
-                readonly type: "uint256";
-            }, {
-                readonly name: "publisherFee";
+                readonly name: "fee";
                 readonly type: "uint256";
             }];
         }], "streamData", readonly [subscriber: `0x${string}`, `0x${string}`, bigint, bigint], {
@@ -24138,15 +23886,6 @@ export declare function getDataStream(): {
             readonly type: "uint256";
         }];
     }, {
-        readonly name: "totalPublishingFees";
-        readonly type: "function";
-        readonly stateMutability: "view";
-        readonly inputs: readonly [];
-        readonly outputs: readonly [{
-            readonly name: "";
-            readonly type: "uint256";
-        }];
-    }, {
         readonly name: "streamData";
         readonly type: "function";
         readonly stateMutability: "nonpayable";
@@ -24172,14 +23911,11 @@ export declare function getDataStream(): {
             readonly name: "publisher";
             readonly type: "address";
         }, {
-            readonly name: "payloadSize";
+            readonly name: "payloadLength";
             readonly type: "uint256";
         }];
         readonly outputs: readonly [{
-            readonly name: "subscriberFee";
-            readonly type: "uint256";
-        }, {
-            readonly name: "publisherFee";
+            readonly name: "fee";
             readonly type: "uint256";
         }];
     }];
@@ -25279,1375 +25015,6 @@ export declare function getSchemaRegistry(): {
         readonly outputs: readonly [{
             readonly name: "";
             readonly type: "bool";
-        }];
-    }];
-};
-/** Returns a read-only PPBToken (ERC-20) contract instance. */
-export declare function getPPBToken(): {
-    read: {
-        balanceOf: (args: readonly [account: `0x${string}`], options?: import("viem").Prettify<import("viem").UnionOmit<import("viem").ReadContractParameters<readonly [{
-            readonly name: "balanceOf";
-            readonly type: "function";
-            readonly stateMutability: "view";
-            readonly inputs: readonly [{
-                readonly name: "account";
-                readonly type: "address";
-            }];
-            readonly outputs: readonly [{
-                readonly name: "";
-                readonly type: "uint256";
-            }];
-        }, {
-            readonly name: "approve";
-            readonly type: "function";
-            readonly stateMutability: "nonpayable";
-            readonly inputs: readonly [{
-                readonly name: "spender";
-                readonly type: "address";
-            }, {
-                readonly name: "amount";
-                readonly type: "uint256";
-            }];
-            readonly outputs: readonly [{
-                readonly name: "";
-                readonly type: "bool";
-            }];
-        }, {
-            readonly name: "allowance";
-            readonly type: "function";
-            readonly stateMutability: "view";
-            readonly inputs: readonly [{
-                readonly name: "owner";
-                readonly type: "address";
-            }, {
-                readonly name: "spender";
-                readonly type: "address";
-            }];
-            readonly outputs: readonly [{
-                readonly name: "";
-                readonly type: "uint256";
-            }];
-        }, {
-            readonly name: "totalSupply";
-            readonly type: "function";
-            readonly stateMutability: "view";
-            readonly inputs: readonly [];
-            readonly outputs: readonly [{
-                readonly name: "";
-                readonly type: "uint256";
-            }];
-        }], "balanceOf", readonly [account: `0x${string}`]>, "address" | "abi" | "functionName" | "args">> | undefined) => Promise<bigint>;
-        allowance: (args: readonly [owner: `0x${string}`, spender: `0x${string}`], options?: import("viem").Prettify<import("viem").UnionOmit<import("viem").ReadContractParameters<readonly [{
-            readonly name: "balanceOf";
-            readonly type: "function";
-            readonly stateMutability: "view";
-            readonly inputs: readonly [{
-                readonly name: "account";
-                readonly type: "address";
-            }];
-            readonly outputs: readonly [{
-                readonly name: "";
-                readonly type: "uint256";
-            }];
-        }, {
-            readonly name: "approve";
-            readonly type: "function";
-            readonly stateMutability: "nonpayable";
-            readonly inputs: readonly [{
-                readonly name: "spender";
-                readonly type: "address";
-            }, {
-                readonly name: "amount";
-                readonly type: "uint256";
-            }];
-            readonly outputs: readonly [{
-                readonly name: "";
-                readonly type: "bool";
-            }];
-        }, {
-            readonly name: "allowance";
-            readonly type: "function";
-            readonly stateMutability: "view";
-            readonly inputs: readonly [{
-                readonly name: "owner";
-                readonly type: "address";
-            }, {
-                readonly name: "spender";
-                readonly type: "address";
-            }];
-            readonly outputs: readonly [{
-                readonly name: "";
-                readonly type: "uint256";
-            }];
-        }, {
-            readonly name: "totalSupply";
-            readonly type: "function";
-            readonly stateMutability: "view";
-            readonly inputs: readonly [];
-            readonly outputs: readonly [{
-                readonly name: "";
-                readonly type: "uint256";
-            }];
-        }], "allowance", readonly [owner: `0x${string}`, spender: `0x${string}`]>, "address" | "abi" | "functionName" | "args">> | undefined) => Promise<bigint>;
-        totalSupply: (options?: import("viem").Prettify<import("viem").UnionOmit<import("viem").ReadContractParameters<readonly [{
-            readonly name: "balanceOf";
-            readonly type: "function";
-            readonly stateMutability: "view";
-            readonly inputs: readonly [{
-                readonly name: "account";
-                readonly type: "address";
-            }];
-            readonly outputs: readonly [{
-                readonly name: "";
-                readonly type: "uint256";
-            }];
-        }, {
-            readonly name: "approve";
-            readonly type: "function";
-            readonly stateMutability: "nonpayable";
-            readonly inputs: readonly [{
-                readonly name: "spender";
-                readonly type: "address";
-            }, {
-                readonly name: "amount";
-                readonly type: "uint256";
-            }];
-            readonly outputs: readonly [{
-                readonly name: "";
-                readonly type: "bool";
-            }];
-        }, {
-            readonly name: "allowance";
-            readonly type: "function";
-            readonly stateMutability: "view";
-            readonly inputs: readonly [{
-                readonly name: "owner";
-                readonly type: "address";
-            }, {
-                readonly name: "spender";
-                readonly type: "address";
-            }];
-            readonly outputs: readonly [{
-                readonly name: "";
-                readonly type: "uint256";
-            }];
-        }, {
-            readonly name: "totalSupply";
-            readonly type: "function";
-            readonly stateMutability: "view";
-            readonly inputs: readonly [];
-            readonly outputs: readonly [{
-                readonly name: "";
-                readonly type: "uint256";
-            }];
-        }], "totalSupply", readonly []>, "address" | "abi" | "functionName" | "args">> | undefined) => Promise<bigint>;
-    };
-    estimateGas: {
-        approve: (args: readonly [spender: `0x${string}`, amount: bigint], options: import("viem").Prettify<import("viem").UnionOmit<import("viem").EstimateContractGasParameters<readonly [{
-            readonly name: "balanceOf";
-            readonly type: "function";
-            readonly stateMutability: "view";
-            readonly inputs: readonly [{
-                readonly name: "account";
-                readonly type: "address";
-            }];
-            readonly outputs: readonly [{
-                readonly name: "";
-                readonly type: "uint256";
-            }];
-        }, {
-            readonly name: "approve";
-            readonly type: "function";
-            readonly stateMutability: "nonpayable";
-            readonly inputs: readonly [{
-                readonly name: "spender";
-                readonly type: "address";
-            }, {
-                readonly name: "amount";
-                readonly type: "uint256";
-            }];
-            readonly outputs: readonly [{
-                readonly name: "";
-                readonly type: "bool";
-            }];
-        }, {
-            readonly name: "allowance";
-            readonly type: "function";
-            readonly stateMutability: "view";
-            readonly inputs: readonly [{
-                readonly name: "owner";
-                readonly type: "address";
-            }, {
-                readonly name: "spender";
-                readonly type: "address";
-            }];
-            readonly outputs: readonly [{
-                readonly name: "";
-                readonly type: "uint256";
-            }];
-        }, {
-            readonly name: "totalSupply";
-            readonly type: "function";
-            readonly stateMutability: "view";
-            readonly inputs: readonly [];
-            readonly outputs: readonly [{
-                readonly name: "";
-                readonly type: "uint256";
-            }];
-        }], "approve", readonly [spender: `0x${string}`, amount: bigint], {
-            blockExplorers: {
-                readonly default: {
-                    readonly name: "Arbiscan";
-                    readonly url: "https://sepolia.arbiscan.io";
-                    readonly apiUrl: "https://api-sepolia.arbiscan.io/api";
-                };
-            };
-            blockTime: 250;
-            contracts: {
-                readonly multicall3: {
-                    readonly address: "0xca11bde05977b3631167028862be2a173976ca11";
-                    readonly blockCreated: 81930;
-                };
-            };
-            ensTlds?: readonly string[] | undefined;
-            id: 421614;
-            name: "Arbitrum Sepolia";
-            nativeCurrency: {
-                readonly name: "Arbitrum Sepolia Ether";
-                readonly symbol: "ETH";
-                readonly decimals: 18;
-            };
-            experimental_preconfirmationTime?: number | undefined | undefined;
-            rpcUrls: {
-                readonly default: {
-                    readonly http: readonly ["https://sepolia-rollup.arbitrum.io/rpc"];
-                };
-            };
-            sourceId?: number | undefined | undefined;
-            testnet: true;
-            custom?: Record<string, unknown> | undefined;
-            extendSchema?: Record<string, unknown> | undefined;
-            fees?: import("viem").ChainFees<undefined> | undefined;
-            formatters?: undefined;
-            prepareTransactionRequest?: ((args: import("viem").PrepareTransactionRequestParameters, options: {
-                phase: "beforeFillTransaction" | "beforeFillParameters" | "afterFillParameters";
-            }) => Promise<import("viem").PrepareTransactionRequestParameters>) | [fn: ((args: import("viem").PrepareTransactionRequestParameters, options: {
-                phase: "beforeFillTransaction" | "beforeFillParameters" | "afterFillParameters";
-            }) => Promise<import("viem").PrepareTransactionRequestParameters>) | undefined, options: {
-                runAt: readonly ("beforeFillTransaction" | "beforeFillParameters" | "afterFillParameters")[];
-            }] | undefined;
-            serializers?: import("viem").ChainSerializers<undefined, import("viem").TransactionSerializable> | undefined;
-            verifyHash?: ((client: import("viem").Client, parameters: import("viem").VerifyHashActionParameters) => Promise<import("viem").VerifyHashActionReturnType>) | undefined;
-        }>, "address" | "abi" | "functionName" | "args">>) => Promise<import("viem").EstimateContractGasReturnType>;
-    } & {
-        approve: (args: readonly [spender: `0x${string}`, amount: bigint], options: import("viem").Prettify<import("viem").UnionOmit<import("viem").EstimateContractGasParameters<readonly [{
-            readonly name: "balanceOf";
-            readonly type: "function";
-            readonly stateMutability: "view";
-            readonly inputs: readonly [{
-                readonly name: "account";
-                readonly type: "address";
-            }];
-            readonly outputs: readonly [{
-                readonly name: "";
-                readonly type: "uint256";
-            }];
-        }, {
-            readonly name: "approve";
-            readonly type: "function";
-            readonly stateMutability: "nonpayable";
-            readonly inputs: readonly [{
-                readonly name: "spender";
-                readonly type: "address";
-            }, {
-                readonly name: "amount";
-                readonly type: "uint256";
-            }];
-            readonly outputs: readonly [{
-                readonly name: "";
-                readonly type: "bool";
-            }];
-        }, {
-            readonly name: "allowance";
-            readonly type: "function";
-            readonly stateMutability: "view";
-            readonly inputs: readonly [{
-                readonly name: "owner";
-                readonly type: "address";
-            }, {
-                readonly name: "spender";
-                readonly type: "address";
-            }];
-            readonly outputs: readonly [{
-                readonly name: "";
-                readonly type: "uint256";
-            }];
-        }, {
-            readonly name: "totalSupply";
-            readonly type: "function";
-            readonly stateMutability: "view";
-            readonly inputs: readonly [];
-            readonly outputs: readonly [{
-                readonly name: "";
-                readonly type: "uint256";
-            }];
-        }], "approve", readonly [spender: `0x${string}`, amount: bigint], {
-            blockExplorers: {
-                readonly default: {
-                    readonly name: "Arbiscan";
-                    readonly url: "https://sepolia.arbiscan.io";
-                    readonly apiUrl: "https://api-sepolia.arbiscan.io/api";
-                };
-            };
-            blockTime: 250;
-            contracts: {
-                readonly multicall3: {
-                    readonly address: "0xca11bde05977b3631167028862be2a173976ca11";
-                    readonly blockCreated: 81930;
-                };
-            };
-            ensTlds?: readonly string[] | undefined;
-            id: 421614;
-            name: "Arbitrum Sepolia";
-            nativeCurrency: {
-                readonly name: "Arbitrum Sepolia Ether";
-                readonly symbol: "ETH";
-                readonly decimals: 18;
-            };
-            experimental_preconfirmationTime?: number | undefined | undefined;
-            rpcUrls: {
-                readonly default: {
-                    readonly http: readonly ["https://sepolia-rollup.arbitrum.io/rpc"];
-                };
-            };
-            sourceId?: number | undefined | undefined;
-            testnet: true;
-            custom?: Record<string, unknown> | undefined;
-            extendSchema?: Record<string, unknown> | undefined;
-            fees?: import("viem").ChainFees<undefined> | undefined;
-            formatters?: undefined;
-            prepareTransactionRequest?: ((args: import("viem").PrepareTransactionRequestParameters, options: {
-                phase: "beforeFillTransaction" | "beforeFillParameters" | "afterFillParameters";
-            }) => Promise<import("viem").PrepareTransactionRequestParameters>) | [fn: ((args: import("viem").PrepareTransactionRequestParameters, options: {
-                phase: "beforeFillTransaction" | "beforeFillParameters" | "afterFillParameters";
-            }) => Promise<import("viem").PrepareTransactionRequestParameters>) | undefined, options: {
-                runAt: readonly ("beforeFillTransaction" | "beforeFillParameters" | "afterFillParameters")[];
-            }] | undefined;
-            serializers?: import("viem").ChainSerializers<undefined, import("viem").TransactionSerializable> | undefined;
-            verifyHash?: ((client: import("viem").Client, parameters: import("viem").VerifyHashActionParameters) => Promise<import("viem").VerifyHashActionReturnType>) | undefined;
-        }>, "address" | "abi" | "functionName" | "args">>) => Promise<import("viem").EstimateContractGasReturnType>;
-    };
-    simulate: {
-        approve: <chainOverride extends import("viem").Chain | undefined = undefined, accountOverride extends import("viem").Account | Address | undefined = undefined>(args: readonly [spender: `0x${string}`, amount: bigint], options?: Omit<import("viem").SimulateContractParameters<readonly [{
-            readonly name: "balanceOf";
-            readonly type: "function";
-            readonly stateMutability: "view";
-            readonly inputs: readonly [{
-                readonly name: "account";
-                readonly type: "address";
-            }];
-            readonly outputs: readonly [{
-                readonly name: "";
-                readonly type: "uint256";
-            }];
-        }, {
-            readonly name: "approve";
-            readonly type: "function";
-            readonly stateMutability: "nonpayable";
-            readonly inputs: readonly [{
-                readonly name: "spender";
-                readonly type: "address";
-            }, {
-                readonly name: "amount";
-                readonly type: "uint256";
-            }];
-            readonly outputs: readonly [{
-                readonly name: "";
-                readonly type: "bool";
-            }];
-        }, {
-            readonly name: "allowance";
-            readonly type: "function";
-            readonly stateMutability: "view";
-            readonly inputs: readonly [{
-                readonly name: "owner";
-                readonly type: "address";
-            }, {
-                readonly name: "spender";
-                readonly type: "address";
-            }];
-            readonly outputs: readonly [{
-                readonly name: "";
-                readonly type: "uint256";
-            }];
-        }, {
-            readonly name: "totalSupply";
-            readonly type: "function";
-            readonly stateMutability: "view";
-            readonly inputs: readonly [];
-            readonly outputs: readonly [{
-                readonly name: "";
-                readonly type: "uint256";
-            }];
-        }], "approve", readonly [spender: `0x${string}`, amount: bigint], {
-            blockExplorers: {
-                readonly default: {
-                    readonly name: "Arbiscan";
-                    readonly url: "https://sepolia.arbiscan.io";
-                    readonly apiUrl: "https://api-sepolia.arbiscan.io/api";
-                };
-            };
-            blockTime: 250;
-            contracts: {
-                readonly multicall3: {
-                    readonly address: "0xca11bde05977b3631167028862be2a173976ca11";
-                    readonly blockCreated: 81930;
-                };
-            };
-            ensTlds?: readonly string[] | undefined;
-            id: 421614;
-            name: "Arbitrum Sepolia";
-            nativeCurrency: {
-                readonly name: "Arbitrum Sepolia Ether";
-                readonly symbol: "ETH";
-                readonly decimals: 18;
-            };
-            experimental_preconfirmationTime?: number | undefined | undefined;
-            rpcUrls: {
-                readonly default: {
-                    readonly http: readonly ["https://sepolia-rollup.arbitrum.io/rpc"];
-                };
-            };
-            sourceId?: number | undefined | undefined;
-            testnet: true;
-            custom?: Record<string, unknown> | undefined;
-            extendSchema?: Record<string, unknown> | undefined;
-            fees?: import("viem").ChainFees<undefined> | undefined;
-            formatters?: undefined;
-            prepareTransactionRequest?: ((args: import("viem").PrepareTransactionRequestParameters, options: {
-                phase: "beforeFillTransaction" | "beforeFillParameters" | "afterFillParameters";
-            }) => Promise<import("viem").PrepareTransactionRequestParameters>) | [fn: ((args: import("viem").PrepareTransactionRequestParameters, options: {
-                phase: "beforeFillTransaction" | "beforeFillParameters" | "afterFillParameters";
-            }) => Promise<import("viem").PrepareTransactionRequestParameters>) | undefined, options: {
-                runAt: readonly ("beforeFillTransaction" | "beforeFillParameters" | "afterFillParameters")[];
-            }] | undefined;
-            serializers?: import("viem").ChainSerializers<undefined, import("viem").TransactionSerializable> | undefined;
-            verifyHash?: ((client: import("viem").Client, parameters: import("viem").VerifyHashActionParameters) => Promise<import("viem").VerifyHashActionReturnType>) | undefined;
-        }, chainOverride, accountOverride>, "address" | "abi" | "functionName" | "args"> | undefined) => Promise<import("viem").SimulateContractReturnType<readonly [{
-            readonly name: "balanceOf";
-            readonly type: "function";
-            readonly stateMutability: "view";
-            readonly inputs: readonly [{
-                readonly name: "account";
-                readonly type: "address";
-            }];
-            readonly outputs: readonly [{
-                readonly name: "";
-                readonly type: "uint256";
-            }];
-        }, {
-            readonly name: "approve";
-            readonly type: "function";
-            readonly stateMutability: "nonpayable";
-            readonly inputs: readonly [{
-                readonly name: "spender";
-                readonly type: "address";
-            }, {
-                readonly name: "amount";
-                readonly type: "uint256";
-            }];
-            readonly outputs: readonly [{
-                readonly name: "";
-                readonly type: "bool";
-            }];
-        }, {
-            readonly name: "allowance";
-            readonly type: "function";
-            readonly stateMutability: "view";
-            readonly inputs: readonly [{
-                readonly name: "owner";
-                readonly type: "address";
-            }, {
-                readonly name: "spender";
-                readonly type: "address";
-            }];
-            readonly outputs: readonly [{
-                readonly name: "";
-                readonly type: "uint256";
-            }];
-        }, {
-            readonly name: "totalSupply";
-            readonly type: "function";
-            readonly stateMutability: "view";
-            readonly inputs: readonly [];
-            readonly outputs: readonly [{
-                readonly name: "";
-                readonly type: "uint256";
-            }];
-        }], "approve", readonly [spender: `0x${string}`, amount: bigint], {
-            blockExplorers: {
-                readonly default: {
-                    readonly name: "Arbiscan";
-                    readonly url: "https://sepolia.arbiscan.io";
-                    readonly apiUrl: "https://api-sepolia.arbiscan.io/api";
-                };
-            };
-            blockTime: 250;
-            contracts: {
-                readonly multicall3: {
-                    readonly address: "0xca11bde05977b3631167028862be2a173976ca11";
-                    readonly blockCreated: 81930;
-                };
-            };
-            ensTlds?: readonly string[] | undefined;
-            id: 421614;
-            name: "Arbitrum Sepolia";
-            nativeCurrency: {
-                readonly name: "Arbitrum Sepolia Ether";
-                readonly symbol: "ETH";
-                readonly decimals: 18;
-            };
-            experimental_preconfirmationTime?: number | undefined | undefined;
-            rpcUrls: {
-                readonly default: {
-                    readonly http: readonly ["https://sepolia-rollup.arbitrum.io/rpc"];
-                };
-            };
-            sourceId?: number | undefined | undefined;
-            testnet: true;
-            custom?: Record<string, unknown> | undefined;
-            extendSchema?: Record<string, unknown> | undefined;
-            fees?: import("viem").ChainFees<undefined> | undefined;
-            formatters?: undefined;
-            prepareTransactionRequest?: ((args: import("viem").PrepareTransactionRequestParameters, options: {
-                phase: "beforeFillTransaction" | "beforeFillParameters" | "afterFillParameters";
-            }) => Promise<import("viem").PrepareTransactionRequestParameters>) | [fn: ((args: import("viem").PrepareTransactionRequestParameters, options: {
-                phase: "beforeFillTransaction" | "beforeFillParameters" | "afterFillParameters";
-            }) => Promise<import("viem").PrepareTransactionRequestParameters>) | undefined, options: {
-                runAt: readonly ("beforeFillTransaction" | "beforeFillParameters" | "afterFillParameters")[];
-            }] | undefined;
-            serializers?: import("viem").ChainSerializers<undefined, import("viem").TransactionSerializable> | undefined;
-            verifyHash?: ((client: import("viem").Client, parameters: import("viem").VerifyHashActionParameters) => Promise<import("viem").VerifyHashActionReturnType>) | undefined;
-        }, undefined, chainOverride, accountOverride>>;
-    };
-    write: {
-        approve: <chainOverride extends import("viem").Chain | undefined, options extends import("viem").UnionOmit<import("viem").WriteContractParameters<readonly [{
-            readonly name: "balanceOf";
-            readonly type: "function";
-            readonly stateMutability: "view";
-            readonly inputs: readonly [{
-                readonly name: "account";
-                readonly type: "address";
-            }];
-            readonly outputs: readonly [{
-                readonly name: "";
-                readonly type: "uint256";
-            }];
-        }, {
-            readonly name: "approve";
-            readonly type: "function";
-            readonly stateMutability: "nonpayable";
-            readonly inputs: readonly [{
-                readonly name: "spender";
-                readonly type: "address";
-            }, {
-                readonly name: "amount";
-                readonly type: "uint256";
-            }];
-            readonly outputs: readonly [{
-                readonly name: "";
-                readonly type: "bool";
-            }];
-        }, {
-            readonly name: "allowance";
-            readonly type: "function";
-            readonly stateMutability: "view";
-            readonly inputs: readonly [{
-                readonly name: "owner";
-                readonly type: "address";
-            }, {
-                readonly name: "spender";
-                readonly type: "address";
-            }];
-            readonly outputs: readonly [{
-                readonly name: "";
-                readonly type: "uint256";
-            }];
-        }, {
-            readonly name: "totalSupply";
-            readonly type: "function";
-            readonly stateMutability: "view";
-            readonly inputs: readonly [];
-            readonly outputs: readonly [{
-                readonly name: "";
-                readonly type: "uint256";
-            }];
-        }], "approve", readonly [spender: `0x${string}`, amount: bigint], {
-            blockExplorers: {
-                readonly default: {
-                    readonly name: "Arbiscan";
-                    readonly url: "https://sepolia.arbiscan.io";
-                    readonly apiUrl: "https://api-sepolia.arbiscan.io/api";
-                };
-            };
-            blockTime: 250;
-            contracts: {
-                readonly multicall3: {
-                    readonly address: "0xca11bde05977b3631167028862be2a173976ca11";
-                    readonly blockCreated: 81930;
-                };
-            };
-            ensTlds?: readonly string[] | undefined;
-            id: 421614;
-            name: "Arbitrum Sepolia";
-            nativeCurrency: {
-                readonly name: "Arbitrum Sepolia Ether";
-                readonly symbol: "ETH";
-                readonly decimals: 18;
-            };
-            experimental_preconfirmationTime?: number | undefined | undefined;
-            rpcUrls: {
-                readonly default: {
-                    readonly http: readonly ["https://sepolia-rollup.arbitrum.io/rpc"];
-                };
-            };
-            sourceId?: number | undefined | undefined;
-            testnet: true;
-            custom?: Record<string, unknown> | undefined;
-            extendSchema?: Record<string, unknown> | undefined;
-            fees?: import("viem").ChainFees<undefined> | undefined;
-            formatters?: undefined;
-            prepareTransactionRequest?: ((args: import("viem").PrepareTransactionRequestParameters, options: {
-                phase: "beforeFillTransaction" | "beforeFillParameters" | "afterFillParameters";
-            }) => Promise<import("viem").PrepareTransactionRequestParameters>) | [fn: ((args: import("viem").PrepareTransactionRequestParameters, options: {
-                phase: "beforeFillTransaction" | "beforeFillParameters" | "afterFillParameters";
-            }) => Promise<import("viem").PrepareTransactionRequestParameters>) | undefined, options: {
-                runAt: readonly ("beforeFillTransaction" | "beforeFillParameters" | "afterFillParameters")[];
-            }] | undefined;
-            serializers?: import("viem").ChainSerializers<undefined, import("viem").TransactionSerializable> | undefined;
-            verifyHash?: ((client: import("viem").Client, parameters: import("viem").VerifyHashActionParameters) => Promise<import("viem").VerifyHashActionReturnType>) | undefined;
-        }, undefined, chainOverride>, "address" | "abi" | "functionName" | "args"> extends infer T ? { [K in keyof T]: T[K]; } : never>(args: readonly [spender: `0x${string}`, amount: bigint], options: options) => Promise<import("viem").WriteContractReturnType>;
-    };
-    address: "0x37a86eD3ee87109ff8cF96B3fe45c70a2ebB69f3";
-    abi: readonly [{
-        readonly name: "balanceOf";
-        readonly type: "function";
-        readonly stateMutability: "view";
-        readonly inputs: readonly [{
-            readonly name: "account";
-            readonly type: "address";
-        }];
-        readonly outputs: readonly [{
-            readonly name: "";
-            readonly type: "uint256";
-        }];
-    }, {
-        readonly name: "approve";
-        readonly type: "function";
-        readonly stateMutability: "nonpayable";
-        readonly inputs: readonly [{
-            readonly name: "spender";
-            readonly type: "address";
-        }, {
-            readonly name: "amount";
-            readonly type: "uint256";
-        }];
-        readonly outputs: readonly [{
-            readonly name: "";
-            readonly type: "bool";
-        }];
-    }, {
-        readonly name: "allowance";
-        readonly type: "function";
-        readonly stateMutability: "view";
-        readonly inputs: readonly [{
-            readonly name: "owner";
-            readonly type: "address";
-        }, {
-            readonly name: "spender";
-            readonly type: "address";
-        }];
-        readonly outputs: readonly [{
-            readonly name: "";
-            readonly type: "uint256";
-        }];
-    }, {
-        readonly name: "totalSupply";
-        readonly type: "function";
-        readonly stateMutability: "view";
-        readonly inputs: readonly [];
-        readonly outputs: readonly [{
-            readonly name: "";
-            readonly type: "uint256";
-        }];
-    }];
-};
-/** Returns a read-only PQSVerifier contract instance. */
-export declare function getPQSVerifier(): {
-    read: {
-        getVerifiedPQS: (args: readonly [`0x${string}`], options?: import("viem").Prettify<import("viem").UnionOmit<import("viem").ReadContractParameters<readonly [{
-            readonly name: "getVerifiedPQS";
-            readonly type: "function";
-            readonly stateMutability: "view";
-            readonly inputs: readonly [{
-                readonly name: "publisher";
-                readonly type: "address";
-            }];
-            readonly outputs: readonly [{
-                readonly name: "";
-                readonly type: "tuple";
-                readonly components: readonly [{
-                    readonly name: "disputeScore";
-                    readonly type: "uint256";
-                }, {
-                    readonly name: "retentionScore";
-                    readonly type: "uint256";
-                }, {
-                    readonly name: "freshnessScore";
-                    readonly type: "uint256";
-                }, {
-                    readonly name: "revenueQuality";
-                    readonly type: "uint256";
-                }, {
-                    readonly name: "composite";
-                    readonly type: "uint256";
-                }, {
-                    readonly name: "timestamp";
-                    readonly type: "uint256";
-                }];
-            }];
-        }], "getVerifiedPQS", readonly [`0x${string}`]>, "address" | "abi" | "functionName" | "args">> | undefined) => Promise<{
-            disputeScore: bigint;
-            retentionScore: bigint;
-            freshnessScore: bigint;
-            revenueQuality: bigint;
-            composite: bigint;
-            timestamp: bigint;
-        }>;
-    };
-    address: "0xD7c8423296a6E2Dd36466AC0e41884846a27cdE9";
-    abi: readonly [{
-        readonly name: "getVerifiedPQS";
-        readonly type: "function";
-        readonly stateMutability: "view";
-        readonly inputs: readonly [{
-            readonly name: "publisher";
-            readonly type: "address";
-        }];
-        readonly outputs: readonly [{
-            readonly name: "";
-            readonly type: "tuple";
-            readonly components: readonly [{
-                readonly name: "disputeScore";
-                readonly type: "uint256";
-            }, {
-                readonly name: "retentionScore";
-                readonly type: "uint256";
-            }, {
-                readonly name: "freshnessScore";
-                readonly type: "uint256";
-            }, {
-                readonly name: "revenueQuality";
-                readonly type: "uint256";
-            }, {
-                readonly name: "composite";
-                readonly type: "uint256";
-            }, {
-                readonly name: "timestamp";
-                readonly type: "uint256";
-            }];
-        }];
-    }];
-};
-/** Returns a read-only TestnetFaucet contract instance. */
-export declare function getTestnetFaucet(): {
-    read: {
-        timeUntilNextDrip: (args: readonly [account: `0x${string}`], options?: import("viem").Prettify<import("viem").UnionOmit<import("viem").ReadContractParameters<readonly [{
-            readonly name: "drip";
-            readonly type: "function";
-            readonly stateMutability: "nonpayable";
-            readonly inputs: readonly [];
-            readonly outputs: readonly [];
-        }, {
-            readonly name: "timeUntilNextDrip";
-            readonly type: "function";
-            readonly stateMutability: "view";
-            readonly inputs: readonly [{
-                readonly name: "account";
-                readonly type: "address";
-            }];
-            readonly outputs: readonly [{
-                readonly name: "";
-                readonly type: "uint256";
-            }];
-        }, {
-            readonly name: "remainingAllowance";
-            readonly type: "function";
-            readonly stateMutability: "view";
-            readonly inputs: readonly [{
-                readonly name: "account";
-                readonly type: "address";
-            }];
-            readonly outputs: readonly [{
-                readonly name: "";
-                readonly type: "uint256";
-            }];
-        }, {
-            readonly name: "dripAmount";
-            readonly type: "function";
-            readonly stateMutability: "view";
-            readonly inputs: readonly [];
-            readonly outputs: readonly [{
-                readonly name: "";
-                readonly type: "uint256";
-            }];
-        }], "timeUntilNextDrip", readonly [account: `0x${string}`]>, "address" | "abi" | "functionName" | "args">> | undefined) => Promise<bigint>;
-        remainingAllowance: (args: readonly [account: `0x${string}`], options?: import("viem").Prettify<import("viem").UnionOmit<import("viem").ReadContractParameters<readonly [{
-            readonly name: "drip";
-            readonly type: "function";
-            readonly stateMutability: "nonpayable";
-            readonly inputs: readonly [];
-            readonly outputs: readonly [];
-        }, {
-            readonly name: "timeUntilNextDrip";
-            readonly type: "function";
-            readonly stateMutability: "view";
-            readonly inputs: readonly [{
-                readonly name: "account";
-                readonly type: "address";
-            }];
-            readonly outputs: readonly [{
-                readonly name: "";
-                readonly type: "uint256";
-            }];
-        }, {
-            readonly name: "remainingAllowance";
-            readonly type: "function";
-            readonly stateMutability: "view";
-            readonly inputs: readonly [{
-                readonly name: "account";
-                readonly type: "address";
-            }];
-            readonly outputs: readonly [{
-                readonly name: "";
-                readonly type: "uint256";
-            }];
-        }, {
-            readonly name: "dripAmount";
-            readonly type: "function";
-            readonly stateMutability: "view";
-            readonly inputs: readonly [];
-            readonly outputs: readonly [{
-                readonly name: "";
-                readonly type: "uint256";
-            }];
-        }], "remainingAllowance", readonly [account: `0x${string}`]>, "address" | "abi" | "functionName" | "args">> | undefined) => Promise<bigint>;
-        dripAmount: (options?: import("viem").Prettify<import("viem").UnionOmit<import("viem").ReadContractParameters<readonly [{
-            readonly name: "drip";
-            readonly type: "function";
-            readonly stateMutability: "nonpayable";
-            readonly inputs: readonly [];
-            readonly outputs: readonly [];
-        }, {
-            readonly name: "timeUntilNextDrip";
-            readonly type: "function";
-            readonly stateMutability: "view";
-            readonly inputs: readonly [{
-                readonly name: "account";
-                readonly type: "address";
-            }];
-            readonly outputs: readonly [{
-                readonly name: "";
-                readonly type: "uint256";
-            }];
-        }, {
-            readonly name: "remainingAllowance";
-            readonly type: "function";
-            readonly stateMutability: "view";
-            readonly inputs: readonly [{
-                readonly name: "account";
-                readonly type: "address";
-            }];
-            readonly outputs: readonly [{
-                readonly name: "";
-                readonly type: "uint256";
-            }];
-        }, {
-            readonly name: "dripAmount";
-            readonly type: "function";
-            readonly stateMutability: "view";
-            readonly inputs: readonly [];
-            readonly outputs: readonly [{
-                readonly name: "";
-                readonly type: "uint256";
-            }];
-        }], "dripAmount", readonly []>, "address" | "abi" | "functionName" | "args">> | undefined) => Promise<bigint>;
-    };
-    estimateGas: {
-        drip: (options: import("viem").Prettify<import("viem").UnionOmit<import("viem").EstimateContractGasParameters<readonly [{
-            readonly name: "drip";
-            readonly type: "function";
-            readonly stateMutability: "nonpayable";
-            readonly inputs: readonly [];
-            readonly outputs: readonly [];
-        }, {
-            readonly name: "timeUntilNextDrip";
-            readonly type: "function";
-            readonly stateMutability: "view";
-            readonly inputs: readonly [{
-                readonly name: "account";
-                readonly type: "address";
-            }];
-            readonly outputs: readonly [{
-                readonly name: "";
-                readonly type: "uint256";
-            }];
-        }, {
-            readonly name: "remainingAllowance";
-            readonly type: "function";
-            readonly stateMutability: "view";
-            readonly inputs: readonly [{
-                readonly name: "account";
-                readonly type: "address";
-            }];
-            readonly outputs: readonly [{
-                readonly name: "";
-                readonly type: "uint256";
-            }];
-        }, {
-            readonly name: "dripAmount";
-            readonly type: "function";
-            readonly stateMutability: "view";
-            readonly inputs: readonly [];
-            readonly outputs: readonly [{
-                readonly name: "";
-                readonly type: "uint256";
-            }];
-        }], "drip", readonly [], {
-            blockExplorers: {
-                readonly default: {
-                    readonly name: "Arbiscan";
-                    readonly url: "https://sepolia.arbiscan.io";
-                    readonly apiUrl: "https://api-sepolia.arbiscan.io/api";
-                };
-            };
-            blockTime: 250;
-            contracts: {
-                readonly multicall3: {
-                    readonly address: "0xca11bde05977b3631167028862be2a173976ca11";
-                    readonly blockCreated: 81930;
-                };
-            };
-            ensTlds?: readonly string[] | undefined;
-            id: 421614;
-            name: "Arbitrum Sepolia";
-            nativeCurrency: {
-                readonly name: "Arbitrum Sepolia Ether";
-                readonly symbol: "ETH";
-                readonly decimals: 18;
-            };
-            experimental_preconfirmationTime?: number | undefined | undefined;
-            rpcUrls: {
-                readonly default: {
-                    readonly http: readonly ["https://sepolia-rollup.arbitrum.io/rpc"];
-                };
-            };
-            sourceId?: number | undefined | undefined;
-            testnet: true;
-            custom?: Record<string, unknown> | undefined;
-            extendSchema?: Record<string, unknown> | undefined;
-            fees?: import("viem").ChainFees<undefined> | undefined;
-            formatters?: undefined;
-            prepareTransactionRequest?: ((args: import("viem").PrepareTransactionRequestParameters, options: {
-                phase: "beforeFillTransaction" | "beforeFillParameters" | "afterFillParameters";
-            }) => Promise<import("viem").PrepareTransactionRequestParameters>) | [fn: ((args: import("viem").PrepareTransactionRequestParameters, options: {
-                phase: "beforeFillTransaction" | "beforeFillParameters" | "afterFillParameters";
-            }) => Promise<import("viem").PrepareTransactionRequestParameters>) | undefined, options: {
-                runAt: readonly ("beforeFillTransaction" | "beforeFillParameters" | "afterFillParameters")[];
-            }] | undefined;
-            serializers?: import("viem").ChainSerializers<undefined, import("viem").TransactionSerializable> | undefined;
-            verifyHash?: ((client: import("viem").Client, parameters: import("viem").VerifyHashActionParameters) => Promise<import("viem").VerifyHashActionReturnType>) | undefined;
-        }>, "address" | "abi" | "functionName" | "args">>) => Promise<import("viem").EstimateContractGasReturnType>;
-    } & {
-        drip: (options: import("viem").Prettify<import("viem").UnionOmit<import("viem").EstimateContractGasParameters<readonly [{
-            readonly name: "drip";
-            readonly type: "function";
-            readonly stateMutability: "nonpayable";
-            readonly inputs: readonly [];
-            readonly outputs: readonly [];
-        }, {
-            readonly name: "timeUntilNextDrip";
-            readonly type: "function";
-            readonly stateMutability: "view";
-            readonly inputs: readonly [{
-                readonly name: "account";
-                readonly type: "address";
-            }];
-            readonly outputs: readonly [{
-                readonly name: "";
-                readonly type: "uint256";
-            }];
-        }, {
-            readonly name: "remainingAllowance";
-            readonly type: "function";
-            readonly stateMutability: "view";
-            readonly inputs: readonly [{
-                readonly name: "account";
-                readonly type: "address";
-            }];
-            readonly outputs: readonly [{
-                readonly name: "";
-                readonly type: "uint256";
-            }];
-        }, {
-            readonly name: "dripAmount";
-            readonly type: "function";
-            readonly stateMutability: "view";
-            readonly inputs: readonly [];
-            readonly outputs: readonly [{
-                readonly name: "";
-                readonly type: "uint256";
-            }];
-        }], "drip", readonly [], {
-            blockExplorers: {
-                readonly default: {
-                    readonly name: "Arbiscan";
-                    readonly url: "https://sepolia.arbiscan.io";
-                    readonly apiUrl: "https://api-sepolia.arbiscan.io/api";
-                };
-            };
-            blockTime: 250;
-            contracts: {
-                readonly multicall3: {
-                    readonly address: "0xca11bde05977b3631167028862be2a173976ca11";
-                    readonly blockCreated: 81930;
-                };
-            };
-            ensTlds?: readonly string[] | undefined;
-            id: 421614;
-            name: "Arbitrum Sepolia";
-            nativeCurrency: {
-                readonly name: "Arbitrum Sepolia Ether";
-                readonly symbol: "ETH";
-                readonly decimals: 18;
-            };
-            experimental_preconfirmationTime?: number | undefined | undefined;
-            rpcUrls: {
-                readonly default: {
-                    readonly http: readonly ["https://sepolia-rollup.arbitrum.io/rpc"];
-                };
-            };
-            sourceId?: number | undefined | undefined;
-            testnet: true;
-            custom?: Record<string, unknown> | undefined;
-            extendSchema?: Record<string, unknown> | undefined;
-            fees?: import("viem").ChainFees<undefined> | undefined;
-            formatters?: undefined;
-            prepareTransactionRequest?: ((args: import("viem").PrepareTransactionRequestParameters, options: {
-                phase: "beforeFillTransaction" | "beforeFillParameters" | "afterFillParameters";
-            }) => Promise<import("viem").PrepareTransactionRequestParameters>) | [fn: ((args: import("viem").PrepareTransactionRequestParameters, options: {
-                phase: "beforeFillTransaction" | "beforeFillParameters" | "afterFillParameters";
-            }) => Promise<import("viem").PrepareTransactionRequestParameters>) | undefined, options: {
-                runAt: readonly ("beforeFillTransaction" | "beforeFillParameters" | "afterFillParameters")[];
-            }] | undefined;
-            serializers?: import("viem").ChainSerializers<undefined, import("viem").TransactionSerializable> | undefined;
-            verifyHash?: ((client: import("viem").Client, parameters: import("viem").VerifyHashActionParameters) => Promise<import("viem").VerifyHashActionReturnType>) | undefined;
-        }>, "address" | "abi" | "functionName" | "args">>) => Promise<import("viem").EstimateContractGasReturnType>;
-    };
-    simulate: {
-        drip: <chainOverride extends import("viem").Chain | undefined = undefined, accountOverride extends import("viem").Account | Address | undefined = undefined>(options?: Omit<import("viem").SimulateContractParameters<readonly [{
-            readonly name: "drip";
-            readonly type: "function";
-            readonly stateMutability: "nonpayable";
-            readonly inputs: readonly [];
-            readonly outputs: readonly [];
-        }, {
-            readonly name: "timeUntilNextDrip";
-            readonly type: "function";
-            readonly stateMutability: "view";
-            readonly inputs: readonly [{
-                readonly name: "account";
-                readonly type: "address";
-            }];
-            readonly outputs: readonly [{
-                readonly name: "";
-                readonly type: "uint256";
-            }];
-        }, {
-            readonly name: "remainingAllowance";
-            readonly type: "function";
-            readonly stateMutability: "view";
-            readonly inputs: readonly [{
-                readonly name: "account";
-                readonly type: "address";
-            }];
-            readonly outputs: readonly [{
-                readonly name: "";
-                readonly type: "uint256";
-            }];
-        }, {
-            readonly name: "dripAmount";
-            readonly type: "function";
-            readonly stateMutability: "view";
-            readonly inputs: readonly [];
-            readonly outputs: readonly [{
-                readonly name: "";
-                readonly type: "uint256";
-            }];
-        }], "drip", readonly [], {
-            blockExplorers: {
-                readonly default: {
-                    readonly name: "Arbiscan";
-                    readonly url: "https://sepolia.arbiscan.io";
-                    readonly apiUrl: "https://api-sepolia.arbiscan.io/api";
-                };
-            };
-            blockTime: 250;
-            contracts: {
-                readonly multicall3: {
-                    readonly address: "0xca11bde05977b3631167028862be2a173976ca11";
-                    readonly blockCreated: 81930;
-                };
-            };
-            ensTlds?: readonly string[] | undefined;
-            id: 421614;
-            name: "Arbitrum Sepolia";
-            nativeCurrency: {
-                readonly name: "Arbitrum Sepolia Ether";
-                readonly symbol: "ETH";
-                readonly decimals: 18;
-            };
-            experimental_preconfirmationTime?: number | undefined | undefined;
-            rpcUrls: {
-                readonly default: {
-                    readonly http: readonly ["https://sepolia-rollup.arbitrum.io/rpc"];
-                };
-            };
-            sourceId?: number | undefined | undefined;
-            testnet: true;
-            custom?: Record<string, unknown> | undefined;
-            extendSchema?: Record<string, unknown> | undefined;
-            fees?: import("viem").ChainFees<undefined> | undefined;
-            formatters?: undefined;
-            prepareTransactionRequest?: ((args: import("viem").PrepareTransactionRequestParameters, options: {
-                phase: "beforeFillTransaction" | "beforeFillParameters" | "afterFillParameters";
-            }) => Promise<import("viem").PrepareTransactionRequestParameters>) | [fn: ((args: import("viem").PrepareTransactionRequestParameters, options: {
-                phase: "beforeFillTransaction" | "beforeFillParameters" | "afterFillParameters";
-            }) => Promise<import("viem").PrepareTransactionRequestParameters>) | undefined, options: {
-                runAt: readonly ("beforeFillTransaction" | "beforeFillParameters" | "afterFillParameters")[];
-            }] | undefined;
-            serializers?: import("viem").ChainSerializers<undefined, import("viem").TransactionSerializable> | undefined;
-            verifyHash?: ((client: import("viem").Client, parameters: import("viem").VerifyHashActionParameters) => Promise<import("viem").VerifyHashActionReturnType>) | undefined;
-        }, chainOverride, accountOverride>, "address" | "abi" | "functionName" | "args"> | undefined) => Promise<import("viem").SimulateContractReturnType<readonly [{
-            readonly name: "drip";
-            readonly type: "function";
-            readonly stateMutability: "nonpayable";
-            readonly inputs: readonly [];
-            readonly outputs: readonly [];
-        }, {
-            readonly name: "timeUntilNextDrip";
-            readonly type: "function";
-            readonly stateMutability: "view";
-            readonly inputs: readonly [{
-                readonly name: "account";
-                readonly type: "address";
-            }];
-            readonly outputs: readonly [{
-                readonly name: "";
-                readonly type: "uint256";
-            }];
-        }, {
-            readonly name: "remainingAllowance";
-            readonly type: "function";
-            readonly stateMutability: "view";
-            readonly inputs: readonly [{
-                readonly name: "account";
-                readonly type: "address";
-            }];
-            readonly outputs: readonly [{
-                readonly name: "";
-                readonly type: "uint256";
-            }];
-        }, {
-            readonly name: "dripAmount";
-            readonly type: "function";
-            readonly stateMutability: "view";
-            readonly inputs: readonly [];
-            readonly outputs: readonly [{
-                readonly name: "";
-                readonly type: "uint256";
-            }];
-        }], "drip", readonly [], {
-            blockExplorers: {
-                readonly default: {
-                    readonly name: "Arbiscan";
-                    readonly url: "https://sepolia.arbiscan.io";
-                    readonly apiUrl: "https://api-sepolia.arbiscan.io/api";
-                };
-            };
-            blockTime: 250;
-            contracts: {
-                readonly multicall3: {
-                    readonly address: "0xca11bde05977b3631167028862be2a173976ca11";
-                    readonly blockCreated: 81930;
-                };
-            };
-            ensTlds?: readonly string[] | undefined;
-            id: 421614;
-            name: "Arbitrum Sepolia";
-            nativeCurrency: {
-                readonly name: "Arbitrum Sepolia Ether";
-                readonly symbol: "ETH";
-                readonly decimals: 18;
-            };
-            experimental_preconfirmationTime?: number | undefined | undefined;
-            rpcUrls: {
-                readonly default: {
-                    readonly http: readonly ["https://sepolia-rollup.arbitrum.io/rpc"];
-                };
-            };
-            sourceId?: number | undefined | undefined;
-            testnet: true;
-            custom?: Record<string, unknown> | undefined;
-            extendSchema?: Record<string, unknown> | undefined;
-            fees?: import("viem").ChainFees<undefined> | undefined;
-            formatters?: undefined;
-            prepareTransactionRequest?: ((args: import("viem").PrepareTransactionRequestParameters, options: {
-                phase: "beforeFillTransaction" | "beforeFillParameters" | "afterFillParameters";
-            }) => Promise<import("viem").PrepareTransactionRequestParameters>) | [fn: ((args: import("viem").PrepareTransactionRequestParameters, options: {
-                phase: "beforeFillTransaction" | "beforeFillParameters" | "afterFillParameters";
-            }) => Promise<import("viem").PrepareTransactionRequestParameters>) | undefined, options: {
-                runAt: readonly ("beforeFillTransaction" | "beforeFillParameters" | "afterFillParameters")[];
-            }] | undefined;
-            serializers?: import("viem").ChainSerializers<undefined, import("viem").TransactionSerializable> | undefined;
-            verifyHash?: ((client: import("viem").Client, parameters: import("viem").VerifyHashActionParameters) => Promise<import("viem").VerifyHashActionReturnType>) | undefined;
-        }, undefined, chainOverride, accountOverride>>;
-    };
-    write: {
-        drip: <chainOverride extends import("viem").Chain | undefined, options extends import("viem").UnionOmit<import("viem").WriteContractParameters<readonly [{
-            readonly name: "drip";
-            readonly type: "function";
-            readonly stateMutability: "nonpayable";
-            readonly inputs: readonly [];
-            readonly outputs: readonly [];
-        }, {
-            readonly name: "timeUntilNextDrip";
-            readonly type: "function";
-            readonly stateMutability: "view";
-            readonly inputs: readonly [{
-                readonly name: "account";
-                readonly type: "address";
-            }];
-            readonly outputs: readonly [{
-                readonly name: "";
-                readonly type: "uint256";
-            }];
-        }, {
-            readonly name: "remainingAllowance";
-            readonly type: "function";
-            readonly stateMutability: "view";
-            readonly inputs: readonly [{
-                readonly name: "account";
-                readonly type: "address";
-            }];
-            readonly outputs: readonly [{
-                readonly name: "";
-                readonly type: "uint256";
-            }];
-        }, {
-            readonly name: "dripAmount";
-            readonly type: "function";
-            readonly stateMutability: "view";
-            readonly inputs: readonly [];
-            readonly outputs: readonly [{
-                readonly name: "";
-                readonly type: "uint256";
-            }];
-        }], "drip", readonly [], {
-            blockExplorers: {
-                readonly default: {
-                    readonly name: "Arbiscan";
-                    readonly url: "https://sepolia.arbiscan.io";
-                    readonly apiUrl: "https://api-sepolia.arbiscan.io/api";
-                };
-            };
-            blockTime: 250;
-            contracts: {
-                readonly multicall3: {
-                    readonly address: "0xca11bde05977b3631167028862be2a173976ca11";
-                    readonly blockCreated: 81930;
-                };
-            };
-            ensTlds?: readonly string[] | undefined;
-            id: 421614;
-            name: "Arbitrum Sepolia";
-            nativeCurrency: {
-                readonly name: "Arbitrum Sepolia Ether";
-                readonly symbol: "ETH";
-                readonly decimals: 18;
-            };
-            experimental_preconfirmationTime?: number | undefined | undefined;
-            rpcUrls: {
-                readonly default: {
-                    readonly http: readonly ["https://sepolia-rollup.arbitrum.io/rpc"];
-                };
-            };
-            sourceId?: number | undefined | undefined;
-            testnet: true;
-            custom?: Record<string, unknown> | undefined;
-            extendSchema?: Record<string, unknown> | undefined;
-            fees?: import("viem").ChainFees<undefined> | undefined;
-            formatters?: undefined;
-            prepareTransactionRequest?: ((args: import("viem").PrepareTransactionRequestParameters, options: {
-                phase: "beforeFillTransaction" | "beforeFillParameters" | "afterFillParameters";
-            }) => Promise<import("viem").PrepareTransactionRequestParameters>) | [fn: ((args: import("viem").PrepareTransactionRequestParameters, options: {
-                phase: "beforeFillTransaction" | "beforeFillParameters" | "afterFillParameters";
-            }) => Promise<import("viem").PrepareTransactionRequestParameters>) | undefined, options: {
-                runAt: readonly ("beforeFillTransaction" | "beforeFillParameters" | "afterFillParameters")[];
-            }] | undefined;
-            serializers?: import("viem").ChainSerializers<undefined, import("viem").TransactionSerializable> | undefined;
-            verifyHash?: ((client: import("viem").Client, parameters: import("viem").VerifyHashActionParameters) => Promise<import("viem").VerifyHashActionReturnType>) | undefined;
-        }, undefined, chainOverride>, "address" | "abi" | "functionName" | "args"> extends infer T ? { [K in keyof T]: T[K]; } : never>(options: options) => Promise<import("viem").WriteContractReturnType>;
-    };
-    address: "0x19d25F286b8Dca21886bCBe9c21334C6F0C532FB";
-    abi: readonly [{
-        readonly name: "drip";
-        readonly type: "function";
-        readonly stateMutability: "nonpayable";
-        readonly inputs: readonly [];
-        readonly outputs: readonly [];
-    }, {
-        readonly name: "timeUntilNextDrip";
-        readonly type: "function";
-        readonly stateMutability: "view";
-        readonly inputs: readonly [{
-            readonly name: "account";
-            readonly type: "address";
-        }];
-        readonly outputs: readonly [{
-            readonly name: "";
-            readonly type: "uint256";
-        }];
-    }, {
-        readonly name: "remainingAllowance";
-        readonly type: "function";
-        readonly stateMutability: "view";
-        readonly inputs: readonly [{
-            readonly name: "account";
-            readonly type: "address";
-        }];
-        readonly outputs: readonly [{
-            readonly name: "";
-            readonly type: "uint256";
-        }];
-    }, {
-        readonly name: "dripAmount";
-        readonly type: "function";
-        readonly stateMutability: "view";
-        readonly inputs: readonly [];
-        readonly outputs: readonly [{
-            readonly name: "";
-            readonly type: "uint256";
         }];
     }];
 };

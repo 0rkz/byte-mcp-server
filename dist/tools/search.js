@@ -1,15 +1,13 @@
 import { CONFIG } from "../lib/config.js";
 /**
  * Searches publishers via the indexer API, with optional filtering by topic,
- * minimum PQS score, sort order, and result limit.
+ * sort order, and result limit.
  */
 export async function searchPublishers(params) {
-    const { query, minPQS, sortBy, limit } = params;
+    const { query, sortBy, limit } = params;
     const url = new URL("/publishers", CONFIG.indexerUrl);
     if (query)
         url.searchParams.set("topic", query);
-    if (minPQS !== undefined)
-        url.searchParams.set("minPQS", String(minPQS));
     if (sortBy)
         url.searchParams.set("sort", sortBy);
     if (limit !== undefined)
@@ -24,7 +22,7 @@ export async function searchPublishers(params) {
 }
 /**
  * Lists all active data feeds from the indexer API with topics,
- * pricing, frequency, PQS scores, and tier information.
+ * pricing, and frequency.
  */
 export async function listFeeds() {
     const url = new URL("/feeds", CONFIG.indexerUrl);

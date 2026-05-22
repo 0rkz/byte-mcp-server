@@ -5,29 +5,23 @@ import { z } from "zod";
 import { searchPublishers, listFeeds } from "./tools/search.js";
 import { getPublisher, getNetworkStats } from "./tools/publisher.js";
 import { getTokenBalances, checkSubscription, listMySubscriptions, getSubscriptionHealth, } from "./tools/wallet.js";
-import { dripFaucet, subscribe, unsubscribe, registerPublisher, publishData, } from "./tools/actions.js";
+import { subscribe, unsubscribe, registerPublisher, publishData, } from "./tools/actions.js";
 import { queryFact } from "./tools/fact.js";
 const server = new McpServer({
     name: "byte-protocol",
-    version: "0.7.2",
+    version: "0.7.3",
 });
 const DEFAULT_INDEXER_URL = process.env.BYTE_INDEXER_URL ?? "http://localhost:8080";
 // ─── Read-only tools ────────────────────────────────────────────────────────
-server.tool("byte_search_publishers", "Search Byte Protocol publishers by topic, minimum PQS score, and sort order. Returns publisher addresses, topics, tiers, PQS scores, subscriber counts, message counts, and pricing.", {
+server.tool("byte_search_publishers", "Search BYTE Library publishers by topic and sort order. Returns publisher addresses, topics, subscriber counts, message counts, and price-per-KB.", {
     query: z
         .string()
         .optional()
-        .describe("Topic keyword to search (e.g. 'weather', 'price-feed', 'defi')"),
-    minPQS: z
-        .number()
-        .min(0)
-        .max(10000)
-        .optional()
-        .describe("Minimum PQS (Publisher Quality Score) to filter by, 0-10000"),
+        .describe("Topic keyword to search (e.g. 'weather', 'crypto', 'cve')"),
     sortBy: z
         .string()
         .optional()
-        .describe("Sort field: 'subscribers', 'revenue', 'pqs', 'messages'"),
+        .describe("Sort field: 'subscribers', 'revenue', 'messages'"),
     limit: z
         .number()
         .min(1)
@@ -58,7 +52,7 @@ server.tool("byte_search_publishers", "Search Byte Protocol publishers by topic,
         };
     }
 });
-server.tool("byte_get_publisher", "Get detailed on-chain info for a specific Byte Protocol publisher: status, tier, stake, subscribers, messages, revenue, schema config, and PQS breakdown (freshness, accuracy, availability, completeness).", {
+server.tool("byte_get_publisher", "Get on-chain info for a specific BYTE Library publisher: status, subscriber and message counts, USDC revenue, and the registered schema (size bounds, cadence, price-per-KB).", {
     address: z.string().describe("Publisher Ethereum address (0x...)"),
 }, async ({ address }) => {
     try {
@@ -84,7 +78,7 @@ server.tool("byte_get_publisher", "Get detailed on-chain info for a specific Byt
         };
     }
 });
-server.tool("byte_get_network_stats", "Get Byte Protocol network-wide statistics: total publishers, messages streamed, subscriber fees, publishing fees, and total revenue.", {}, async () => {
+server.tool("byte_get_network_stats", "Get BYTE Library network-wide statistics: total publishers, messages streamed, and total subscriber fees settled in USDC.", {}, async () => {
     try {
         const stats = await getNetworkStats();
         return {
@@ -108,7 +102,7 @@ server.tool("byte_get_network_stats", "Get Byte Protocol network-wide statistics
         };
     }
 });
-server.tool("byte_check_subscription", "Check if an address is subscribed to a specific publisher on Byte Protocol.", {
+server.tool("byte_check_subscription", "Check if an address is subscribed to a specific publisher on BYTE Library.", {
     subscriber: z.string().describe("Subscriber Ethereum address (0x...)"),
     publisher: z.string().describe("Publisher Ethereum address (0x...)"),
 }, async ({ subscriber, publisher }) => {
@@ -135,7 +129,7 @@ server.tool("byte_check_subscription", "Check if an address is subscribed to a s
         };
     }
 });
-server.tool("byte_get_token_balances", "Get PPB token, USDC, and ETH balances for an address on Arbitrum Sepolia.", {
+server.tool("byte_get_token_balances", "Get USDC and ETH balances for an address on Arbitrum Sepolia. USDC is the BYTE Library settlement asset; ETH covers gas.", {
     address: z.string().describe("Ethereum address (0x...)"),
 }, async ({ address }) => {
     try {
@@ -161,7 +155,7 @@ server.tool("byte_get_token_balances", "Get PPB token, USDC, and ETH balances fo
         };
     }
 });
-server.tool("byte_list_feeds", "List all active data feeds on Byte Protocol with topics, pricing, frequency, PQS scores, and tier information.", {}, async () => {
+server.tool("byte_list_feeds", "List all active data feeds in the BYTE Library catalog with topics, price-per-KB, and frequency.", {}, async () => {
     try {
         const feeds = await listFeeds();
         return {
@@ -185,7 +179,7 @@ server.tool("byte_list_feeds", "List all active data feeds on Byte Protocol with
         };
     }
 });
-server.tool("byte_list_my_subscriptions", "List every active subscription for a given wallet address. Each entry has the publisher address, topic, tier, PQS score (0-10000 BPS), when you subscribed, messages received in 7/30 days, USDC spent in 7/30 days, and the timestamp of the last message received. Use this to see what you're currently paying for and decide whether to unsubscribe.", {
+server.tool("byte_list_my_subscriptions", "List every active subscription for a given wallet address. Each entry has the publisher address, topic, status, when you subscribed, messages received in 7/30 days, USDC spent in 7/30 days, and the timestamp of the last message received. Use this to see what you're currently paying for and decide whether to unsubscribe.", {
     subscriber: z
         .string()
         .regex(/^0x[a-fA-F0-9]{40}$/, "Must be a 0x-prefixed 40-hex-char address")
@@ -274,31 +268,7 @@ server.tool("byte_unsubscribe", "Unsubscribe from a publisher's data feed. Takes
         };
     }
 });
-server.tool("byte_drip_faucet", "Request testnet PPB tokens from the Byte Protocol faucet. Drips 500 PPB to the connected wallet. Subject to 24h cooldown and 1000 PPB lifetime cap. Requires PRIVATE_KEY.", {}, async () => {
-    try {
-        const result = await dripFaucet();
-        return {
-            content: [
-                {
-                    type: "text",
-                    text: JSON.stringify(result, null, 2),
-                },
-            ],
-        };
-    }
-    catch (error) {
-        return {
-            content: [
-                {
-                    type: "text",
-                    text: `Error dripping faucet: ${error instanceof Error ? error.message : String(error)}`,
-                },
-            ],
-            isError: true,
-        };
-    }
-});
-server.tool("byte_subscribe", "Subscribe to a Byte Protocol publisher's data feed. Requires PRIVATE_KEY. The connected wallet will be registered as a subscriber to the given publisher.", {
+server.tool("byte_subscribe", "Subscribe to a BYTE Library publisher's data feed. Requires PRIVATE_KEY. The connected wallet will be registered as a subscriber to the given publisher.", {
     publisher: z.string().describe("Publisher Ethereum address (0x...) to subscribe to"),
 }, async ({ publisher }) => {
     try {
@@ -324,10 +294,10 @@ server.tool("byte_subscribe", "Subscribe to a Byte Protocol publisher's data fee
         };
     }
 });
-server.tool("byte_register_publisher", "Register as a data publisher on Byte Protocol. This registers a schema, approves PPB token stake, and registers the publisher on-chain. Requires PRIVATE_KEY. Draft 7.5 tier gates: stake determines your ceiling tier — NEW 25 / ESTABLISHED 50 / TRUSTED 100 / PREMIUM 200 / ELITE 350 PPB. Register with at least the stake for the tier you want to reach; otherwise you're capped regardless of PQS performance.", {
+server.tool("byte_register_publisher", "Register as a data publisher on BYTE Library. Registers a schema and the publisher on-chain. Requires PRIVATE_KEY. BYTE Library v1 publishers are first-party and unstaked — leave stake at '0'; a non-zero USDC stake is approved to DataRegistry first if you choose to post one.", {
     stake: z
         .string()
-        .describe("PPB tokens to stake (min 25, max 2000). Stake caps your max reachable tier per Draft 7.5: 25=NEW (35% take), 50=ESTABLISHED (42%), 100=TRUSTED (50%), 200=PREMIUM (60%), 350=ELITE (70%)."),
+        .describe("USDC reputation stake to post, as a decimal string. Default '0' — BYTE Library v1 publishers are unstaked."),
     topic: z
         .string()
         .describe("Data feed topic (e.g. 'eth-price', 'weather-nyc', 'gas-tracker')"),
@@ -338,7 +308,7 @@ server.tool("byte_register_publisher", "Register as a data publisher on Byte Pro
     frequency: z.number().describe("Expected publishing frequency in seconds"),
     pricePerKB: z
         .number()
-        .describe("Price per kilobyte in PPB tokens (e.g. 0.001)"),
+        .describe("Price per kilobyte in USDC (e.g. 0.003)"),
 }, async (params) => {
     try {
         const result = await registerPublisher(params);
@@ -363,12 +333,12 @@ server.tool("byte_register_publisher", "Register as a data publisher on Byte Pro
         };
     }
 });
-server.tool("byte_publish_data", "Publish data to a subscriber via the Byte Protocol DataStream contract. Hashes the payload, records size on-chain, and charges fees. Requires PRIVATE_KEY.", {
+server.tool("byte_publish_data", "Publish data to a subscriber via the BYTE Library DataStream contract. Hashes the payload, records size on-chain, and settles the fee in USDC. Requires PRIVATE_KEY.", {
     subscriber: z.string().describe("Subscriber Ethereum address (0x...)"),
     data: z.string().describe("Data payload to publish (will be hashed on-chain)"),
     maxFee: z
         .number()
-        .describe("Maximum fee in PPB tokens willing to pay for this publish"),
+        .describe("Maximum fee in USDC willing to pay for this publish (e.g. 0.05)"),
 }, async (params) => {
     try {
         const result = await publishData(params);
@@ -394,7 +364,7 @@ server.tool("byte_publish_data", "Publish data to a subscriber via the Byte Prot
     }
 });
 // ─── Fact-oracle tool (NEW in v0.4.0) ──────────────────────────────────────
-server.tool("byte_query_fact", "Query a Byte Protocol fact-oracle publisher for a verified factual answer with citations. Posts the question to a registered fact-oracle publisher (topic='fact-oracle'), waits for the on-chain BroadcastStreamed response, returns the answer + structured citation URLs + the publisher's PQS. Use for grounding LLM outputs in real-time verified information — publishers stake reputation against accuracy, so bad answers are economically slashable.", {
+server.tool("byte_query_fact", "Query a BYTE Library fact-oracle publisher for a verified factual answer with citations. Posts the question to a registered fact-oracle publisher (topic='fact-oracle'), waits for the on-chain BroadcastStreamed response, and returns the answer plus structured citation URLs. Use for grounding LLM outputs in real-time verified information.", {
     question: z
         .string()
         .min(3)
@@ -455,7 +425,7 @@ server.tool("byte_query_fact", "Query a Byte Protocol fact-oracle publisher for 
 async function main() {
     const transport = new StdioServerTransport();
     await server.connect(transport);
-    console.error("Byte Protocol MCP server running on stdio");
+    console.error("BYTE Library MCP server running on stdio");
 }
 main().catch((error) => {
     console.error("Fatal error:", error);

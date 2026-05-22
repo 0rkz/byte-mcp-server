@@ -1,9 +1,9 @@
 /**
- * Fetches PPB token, USDC, and ETH balances for an address on Arbitrum Sepolia.
+ * Fetches USDC and ETH balances for an address on Arbitrum Sepolia.
+ * USDC is the BYTE Library settlement asset; ETH covers gas.
  * @param address - Ethereum address to check.
  */
 export declare function getTokenBalances(address: string): Promise<{
-    ppb: string;
     usdc: string;
     eth: string;
 }>;
@@ -17,12 +17,12 @@ export declare function checkSubscription(subscriber: string, publisher: string)
 }>;
 /**
  * Lists all currently-active subscriptions for a given wallet, with publisher
- * metadata, recent activity, spend over 7d/30d windows, PQS scores, and the
- * timestamp the subscription was created.
+ * metadata, recent activity, spend over 7d/30d windows, and the timestamp the
+ * subscription was created.
  *
- * Data source: the Byte indexer's `/subscriptions/{subscriber}` endpoint,
- * which aggregates SubscriberRegistered/SubscriberRemoved events and joins
- * with publisher + pqs_scores tables.
+ * Data source: the BYTE Library indexer's `/subscriptions/{subscriber}`
+ * endpoint, which aggregates SubscriberRegistered/SubscriberRemoved events and
+ * joins with the publisher table.
  *
  * @param subscriber - Subscriber Ethereum address.
  * @param indexerUrl - Optional override for indexer URL. Defaults to
@@ -32,9 +32,7 @@ export declare function checkSubscription(subscriber: string, publisher: string)
 export declare function listMySubscriptions(subscriber: string, indexerUrl?: string): Promise<{
     publisher: unknown;
     topic: {};
-    tier: {} | null;
     status: {} | null;
-    pqsComposite: {} | null;
     subscribedAt: unknown;
     messages7d: {};
     messages30d: {};

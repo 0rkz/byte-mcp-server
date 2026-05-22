@@ -1,4 +1,4 @@
-import { parseEther, keccak256, toBytes, type Address } from "viem";
+import { parseUnits, keccak256, toBytes, type Address } from "viem";
 import {
   publicClient,
   getWalletClient,
@@ -6,10 +6,9 @@ import {
   DataRegistryAbi,
   DataStreamAbi,
   SchemaRegistryAbi,
-  PPBTokenAbi,
-  TestnetFaucetAbi,
+  Erc20Abi,
 } from "../lib/contracts.js";
-import { ADDRESSES, GAS_LIMITS } from "../lib/config.js";
+import { ADDRESSES, GAS_LIMITS, USDC_DECIMALS } from "../lib/config.js";
 
 /**
  * Unsubscribes from a publisher's data feed. Takes effect in the next block —
@@ -42,31 +41,6 @@ export async function unsubscribe(publisher: string) {
 }
 
 /**
- * Requests testnet PPB tokens from the faucet.
- * Subject to 24h cooldown and 1000 PPB lifetime cap.
- */
-export async function dripFaucet() {
-  const wallet = getWalletClient();
-  const account = getWalletAddress();
-
-  const hash = await wallet.writeContract({
-    address: ADDRESSES.TestnetFaucet,
-    abi: TestnetFaucetAbi,
-    functionName: "drip",
-    gas: GAS_LIMITS.drip,
-  });
-
-  const receipt = await publicClient.waitForTransactionReceipt({ hash });
-
-  return {
-    success: receipt.status === "success",
-    txHash: hash,
-    amount: "500 PPB",
-    recipient: account,
-  };
-}
-
-/**
  * Subscribes the connected wallet to a publisher's data feed.
  * @param publisher - Publisher Ethereum address to subscribe to.
  */
@@ -91,8 +65,10 @@ export async function subscribe(publisher: string) {
 }
 
 /**
- * Registers a new data publisher on Byte Protocol.
- * Performs three on-chain transactions: register schema, approve stake, register publisher.
+ * Registers a new data publisher on BYTE Library.
+ * Registers a schema, then registers the publisher on-chain. An optional USDC
+ * reputation stake (0 by default — BYTE Library v1 publishers are first-party
+ * and unstaked) is approved to DataRegistry first when non-zero.
  */
 export async function registerPublisher(params: {
   stake: string;
@@ -104,12 +80,12 @@ export async function registerPublisher(params: {
 }) {
   const wallet = getWalletClient();
   const account = getWalletAddress();
-  const stakeWei = parseEther(params.stake);
+  const stakeAmount = parseUnits(params.stake || "0", USDC_DECIMALS);
   const topicHash = keccak256(toBytes(params.topic));
   const methodologyHash = keccak256(toBytes(`${params.topic}-methodology`));
-  const pricePerKBWei = parseEther(String(params.pricePerKB));
+  const pricePerKBUsdc = parseUnits(String(params.pricePerKB), USDC_DECIMALS);
 
-  // Step 1: Register schema
+  // Step 1: Register schema.
   const schemaHash = await wallet.writeContract({
     address: ADDRESSES.SchemaRegistry,
     abi: SchemaRegistryAbi,
@@ -122,29 +98,33 @@ export async function registerPublisher(params: {
       0, // VerificationType: None
       methodologyHash,
       topicHash,
-      pricePerKBWei,
+      pricePerKBUsdc,
     ],
     gas: GAS_LIMITS.registerSchema,
   });
   await publicClient.waitForTransactionReceipt({ hash: schemaHash });
 
-  // Step 2: Approve PPB stake
-  const approveHash = await wallet.writeContract({
-    address: ADDRESSES.PPBToken,
-    abi: PPBTokenAbi,
-    functionName: "approve",
-    args: [ADDRESSES.DataRegistry, stakeWei],
-    gas: GAS_LIMITS.approve,
-  });
-  await publicClient.waitForTransactionReceipt({ hash: approveHash });
+  // Step 2: Approve the USDC stake (only when a non-zero stake is requested).
+  let approveTxHash: `0x${string}` | undefined;
+  if (stakeAmount > 0n) {
+    const hash = await wallet.writeContract({
+      address: ADDRESSES.USDC,
+      abi: Erc20Abi,
+      functionName: "approve",
+      args: [ADDRESSES.DataRegistry, stakeAmount],
+      gas: GAS_LIMITS.approve,
+    });
+    await publicClient.waitForTransactionReceipt({ hash });
+    approveTxHash = hash;
+  }
 
-  // Step 3: Register publisher
+  // Step 3: Register publisher.
   const publicKey = keccak256(toBytes(account));
   const registerHash = await wallet.writeContract({
     address: ADDRESSES.DataRegistry,
     abi: DataRegistryAbi,
     functionName: "registerPublisher",
-    args: [stakeWei, publicKey],
+    args: [stakeAmount, publicKey],
     gas: GAS_LIMITS.registerPublisher,
   });
   const receipt = await publicClient.waitForTransactionReceipt({
@@ -155,16 +135,16 @@ export async function registerPublisher(params: {
     success: receipt.status === "success",
     txHash: registerHash,
     schemaTxHash: schemaHash,
-    approveTxHash: approveHash,
+    approveTxHash,
     publisher: account,
-    stake: params.stake,
+    stakeUsdc: params.stake || "0",
     topic: params.topic,
   };
 }
 
 /**
  * Publishes data to a subscriber via the DataStream contract.
- * Hashes the payload and records size on-chain.
+ * Hashes the payload, records size on-chain, and settles the fee in USDC.
  */
 export async function publishData(params: {
   subscriber: string;
@@ -176,13 +156,13 @@ export async function publishData(params: {
   const payloadBytes = toBytes(params.data);
   const payloadSize = BigInt(payloadBytes.length);
   const payloadHash = keccak256(payloadBytes);
-  const maxFeeWei = parseEther(String(params.maxFee));
+  const maxFeeUsdc = parseUnits(String(params.maxFee), USDC_DECIMALS);
 
   const hash = await wallet.writeContract({
     address: ADDRESSES.DataStream,
     abi: DataStreamAbi,
     functionName: "streamData",
-    args: [params.subscriber as Address, payloadHash, payloadSize, maxFeeWei],
+    args: [params.subscriber as Address, payloadHash, payloadSize, maxFeeUsdc],
     gas: GAS_LIMITS.publish,
   });
 

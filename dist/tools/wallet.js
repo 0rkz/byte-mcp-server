@@ -1,30 +1,24 @@
-import { formatEther } from "viem";
-import { publicClient, DataRegistryAbi, PPBTokenAbi } from "../lib/contracts.js";
-import { ADDRESSES } from "../lib/config.js";
+import { formatEther, formatUnits } from "viem";
+import { publicClient, DataRegistryAbi, Erc20Abi } from "../lib/contracts.js";
+import { ADDRESSES, USDC_DECIMALS } from "../lib/config.js";
 /**
- * Fetches PPB token, USDC, and ETH balances for an address on Arbitrum Sepolia.
+ * Fetches USDC and ETH balances for an address on Arbitrum Sepolia.
+ * USDC is the BYTE Library settlement asset; ETH covers gas.
  * @param address - Ethereum address to check.
  */
 export async function getTokenBalances(address) {
     const addr = address;
-    const [ppb, usdc, eth] = await Promise.all([
+    const [usdc, eth] = await Promise.all([
         publicClient.readContract({
-            address: ADDRESSES.PPBToken,
-            abi: PPBTokenAbi,
-            functionName: "balanceOf",
-            args: [addr],
-        }),
-        publicClient.readContract({
-            address: ADDRESSES.MockUSDC,
-            abi: PPBTokenAbi, // same ERC20 interface
+            address: ADDRESSES.USDC,
+            abi: Erc20Abi,
             functionName: "balanceOf",
             args: [addr],
         }),
         publicClient.getBalance({ address: addr }),
     ]);
     return {
-        ppb: formatEther(ppb),
-        usdc: formatEther(usdc),
+        usdc: formatUnits(usdc, USDC_DECIMALS),
         eth: formatEther(eth),
     };
 }
@@ -44,12 +38,12 @@ export async function checkSubscription(subscriber, publisher) {
 }
 /**
  * Lists all currently-active subscriptions for a given wallet, with publisher
- * metadata, recent activity, spend over 7d/30d windows, PQS scores, and the
- * timestamp the subscription was created.
+ * metadata, recent activity, spend over 7d/30d windows, and the timestamp the
+ * subscription was created.
  *
- * Data source: the Byte indexer's `/subscriptions/{subscriber}` endpoint,
- * which aggregates SubscriberRegistered/SubscriberRemoved events and joins
- * with publisher + pqs_scores tables.
+ * Data source: the BYTE Library indexer's `/subscriptions/{subscriber}`
+ * endpoint, which aggregates SubscriberRegistered/SubscriberRemoved events and
+ * joins with the publisher table.
  *
  * @param subscriber - Subscriber Ethereum address.
  * @param indexerUrl - Optional override for indexer URL. Defaults to
@@ -70,9 +64,7 @@ export async function listMySubscriptions(subscriber, indexerUrl = "http://local
         return {
             publisher: r.publisher,
             topic: r.topic || "(unknown)",
-            tier: r.tier ?? null,
             status: r.status ?? null,
-            pqsComposite: r.composite ?? null, // 0-10000 BPS
             subscribedAt: r.subscribed_at,
             messages7d: r.messages_7d ?? 0,
             messages30d: r.messages_30d ?? 0,
