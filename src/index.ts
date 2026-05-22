@@ -21,7 +21,7 @@ import { queryFact } from "./tools/fact.js";
 
 const server = new McpServer({
   name: "byte-protocol",
-  version: "0.4.0",
+  version: "0.7.0",
 });
 
 const DEFAULT_INDEXER_URL = process.env.BYTE_INDEXER_URL ?? "http://localhost:8080";
