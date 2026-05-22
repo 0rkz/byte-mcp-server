@@ -2,7 +2,7 @@
   "manifest_version": "0.2",
   "name": "byte-mcp-server",
   "display_name": "BYTE Protocol",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "description": "Per-byte USDC data marketplace for AI agents. Publishers slashed on-chain for bad data.",
   "long_description": "An MCP server for the Byte Protocol data marketplace on Arbitrum. AI agents can discover data publishers, check on-chain Proof-of-Quality Scores (PQS), subscribe to feeds, monitor subscription health, query slashable fact-oracles, and publish data — all settled per-byte in USDC. The nine read-only tools need no wallet; the five write tools require a private key.",
   "author": {

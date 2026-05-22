@@ -1,6 +1,6 @@
 {
   "name": "byte-mcp-server",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "description": "MCP server for Byte Protocol — AI agents can discover publishers, check reputation, subscribe to feeds, monitor subscription health, and unsubscribe. Per-byte USDC settlement on Arbitrum.",
   "mcpName": "io.github.0rkz/byte-protocol",
   "type": "module",
@@ -14,8 +14,23 @@
     "type": "git",
     "url": "https://github.com/0rkz/byte-mcp-server.git"
   },
-  "keywords": ["mcp", "model-context-protocol", "byte-protocol", "data-marketplace", "ai-agents", "arbitrum", "depin", "x402", "agent-commerce"],
-  "files": ["dist", "README.md", "LICENSE", "smithery.yaml"],
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "byte-protocol",
+    "data-marketplace",
+    "ai-agents",
+    "arbitrum",
+    "depin",
+    "x402",
+    "agent-commerce"
+  ],
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "smithery.yaml"
+  ],
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
