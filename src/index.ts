@@ -330,13 +330,17 @@ server.tool(
 
 server.tool(
   "byte_subscribe",
-  "Subscribe to a BYTE Library publisher's data feed. Requires PRIVATE_KEY. The connected wallet will be registered as a subscriber to the given publisher.",
+  "Subscribe to a BYTE Library publisher's data feed. By default also sets USDC allowance to DataStreamLib to type(uint256).max so the subscription doesn't silently lose payments when allowance depletes (the contract's allowance-skip path emits DataStreamed with amount=0 on transferFrom failure rather than reverting). Pass skipAllowance: true to opt out and set a finite cap manually. Requires PRIVATE_KEY.",
   {
     publisher: z.string().describe("Publisher Ethereum address (0x...) to subscribe to"),
+    skipAllowance: z
+      .boolean()
+      .optional()
+      .describe("If true, don't bundle the USDC approve(max) call. Default false. Auto-approve is also skipped when the wallet already has ≥ $1000 USDC of allowance to DataStreamLib."),
   },
-  async ({ publisher }) => {
+  async ({ publisher, skipAllowance }) => {
     try {
-      const result = await subscribe(publisher);
+      const result = await subscribe({ publisher, skipAllowance });
       return {
         content: [
           {

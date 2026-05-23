@@ -42,16 +42,57 @@ export async function unsubscribe(publisher: string) {
 
 /**
  * Subscribes the connected wallet to a publisher's data feed.
- * @param publisher - Publisher Ethereum address to subscribe to.
+ *
+ * By default also sets USDC allowance to DataStreamLib to `type(uint256).max`
+ * so the subscription doesn't silently lose payments when the allowance
+ * depletes mid-window. The contract's allowance-skip path emits
+ * `DataStreamed` with `amount=0` on `transferFrom` failure rather than
+ * reverting, so a subscriber with insufficient allowance gets data but no
+ * USDC moves — a real silent-failure footgun the bundled approval closes
+ * for the common case. Pass `skipAllowance: true` to opt out (e.g., to set
+ * a finite cap manually for security reasons).
+ *
+ * The auto-approve is a no-op when the wallet already has ≥ $1000 USDC of
+ * allowance to DataStreamLib (avoids wasteful txs on already-configured
+ * subscribers).
+ *
+ * @param params.publisher       Publisher address to subscribe to.
+ * @param params.skipAllowance   Opt out of the bundled approve(max).
  */
-export async function subscribe(publisher: string) {
+export async function subscribe(params: { publisher: string; skipAllowance?: boolean }) {
   const wallet = getWalletClient();
+  const account = getWalletAddress();
+  const MAX_UINT = (1n << 256n) - 1n;
+  const APPROVE_IF_BELOW = 1_000_000_000n; // $1000 in µUSDC
+
+  let allowanceTxHash: `0x${string}` | undefined;
+
+  if (!params.skipAllowance) {
+    const current = (await publicClient.readContract({
+      address: ADDRESSES.USDC,
+      abi: Erc20Abi,
+      functionName: "allowance",
+      args: [account, ADDRESSES.DataStream],
+    })) as bigint;
+
+    if (current < APPROVE_IF_BELOW) {
+      const ahash = await wallet.writeContract({
+        address: ADDRESSES.USDC,
+        abi: Erc20Abi,
+        functionName: "approve",
+        args: [ADDRESSES.DataStream, MAX_UINT],
+        gas: GAS_LIMITS.approve,
+      });
+      await publicClient.waitForTransactionReceipt({ hash: ahash });
+      allowanceTxHash = ahash;
+    }
+  }
 
   const hash = await wallet.writeContract({
     address: ADDRESSES.DataRegistry,
     abi: DataRegistryAbi,
     functionName: "subscribe",
-    args: [publisher as Address],
+    args: [params.publisher as Address],
     gas: GAS_LIMITS.subscribe,
   });
 
@@ -60,7 +101,8 @@ export async function subscribe(publisher: string) {
   return {
     success: receipt.status === "success",
     txHash: hash,
-    publisher,
+    allowanceTxHash,
+    publisher: params.publisher,
   };
 }
 
