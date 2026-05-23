@@ -2,6 +2,15 @@
 
 An [MCP (Model Context Protocol)](https://modelcontextprotocol.io/) server that gives AI agents direct access to the Byte Protocol data marketplace on Arbitrum Sepolia.
 
+> **New in 0.8.0 — pay-per-call (`byte_buy_data`).** A new tool exposes the
+> BYTE Library x402 gateway: an agent can buy a single data packet from any
+> of the 16 catalog feeds (weather, earthquakes, crypto, DeFi yields, news,
+> threat-intel, …) with no subscription, no allowance, no prior on-chain
+> setup. The MCP server signs an EIP-3009 USDC `transferWithAuthorization`
+> on the configured wallet and the x402 facilitator settles on-chain.
+> Use `byte_buy_data` for one-off purchases; use `byte_subscribe` for
+> continuous streams. The catalog is at `https://x402.payperbyte.io/feeds`.
+
 > **⚠ Breaking change in 0.7.0 — v0.6 contract redeploy.** The Byte Protocol
 > v0.6 bundled redeploy went live on Arbitrum Sepolia (chain 421614) on
 > 2026-05-20, and v0.5 is now paused. This release re-points the bundled
@@ -27,7 +36,7 @@ The Model Context Protocol is an open standard that lets AI assistants (like Cla
 
 ## Tools
 
-This server exposes **14 tools** across read and write operations:
+This server exposes **14 tools** across read, write, and pay-per-call (x402) operations:
 
 ### Read-only (no wallet required)
 
@@ -47,11 +56,16 @@ This server exposes **14 tools** across read and write operations:
 
 | Tool | Description |
 |------|-------------|
-| `byte_drip_faucet` | Request 500 testnet PPB tokens (24h cooldown, 1000 PPB lifetime cap) |
-| `byte_subscribe` | Subscribe to a publisher's data feed |
+| `byte_subscribe` | Subscribe to a publisher's data feed (auto-approves USDC max allowance unless `skipAllowance: true`) |
 | `byte_unsubscribe` | Unsubscribe from a publisher's data feed |
-| `byte_register_publisher` | Register as a data publisher (schema + stake + on-chain registration) |
+| `byte_register_publisher` | Register as a data publisher (schema + on-chain registration) |
 | `byte_publish_data` | Publish data to a subscriber via the DataStream contract |
+
+### Pay-per-call (x402, require `PRIVATE_KEY`)
+
+| Tool | Description |
+|------|-------------|
+| `byte_buy_data` | Buy a single data packet from any BYTE Library feed via the x402 gateway. No subscription required. Signs an EIP-3009 USDC `transferWithAuthorization`; the facilitator settles on-chain. Catalog: `https://x402.payperbyte.io/feeds` |
 
 ## Installation
 

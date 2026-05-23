@@ -7,9 +7,10 @@ import { getPublisher, getNetworkStats } from "./tools/publisher.js";
 import { getTokenBalances, checkSubscription, listMySubscriptions, getSubscriptionHealth, } from "./tools/wallet.js";
 import { subscribe, unsubscribe, registerPublisher, publishData, } from "./tools/actions.js";
 import { queryFact } from "./tools/fact.js";
+import { buyData } from "./tools/buy.js";
 const server = new McpServer({
     name: "byte-protocol",
-    version: "0.7.3",
+    version: "0.8.0",
 });
 const DEFAULT_INDEXER_URL = process.env.BYTE_INDEXER_URL ?? "http://localhost:8080";
 // ─── Read-only tools ────────────────────────────────────────────────────────
@@ -419,6 +420,41 @@ server.tool("byte_query_fact", "Query a BYTE Library fact-oracle publisher for a
                 {
                     type: "text",
                     text: `Error querying fact-oracle: ${error instanceof Error ? error.message : String(error)}`,
+                },
+            ],
+            isError: true,
+        };
+    }
+});
+// ─── Pay-per-call (x402) tool ─────────────────────────────────────────────
+server.tool("byte_buy_data", "Buy a single data packet from any BYTE Library feed via the x402 payment gateway. No subscription, no allowance, no prior on-chain setup — pay-per-call USDC settlement. The MCP server signs an EIP-3009 transferWithAuthorization on behalf of the wallet whose PRIVATE_KEY is configured, the x402 facilitator submits the tx, and the data comes back inline with the on-chain settlement tx hash. Use byte_subscribe instead if you want a continuous stream of broadcasts from a publisher. The catalog of available feed slugs lives at https://x402.payperbyte.io/feeds (free GET). Requires PRIVATE_KEY env var on the MCP server and USDC balance on the configured wallet (Arbitrum Sepolia).", {
+    feed: z
+        .string()
+        .min(1)
+        .describe("Feed slug — one of: weather, earthquakes, space-weather, news-feed, " +
+        "code-pulse, runtime-eol, threat-intel, btc-metrics, pkg-facts, " +
+        "cve-facts, wiki-facts, merchant-trust, crypto-top100, defi-yields, " +
+        "byte-status. (For fact-oracle Q&A use byte_query_fact instead — it " +
+        "uses a different request-response flow.)"),
+}, async ({ feed }) => {
+    try {
+        const result = await buyData({ feed });
+        return {
+            content: [
+                {
+                    type: "text",
+                    text: JSON.stringify(result, null, 2),
+                },
+            ],
+            isError: "error" in result,
+        };
+    }
+    catch (error) {
+        return {
+            content: [
+                {
+                    type: "text",
+                    text: `Error buying data: ${error instanceof Error ? error.message : String(error)}`,
                 },
             ],
             isError: true,
