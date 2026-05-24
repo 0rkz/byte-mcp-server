@@ -2,7 +2,8 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import express from "express";
+import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
+import express, { type Request, type Response } from "express";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { searchPublishers, listFeeds } from "./tools/search.js";
@@ -24,7 +25,7 @@ import { buyData } from "./tools/buy.js";
 
 const server = new McpServer({
   name: "byte-protocol",
-  version: "0.8.0",
+  version: "0.10.0",
 });
 
 const DEFAULT_INDEXER_URL = process.env.BYTE_INDEXER_URL ?? "http://localhost:8080";
@@ -576,14 +577,59 @@ async function main() {
     const app = express();
     app.use(express.json());
 
-    const transport = new StreamableHTTPServerTransport({
-      sessionIdGenerator: () => randomUUID(),
-    });
-    await server.connect(transport);
+    // One transport per MCP session. Smithery / Claude / Cursor each get
+    // their own session; initialize requests spawn a new transport, follow-up
+    // requests reuse it via the Mcp-Session-Id header.
+    const transports: Record<string, StreamableHTTPServerTransport> = {};
 
-    app.all("/mcp", (req, res) => transport.handleRequest(req, res, req.body));
+    app.post("/mcp", async (req: Request, res: Response) => {
+      const sessionId = req.headers["mcp-session-id"] as string | undefined;
+      let transport: StreamableHTTPServerTransport;
+
+      if (sessionId && transports[sessionId]) {
+        transport = transports[sessionId];
+      } else if (!sessionId && isInitializeRequest(req.body)) {
+        transport = new StreamableHTTPServerTransport({
+          sessionIdGenerator: () => randomUUID(),
+          onsessioninitialized: (id) => {
+            transports[id] = transport;
+          },
+        });
+        transport.onclose = () => {
+          if (transport.sessionId) delete transports[transport.sessionId];
+        };
+        await server.connect(transport);
+      } else {
+        res.status(400).json({
+          jsonrpc: "2.0",
+          error: { code: -32000, message: "Bad Request: no valid session ID" },
+          id: null,
+        });
+        return;
+      }
+
+      await transport.handleRequest(req, res, req.body);
+    });
+
+    // GET = server-initiated SSE stream; DELETE = explicit session termination.
+    const sessionRouted = async (req: Request, res: Response) => {
+      const sessionId = req.headers["mcp-session-id"] as string | undefined;
+      if (!sessionId || !transports[sessionId]) {
+        res.status(400).send("Invalid or missing session ID");
+        return;
+      }
+      await transports[sessionId].handleRequest(req, res);
+    };
+    app.get("/mcp", sessionRouted);
+    app.delete("/mcp", sessionRouted);
+
     app.get("/health", (_req, res) =>
-      res.json({ status: "ok", version: "0.10.0", transport: "http" }),
+      res.json({
+        status: "ok",
+        version: "0.10.0",
+        transport: "http",
+        sessions: Object.keys(transports).length,
+      }),
     );
 
     app.listen(port, () => {
