@@ -32,7 +32,7 @@ const DEFAULT_INDEXER_URL = process.env.BYTE_INDEXER_URL ?? "http://localhost:80
 function createMcpServer(): McpServer {
   const server = new McpServer({
     name: "byte-protocol",
-    version: "0.10.1",
+    version: "0.10.2",
   });
 
 // ─── Read-only tools ────────────────────────────────────────────────────────
@@ -608,10 +608,36 @@ async function main() {
         };
         const sessionServer = createMcpServer();
         await sessionServer.connect(transport);
+      } else if (
+        !sessionId &&
+        typeof (req.body as { method?: string })?.method === "string" &&
+        (req.body as { method: string }).method.startsWith("notifications/")
+      ) {
+        // Orphan notification — some clients (e.g. Smithery's scanner) don't
+        // propagate the Mcp-Session-Id header on follow-up requests. Per JSON-RPC
+        // 2.0, notifications expect no response; ACK with 202 and drop.
+        res.status(202).end();
+        return;
+      } else if (!sessionId) {
+        // Session-less non-initialize, non-notification request — spin up a
+        // one-shot stateless transport so scanner-style probes (tools/list etc.)
+        // get an answer. Heavyweight per request, but only fires for clients
+        // that fail to propagate the session id.
+        const onceTransport = new StreamableHTTPServerTransport({
+          sessionIdGenerator: undefined,
+        });
+        const onceServer = createMcpServer();
+        res.on("close", () => {
+          void onceTransport.close();
+          void onceServer.close();
+        });
+        await onceServer.connect(onceTransport);
+        await onceTransport.handleRequest(req, res, req.body);
+        return;
       } else {
         res.status(400).json({
           jsonrpc: "2.0",
-          error: { code: -32000, message: "Bad Request: no valid session ID" },
+          error: { code: -32000, message: "Bad Request: invalid session ID" },
           id: null,
         });
         return;
@@ -635,7 +661,7 @@ async function main() {
     app.get("/health", (_req, res) =>
       res.json({
         status: "ok",
-        version: "0.10.1",
+        version: "0.10.2",
         transport: "http",
         sessions: Object.keys(transports).length,
       }),

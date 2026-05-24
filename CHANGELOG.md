@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.10.2 — 2026-05-24
+
+**Scanner-friendly session handling.** Smithery's hosted scanner (and other discovery clients) don't propagate the `Mcp-Session-Id` header on follow-up requests after `initialize`. 0.10.1's strict 400 fallback broke their tools discovery flow. 0.10.2 adds two graceful paths:
+
+- **Orphan notifications** (`notifications/initialized` and friends without a session id) → 202 ACK and drop, per JSON-RPC notification semantics.
+- **Orphan JSON-RPC requests** (`tools/list` etc. without a session id) → routed through a one-shot stateless transport so scanners get a real answer.
+
+Verified end-to-end with Smithery's scan: 14 tools enumerated cleanly. Stateful clients (Claude Desktop, Cursor) that correctly propagate the session header are unaffected — they continue to share a long-lived per-session transport.
+
 ## 0.10.1 — 2026-05-24
 
 **Fixes Smithery auto-scan.** 0.10.0 shipped HTTP transport with a single shared `McpServer` instance — the SDK errored `Already connected to a transport` on every session after the first, breaking Smithery's discovery scan and any concurrent client. 0.10.1 wraps the server setup in a `createMcpServer()` factory and spawns a fresh instance per session (canonical multi-session pattern). Stdio mode unchanged.

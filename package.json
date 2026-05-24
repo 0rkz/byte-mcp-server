@@ -1,6 +1,6 @@
 {
   "name": "byte-mcp-server",
-  "version": "0.10.1",
+  "version": "0.10.2",
   "description": "MCP server for BYTE Library — AI agents can discover data feeds, subscribe, monitor subscription health, query the fact-oracle, buy one-off data packets via x402, and unsubscribe. Per-byte USDC settlement on Arbitrum.",
   "mcpName": "io.github.0rkz/byte-protocol",
   "type": "module",
