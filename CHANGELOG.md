@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.9.2 — 2026-05-23
+
+Two Marketplace-listing fixes shipped together:
+
+1. **CVE fix that actually propagates to installers.** 0.9.1 cleared the audit locally via lockfile pins, but `package-lock.json` isn't in the published tarball — so anyone installing `byte-mcp-server` got fresh dependency resolution and the unfixed transitive deps. 0.9.2 moves the pins into `package.json`'s `overrides` field (npm 8.3+), which DOES propagate. `npm audit` post-install returns 0 vulnerabilities for consumers, not just for our local checkout.
+
+2. **README republish.** The 0.9.x npm tarballs were shipping the pre-rewrite README (the one with stale Byte-Protocol / PQS / PPB / faucet framing). 0.9.2 ships the rewritten README from commit `d9a1128`.
+
+Plus an explicit testnet warning callout near the top — addresses the Marketplace's "no explicit testnet warning" finding. No code change.
+
 ## 0.9.1 — 2026-05-23
 
 Security: bumped transitive deps (`fast-uri`, `hono`, `ip-address`, `qs`) to clear 5 CVEs flagged on the Marketplace listing. `@modelcontextprotocol/sdk` stays at `1.29.0` (already latest); fixes are via lockfile overrides. No API change.

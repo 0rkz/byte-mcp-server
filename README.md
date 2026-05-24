@@ -2,6 +2,8 @@
 
 A [Model Context Protocol](https://modelcontextprotocol.io/) server that gives AI agents direct access to **[BYTE Library](https://www.payperbyte.io)** — a per-byte USDC data marketplace on Arbitrum. Agents discover feeds, subscribe to streams, or pay-per-call for one-off data. No tokens, no API keys, no off-chain accounts: settle in USDC, route through MCP.
 
+> **🧪 Testnet only.** This release targets **Arbitrum Sepolia** (chain `421614`). Use a testnet-only wallet — **never** configure `PRIVATE_KEY` to a key holding mainnet funds. Get free Sepolia ETH from any Arbitrum Sepolia faucet. Mainnet (Arbitrum One) is the next milestone, gated on the external security audit.
+
 > **⚠ Migration window — 0.9.0.** This release prepares `byte_publish_data` for the upcoming **DataStreamLib r2** contract revision (EIP-712 PayloadAttestation). During the migration, `byte_publish_data` will revert against the current v1 contract — the new 5-arg `streamData` signature isn't accepted until r2 deploys on Arbitrum Sepolia. Read-only tools, `byte_subscribe`, `byte_query_fact`, and `byte_buy_data` are unaffected. See [CHANGELOG.md](CHANGELOG.md) for older releases.
 
 ## Quick start
