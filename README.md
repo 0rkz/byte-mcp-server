@@ -2,6 +2,16 @@
 
 An [MCP (Model Context Protocol)](https://modelcontextprotocol.io/) server that gives AI agents direct access to the Byte Protocol data marketplace on Arbitrum Sepolia.
 
+> **New in 0.9.0 — EIP-712 PayloadAttestation prep (DataStreamLib r2).**
+> `byte_publish_data` now signs the payload as an EIP-712 PayloadAttestation,
+> ready for the upcoming DataStreamLib r2 contract revision. The signing
+> path is live in this release; the contract upgrade lands on Arbitrum
+> Sepolia shortly. **During the migration window**, `byte_publish_data`
+> will revert against the current v1 contract (the new 5-arg `streamData`
+> signature isn't accepted until r2 is deployed). The read-only,
+> `byte_subscribe`, `byte_query_fact`, and `byte_buy_data` tools are
+> unaffected and work normally throughout.
+
 > **New in 0.8.0 — pay-per-call (`byte_buy_data`).** A new tool exposes the
 > BYTE Library x402 gateway: an agent can buy a single data packet from any
 > of the 16 catalog feeds (weather, earthquakes, crypto, DeFi yields, news,

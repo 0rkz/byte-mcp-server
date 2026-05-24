@@ -107,14 +107,26 @@ export const DataStreamAbi = [
         outputs: [{ name: "", type: "uint256" }],
     },
     {
+        // BYTE Library r2 (2026-05-23): the trailing `att` arg is an
+        // Attestation struct ({ uint256 deadline; bytes signature; }) — the
+        // contract verifies the EIP-712 PayloadAttestation and emits it in
+        // the DataStreamed event so subscribers can verify out-of-band.
         name: "streamData",
         type: "function",
         stateMutability: "nonpayable",
         inputs: [
             { name: "subscriber", type: "address" },
             { name: "payloadHash", type: "bytes32" },
-            { name: "payloadSize", type: "uint256" },
+            { name: "payloadLength", type: "uint256" },
             { name: "maxFee", type: "uint256" },
+            {
+                name: "att",
+                type: "tuple",
+                components: [
+                    { name: "deadline", type: "uint256" },
+                    { name: "signature", type: "bytes" },
+                ],
+            },
         ],
         outputs: [],
     },

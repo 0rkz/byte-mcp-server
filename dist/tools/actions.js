@@ -1,4 +1,5 @@
 import { parseUnits, keccak256, toBytes } from "viem";
+import { arbitrumSepolia } from "viem/chains";
 import { publicClient, getWalletClient, getWalletAddress, DataRegistryAbi, DataStreamAbi, SchemaRegistryAbi, Erc20Abi, } from "../lib/contracts.js";
 import { ADDRESSES, GAS_LIMITS, USDC_DECIMALS } from "../lib/config.js";
 /**
@@ -163,11 +164,45 @@ export async function publishData(params) {
     const payloadSize = BigInt(payloadBytes.length);
     const payloadHash = keccak256(payloadBytes);
     const maxFeeUsdc = parseUnits(String(params.maxFee), USDC_DECIMALS);
+    // BYTE Library r2: sign an EIP-712 PayloadAttestation that the contract
+    // verifies and emits in DataStreamed. Subscribers re-verify received bytes
+    // against this attestation off-chain (see ppb SDK verifyPayload).
+    const deadline = BigInt(Math.floor(Date.now() / 1000) + 300);
+    const signature = await wallet.signTypedData({
+        account: wallet.account,
+        domain: {
+            name: "BYTE Library",
+            version: "1",
+            chainId: arbitrumSepolia.id,
+            verifyingContract: ADDRESSES.DataStream,
+        },
+        types: {
+            PayloadAttestation: [
+                { name: "publisher", type: "address" },
+                { name: "payloadHash", type: "bytes32" },
+                { name: "payloadLength", type: "uint256" },
+                { name: "deadline", type: "uint256" },
+            ],
+        },
+        primaryType: "PayloadAttestation",
+        message: {
+            publisher: wallet.account.address,
+            payloadHash,
+            payloadLength: payloadSize,
+            deadline,
+        },
+    });
     const hash = await wallet.writeContract({
         address: ADDRESSES.DataStream,
         abi: DataStreamAbi,
         functionName: "streamData",
-        args: [params.subscriber, payloadHash, payloadSize, maxFeeUsdc],
+        args: [
+            params.subscriber,
+            payloadHash,
+            payloadSize,
+            maxFeeUsdc,
+            { deadline, signature },
+        ],
         gas: GAS_LIMITS.publish,
     });
     const receipt = await publicClient.waitForTransactionReceipt({ hash });

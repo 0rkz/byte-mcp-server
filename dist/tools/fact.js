@@ -19,8 +19,13 @@ import { privateKeyToAccount } from "viem/accounts";
 import { arbitrumSepolia } from "viem/chains";
 import { randomBytes } from "node:crypto";
 import { CONFIG, ADDRESSES } from "../lib/config.js";
+// BYTE Library r2 (2026-05-23). The pre-r2 version of this constant had two
+// pre-existing bugs: (1) the last field was "totalPublisherFees" but the
+// contract has always emitted "timestamp"; (2) it was missing the
+// (attestationDeadline, attestation) fields the contract added in r2. Both
+// fixed here in one pass.
 const DATASTREAM_EVENT_ABI = parseAbi([
-    "event BroadcastStreamed(address indexed publisher, uint256 subscriberCount, bytes32 payloadHash, uint256 payloadLength, uint256 totalSubscriberFees, uint256 totalPublisherFees)",
+    "event BroadcastStreamed(address indexed publisher, uint256 subscriberCount, bytes32 payloadHash, uint256 payloadLength, uint256 totalSubscriberFees, uint256 timestamp, uint256 attestationDeadline, bytes attestation)",
 ]);
 const PAYLOAD_ARCHIVE_BASE = process.env.PAYLOAD_ARCHIVE_BASE || "https://api.payperbyte.io/payload";
 const DEFAULT_TIMEOUT_MS = 30_000;
