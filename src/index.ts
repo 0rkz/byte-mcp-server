@@ -23,12 +23,17 @@ import {
 import { queryFact } from "./tools/fact.js";
 import { buyData } from "./tools/buy.js";
 
-const server = new McpServer({
-  name: "byte-protocol",
-  version: "0.10.0",
-});
-
 const DEFAULT_INDEXER_URL = process.env.BYTE_INDEXER_URL ?? "http://localhost:8080";
+
+// Each MCP session needs its own McpServer instance (the SDK Server class
+// errors with "Already connected to a transport" if one instance is reused
+// across concurrent transports). The HTTP transport spawns a fresh one per
+// session via this factory.
+function createMcpServer(): McpServer {
+  const server = new McpServer({
+    name: "byte-protocol",
+    version: "0.10.1",
+  });
 
 // ─── Read-only tools ────────────────────────────────────────────────────────
 
@@ -566,6 +571,9 @@ server.tool(
   },
 );
 
+  return server;
+}
+
 // ─── Start server ───────────────────────────────────────────────────────────
 
 async function main() {
@@ -598,7 +606,8 @@ async function main() {
         transport.onclose = () => {
           if (transport.sessionId) delete transports[transport.sessionId];
         };
-        await server.connect(transport);
+        const sessionServer = createMcpServer();
+        await sessionServer.connect(transport);
       } else {
         res.status(400).json({
           jsonrpc: "2.0",
@@ -626,7 +635,7 @@ async function main() {
     app.get("/health", (_req, res) =>
       res.json({
         status: "ok",
-        version: "0.10.0",
+        version: "0.10.1",
         transport: "http",
         sessions: Object.keys(transports).length,
       }),
@@ -636,6 +645,7 @@ async function main() {
       console.error(`BYTE Library MCP server (HTTP) listening on :${port}`);
     });
   } else {
+    const server = createMcpServer();
     const transport = new StdioServerTransport();
     await server.connect(transport);
     console.error("BYTE Library MCP server running on stdio");

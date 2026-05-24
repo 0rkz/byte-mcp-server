@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.1 — 2026-05-24
+
+**Fixes Smithery auto-scan.** 0.10.0 shipped HTTP transport with a single shared `McpServer` instance — the SDK errored `Already connected to a transport` on every session after the first, breaking Smithery's discovery scan and any concurrent client. 0.10.1 wraps the server setup in a `createMcpServer()` factory and spawns a fresh instance per session (canonical multi-session pattern). Stdio mode unchanged.
+
 ## 0.10.0 — 2026-05-24
 
 **HTTP transport (`StreamableHTTPServerTransport`).** New runtime mode lets `byte-mcp-server` run as a hosted HTTP MCP endpoint, in addition to the existing stdio mode. Activated by `--http` flag or `MCP_TRANSPORT=http`. Listens on `PORT` (default 8787) with `POST /mcp` for MCP traffic and `GET /health` for liveness probes.
