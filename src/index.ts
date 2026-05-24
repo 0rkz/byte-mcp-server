@@ -1,6 +1,9 @@
 #!/usr/bin/env node
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import express from "express";
+import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { searchPublishers, listFeeds } from "./tools/search.js";
 import { getPublisher, getNetworkStats } from "./tools/publisher.js";
@@ -565,9 +568,32 @@ server.tool(
 // ─── Start server ───────────────────────────────────────────────────────────
 
 async function main() {
-  const transport = new StdioServerTransport();
-  await server.connect(transport);
-  console.error("BYTE Library MCP server running on stdio");
+  const useHttp =
+    process.argv.includes("--http") || process.env.MCP_TRANSPORT === "http";
+
+  if (useHttp) {
+    const port = Number(process.env.PORT ?? 8787);
+    const app = express();
+    app.use(express.json());
+
+    const transport = new StreamableHTTPServerTransport({
+      sessionIdGenerator: () => randomUUID(),
+    });
+    await server.connect(transport);
+
+    app.all("/mcp", (req, res) => transport.handleRequest(req, res, req.body));
+    app.get("/health", (_req, res) =>
+      res.json({ status: "ok", version: "0.10.0", transport: "http" }),
+    );
+
+    app.listen(port, () => {
+      console.error(`BYTE Library MCP server (HTTP) listening on :${port}`);
+    });
+  } else {
+    const transport = new StdioServerTransport();
+    await server.connect(transport);
+    console.error("BYTE Library MCP server running on stdio");
+  }
 }
 
 main().catch((error) => {

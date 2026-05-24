@@ -1,30 +1,27 @@
 # Smithery configuration: https://smithery.ai/docs/config#smitheryyaml
 #
-# byte-mcp-server is stdio-only. Both config values are optional —
-# read-only tools (search, get_publisher, list_my_subscriptions,
-# subscription_health, get_network_stats, list_feeds, check_subscription,
-# get_token_balances) work without any config.
-# Write tools (subscribe, unsubscribe, drip_faucet, register_publisher,
-# publish_data) require privateKey.
+# byte-mcp-server supports two transports:
+#   - HTTP (default for Smithery hosted listings, since 0.10.0):
+#       https://mcp.payperbyte.io/mcp
+#   - stdio (for local Claude Desktop / Cursor / Windsurf installs):
+#       npx -y byte-mcp-server
+#
+# Both config values are optional — read-only tools (search, get_publisher,
+# list_my_subscriptions, subscription_health, get_network_stats, list_feeds,
+# check_subscription, get_token_balances) work without any config.
+# Write tools (subscribe, unsubscribe, register_publisher, publish_data,
+# buy_data) require privateKey.
 
 startCommand:
-  type: stdio
+  type: http
+  url: https://mcp.payperbyte.io/mcp
   configSchema:
     type: object
     properties:
       privateKey:
         type: string
-        description: "Ethereum private key for write operations (subscribe, publish, drip faucet, unsubscribe). Leave blank for read-only mode."
+        description: "Ethereum private key for write operations (subscribe, publish, unsubscribe, buy_data). Leave blank for read-only mode."
       rpcUrl:
         type: string
-        description: "Arbitrum RPC URL. Defaults to public Arbitrum Sepolia RPC if omitted."
+        description: "Arbitrum RPC URL. Defaults to public Arbitrum Sepolia RPC."
         default: "https://sepolia-rollup.arbitrum.io/rpc"
-  commandFunction: |-
-    config => ({
-      command: 'node',
-      args: ['dist/index.js'],
-      env: {
-        ...(config.privateKey ? { PRIVATE_KEY: config.privateKey } : {}),
-        ...(config.rpcUrl ? { RPC_URL: config.rpcUrl } : {})
-      }
-    })

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.10.0 — 2026-05-24
+
+**HTTP transport (`StreamableHTTPServerTransport`).** New runtime mode lets `byte-mcp-server` run as a hosted HTTP MCP endpoint, in addition to the existing stdio mode. Activated by `--http` flag or `MCP_TRANSPORT=http`. Listens on `PORT` (default 8787) with `POST /mcp` for MCP traffic and `GET /health` for liveness probes.
+
+Drives the Smithery hosted listing (`https://mcp.payperbyte.io/mcp`) — Smithery now requires HTTP-transport MCP servers behind a public URL for one-click installs, rather than mounting Docker containers. Local stdio installs (Claude Desktop / Cursor) are unchanged — no flag = stdio, exactly as before.
+
+No tool API changes; no breaking changes for existing stdio integrations. Minor bump.
+
 ## 0.9.2 — 2026-05-23
 
 Two Marketplace-listing fixes shipped together:
