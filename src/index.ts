@@ -23,7 +23,8 @@ import {
 import { queryFact } from "./tools/fact.js";
 import { buyData } from "./tools/buy.js";
 
-const DEFAULT_INDEXER_URL = process.env.BYTE_INDEXER_URL ?? "http://localhost:8080";
+import { CONFIG } from "./lib/config.js";
+const DEFAULT_INDEXER_URL = CONFIG.indexerUrl;
 
 // Each MCP session needs its own McpServer instance (the SDK Server class
 // errors with "Already connected to a transport" if one instance is reused
@@ -32,7 +33,7 @@ const DEFAULT_INDEXER_URL = process.env.BYTE_INDEXER_URL ?? "http://localhost:80
 function createMcpServer(): McpServer {
   const server = new McpServer({
     name: "byte-protocol",
-    version: "0.10.3",
+    version: "0.10.4",
   });
 
 // ─── Read-only tools ────────────────────────────────────────────────────────
@@ -661,7 +662,7 @@ async function main() {
     app.get("/health", (_req, res) =>
       res.json({
         status: "ok",
-        version: "0.10.3",
+        version: "0.10.4",
         transport: "http",
         sessions: Object.keys(transports).length,
       }),

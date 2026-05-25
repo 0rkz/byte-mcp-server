@@ -1,6 +1,6 @@
 import { formatEther, formatUnits, type Address } from "viem";
 import { publicClient, DataRegistryAbi, Erc20Abi } from "../lib/contracts.js";
-import { ADDRESSES, USDC_DECIMALS } from "../lib/config.js";
+import { ADDRESSES, CONFIG, USDC_DECIMALS } from "../lib/config.js";
 
 /**
  * Fetches USDC and ETH balances for an address on Arbitrum Sepolia.
@@ -58,7 +58,7 @@ export async function checkSubscription(subscriber: string, publisher: string) {
  */
 export async function listMySubscriptions(
   subscriber: string,
-  indexerUrl: string = "http://localhost:8080"
+  indexerUrl: string = CONFIG.indexerUrl
 ) {
   const url = `${indexerUrl.replace(/\/$/, "")}/subscriptions/${subscriber.toLowerCase()}`;
   const res = await fetch(url);
@@ -102,7 +102,7 @@ export async function listMySubscriptions(
  */
 export async function getSubscriptionHealth(
   publisher: string,
-  indexerUrl: string = "http://localhost:8080"
+  indexerUrl: string = CONFIG.indexerUrl
 ) {
   const url = `${indexerUrl.replace(/\/$/, "")}/publisher/${publisher.toLowerCase()}/drift`;
   const res = await fetch(url);

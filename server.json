@@ -1,18 +1,18 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-09-16/server.schema.json",
   "name": "io.github.0rkz/byte-protocol",
-  "description": "Per-byte USDC data feeds and oracles for AI agents on Arbitrum. Subscribe to first-party feeds (weather, markets, threat-intel, earthquakes) or buy single packets via x402. No API keys, no token, EIP-712-attested payloads.",
+  "description": "Per-byte USDC data feeds + oracles for AI agents on Arbitrum. Verifiable, no token, no API keys.",
   "repository": {
     "url": "https://github.com/0rkz/byte-mcp-server",
     "source": "github"
   },
-  "version": "0.10.3",
+  "version": "0.10.4",
   "packages": [
     {
       "registryType": "npm",
       "registryBaseUrl": "https://registry.npmjs.org",
       "identifier": "byte-mcp-server",
-      "version": "0.10.3",
+      "version": "0.10.4",
       "transport": {
         "type": "stdio"
       },

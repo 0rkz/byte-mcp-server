@@ -2,7 +2,7 @@
   "manifest_version": "0.2",
   "name": "byte-mcp-server",
   "display_name": "BYTE Library",
-  "version": "0.10.3",
+  "version": "0.10.4",
   "description": "Per-byte USDC data feeds for AI agents on Arbitrum. First-party publishers, no API keys, EIP-712-attested payloads.",
   "long_description": "An MCP server for BYTE Library — a per-byte USDC data marketplace on Arbitrum. AI agents can discover first-party publishers, subscribe to live feeds (weather, markets, threat-intel, earthquakes, fact-oracles), monitor subscription health, publish their own data, and buy single packets via the x402 pay-per-call gateway — all settled in USDC. Every settlement emits an EIP-712 PayloadAttestation for a cryptographic delivery receipt. The 8 read-only tools need no wallet; the 5 write tools and byte_buy_data (x402) require a private key.",
   "author": {

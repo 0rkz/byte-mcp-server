@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.10.4 — 2026-05-25
+
+**Bugfix: stale r2 DataStream address + hosted-indexer default.** Two real bugs surfaced by a smoke test against the v0.10.3 npm install:
+
+- **DataStream pointer was pre-r2.** `src/lib/config.ts` carried the original v1 DataStream address (`0x4b24...4c053`) instead of the r2 redeploy (`0x44729bB1...e06e95`). Every write tool (`byte_subscribe`, `byte_buy_data`, `byte_publish_data`, `byte_unsubscribe`) in 0.10.3 was targeting the pre-r2 contract — so EIP-712 PayloadAttestation receipts were silently bypassed and writes hit the wrong settlement surface. 0.10.4 points at the r2 deploy. **Anyone on 0.10.0–0.10.3 should upgrade before any write operation.**
+- **Indexer default was localhost.** `INDEXER_URL` and `BYTE_INDEXER_URL` both defaulted to `http://localhost:8080`, so a fresh install with no env vars 404'd on every indexer-backed tool (`byte_list_feeds`, `byte_search_publishers`, `byte_list_my_subscriptions`, `byte_subscription_health`). New default is `https://feeds.payperbyte.io`; both env-var names are honored. Local-dev override via `INDEXER_URL=http://localhost:8080` still works.
+
+Also: `tools/wallet.ts` was hardcoding `http://localhost:8080` as a function-parameter default instead of falling through to `CONFIG.indexerUrl` — fixed in the same pass. `src/index.ts` now imports the indexer URL from the central config rather than reading the env var twice.
+
 ## 0.10.3 — 2026-05-24
 
 **Marketplace listing upgrades.** Targets the 7.3 → ~9 score jump on `mcp-marketplace.io`:
