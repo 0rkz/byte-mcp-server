@@ -32,7 +32,7 @@ const DEFAULT_INDEXER_URL = process.env.BYTE_INDEXER_URL ?? "http://localhost:80
 function createMcpServer(): McpServer {
   const server = new McpServer({
     name: "byte-protocol",
-    version: "0.10.2",
+    version: "0.10.3",
   });
 
 // ─── Read-only tools ────────────────────────────────────────────────────────
@@ -661,7 +661,7 @@ async function main() {
     app.get("/health", (_req, res) =>
       res.json({
         status: "ok",
-        version: "0.10.2",
+        version: "0.10.3",
         transport: "http",
         sessions: Object.keys(transports).length,
       }),

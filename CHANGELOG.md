@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.10.3 — 2026-05-24
+
+**Marketplace listing upgrades.** Targets the 7.3 → ~9 score jump on `mcp-marketplace.io`:
+
+- **SDK pin tightened** from `^1.12.1` to `^1.29.0` — clears the 3 high-severity CVEs flagged by the marketplace's scanner (which resolves the wide caret range to its worst version, even though `npm audit` was locally clean). `@modelcontextprotocol/sdk@1.29.0` is the current latest.
+- **`server.json` declares HTTP transport** — adds a `remotes` entry pointing at `https://mcp.payperbyte.io/mcp` (the Smithery-backed hosted endpoint). Bumps the Marketplace's "Local Plugin" classification toward hybrid local + remote.
+- **Description rewrites** in `server.json` + `manifest.json` to BYTE Library framing (drops residual "slashable" / "publishers slashed" v0.6 carryover; matches the BYTE Library no-token, first-party-publisher pivot).
+
+No code-path changes. Stdio and HTTP transports behave identically to 0.10.2.
+
 ## 0.10.2 — 2026-05-24
 
 **Scanner-friendly session handling.** Smithery's hosted scanner (and other discovery clients) don't propagate the `Mcp-Session-Id` header on follow-up requests after `initialize`. 0.10.1's strict 400 fallback broke their tools discovery flow. 0.10.2 adds two graceful paths:
