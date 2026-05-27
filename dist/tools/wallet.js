@@ -1,6 +1,6 @@
 import { formatEther, formatUnits } from "viem";
 import { publicClient, DataRegistryAbi, Erc20Abi } from "../lib/contracts.js";
-import { ADDRESSES, USDC_DECIMALS } from "../lib/config.js";
+import { ADDRESSES, CONFIG, USDC_DECIMALS } from "../lib/config.js";
 /**
  * Fetches USDC and ETH balances for an address on Arbitrum Sepolia.
  * USDC is the BYTE Library settlement asset; ETH covers gas.
@@ -50,7 +50,7 @@ export async function checkSubscription(subscriber, publisher) {
  *   http://localhost:8080 which is the local indexer; for agents running
  *   remotely, point this at a public indexer.
  */
-export async function listMySubscriptions(subscriber, indexerUrl = "http://localhost:8080") {
+export async function listMySubscriptions(subscriber, indexerUrl = CONFIG.indexerUrl) {
     const url = `${indexerUrl.replace(/\/$/, "")}/subscriptions/${subscriber.toLowerCase()}`;
     const res = await fetch(url);
     if (!res.ok) {
@@ -89,7 +89,7 @@ export async function listMySubscriptions(subscriber, indexerUrl = "http://local
  * @param publisher - Publisher Ethereum address.
  * @param indexerUrl - Optional indexer URL override.
  */
-export async function getSubscriptionHealth(publisher, indexerUrl = "http://localhost:8080") {
+export async function getSubscriptionHealth(publisher, indexerUrl = CONFIG.indexerUrl) {
     const url = `${indexerUrl.replace(/\/$/, "")}/publisher/${publisher.toLowerCase()}/drift`;
     const res = await fetch(url);
     if (!res.ok) {

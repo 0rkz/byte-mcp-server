@@ -21,8 +21,11 @@ export declare function searchPublishers(params: {
     limit?: number;
 }): Promise<PublisherSearchResult[]>;
 /**
- * Lists all active data feeds from the indexer API with topics,
- * pricing, and frequency.
+ * Lists all active data feeds from the x402 gateway catalog with
+ * topics, pricing, and update cadence. The gateway is the source of
+ * truth for the feed catalog (it owns the per-feed price + expected
+ * payload size); the indexer aggregates on-chain events but does not
+ * expose `/feeds`.
  */
 export declare function listFeeds(): Promise<FeedInfo[]>;
 export {};

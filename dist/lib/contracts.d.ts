@@ -18521,7 +18521,7 @@ export declare function getDataStream(): {
             signature: `0x${string}`;
         }], options: options) => Promise<import("viem").WriteContractReturnType>;
     };
-    address: "0x4b24006bc32A08176D5e2E779f8328Ce4384c053";
+    address: "0x44729bB148F46d8Db509E47b0453edc271e06e95";
     abi: readonly [{
         readonly name: "totalMessages";
         readonly type: "function";
