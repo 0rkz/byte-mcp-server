@@ -33,29 +33,54 @@ const DEFAULT_INDEXER_URL = CONFIG.indexerUrl;
 function createMcpServer(): McpServer {
   const server = new McpServer({
     name: "byte-protocol",
-    version: "0.10.4",
+    version: "0.10.6",
   });
 
 // ─── Read-only tools ────────────────────────────────────────────────────────
 
-server.tool(
+server.registerTool(
   "byte_search_publishers",
-  "Search BYTE Library publishers by topic and sort order. Returns publisher addresses, topics, subscriber counts, message counts, and price-per-KB.",
   {
-    query: z
-      .string()
-      .optional()
-      .describe("Topic keyword to search (e.g. 'weather', 'crypto', 'cve')"),
-    sortBy: z
-      .string()
-      .optional()
-      .describe("Sort field: 'subscribers', 'revenue', 'messages'"),
-    limit: z
-      .number()
-      .min(1)
-      .max(100)
-      .optional()
-      .describe("Max results to return (default 20)"),
+    description: "Search BYTE Library publishers by topic and sort order. Returns publisher addresses, topics, subscriber counts, message counts, and price-per-KB.",
+    inputSchema: {
+      query: z
+        .string()
+        .optional()
+        .describe("Topic keyword to search (e.g. 'weather', 'crypto', 'cve')"),
+      sortBy: z
+        .string()
+        .optional()
+        .describe("Sort field: 'subscribers', 'revenue', 'messages'"),
+      limit: z
+        .number()
+        .min(1)
+        .max(100)
+        .optional()
+        .describe("Max results to return (default 20)"),
+    },
+    outputSchema: {
+      publishers: z
+        .array(
+          z
+            .object({
+              address: z.string().describe("Publisher Ethereum address (0x...)"),
+              topic: z.string().optional().describe("Registered topic slug"),
+              subscribers: z.number().optional().describe("Active subscriber count"),
+              messages: z.number().optional().describe("Total messages published"),
+              pricePerKB: z.number().optional().describe("Price per KB in USDC"),
+            })
+            .passthrough(),
+        )
+        .optional()
+        .describe("Matching publishers, sorted by the requested field"),
+    },
+    annotations: {
+      title: "Search publishers",
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: true,
+    },
   },
   async (params) => {
     try {
@@ -82,11 +107,28 @@ server.tool(
   }
 );
 
-server.tool(
+server.registerTool(
   "byte_get_publisher",
-  "Get on-chain info for a specific BYTE Library publisher: status, subscriber and message counts, USDC revenue, and the registered schema (size bounds, cadence, price-per-KB).",
   {
-    address: z.string().describe("Publisher Ethereum address (0x...)"),
+    description: "Get on-chain info for a specific BYTE Library publisher: status, subscriber and message counts, USDC revenue, and the registered schema (size bounds, cadence, price-per-KB).",
+    inputSchema: {
+      address: z.string().describe("Publisher Ethereum address (0x...)"),
+    },
+    outputSchema: {
+      address: z.string().describe("Publisher Ethereum address"),
+      status: z.string().optional().describe("On-chain publisher status"),
+      subscribers: z.number().optional().describe("Active subscriber count"),
+      messages: z.number().optional().describe("Total messages published"),
+      revenue: z.string().optional().describe("Total USDC revenue (atomic)"),
+      schema: z.unknown().optional().describe("Registered schema (topic, sizes, cadence, price)"),
+    },
+    annotations: {
+      title: "Get publisher info",
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: true,
+    },
   },
   async ({ address }) => {
     try {
@@ -113,10 +155,24 @@ server.tool(
   }
 );
 
-server.tool(
+server.registerTool(
   "byte_get_network_stats",
-  "Get BYTE Library network-wide statistics: total publishers, messages streamed, and total subscriber fees settled in USDC.",
-  {},
+  {
+    description: "Get BYTE Library network-wide statistics: total publishers, messages streamed, and total subscriber fees settled in USDC.",
+    inputSchema: {},
+    outputSchema: {
+      totalPublishers: z.number().optional().describe("Active publisher count network-wide"),
+      totalMessages: z.number().optional().describe("Total messages streamed all-time"),
+      totalSubscriberFees: z.string().optional().describe("Total subscriber fees settled (USDC atomic)"),
+    },
+    annotations: {
+      title: "Get network stats",
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: true,
+    },
+  },
   async () => {
     try {
       const stats = await getNetworkStats();
@@ -142,12 +198,24 @@ server.tool(
   }
 );
 
-server.tool(
+server.registerTool(
   "byte_check_subscription",
-  "Check if an address is subscribed to a specific publisher on BYTE Library.",
   {
-    subscriber: z.string().describe("Subscriber Ethereum address (0x...)"),
-    publisher: z.string().describe("Publisher Ethereum address (0x...)"),
+    description: "Check if an address is subscribed to a specific publisher on BYTE Library.",
+    inputSchema: {
+      subscriber: z.string().describe("Subscriber Ethereum address (0x...)"),
+      publisher: z.string().describe("Publisher Ethereum address (0x...)"),
+    },
+    outputSchema: {
+      subscribed: z.boolean().describe("True if the subscriber has an active subscription to the publisher"),
+    },
+    annotations: {
+      title: "Check subscription",
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: true,
+    },
   },
   async ({ subscriber, publisher }) => {
     try {
@@ -174,11 +242,25 @@ server.tool(
   }
 );
 
-server.tool(
+server.registerTool(
   "byte_get_token_balances",
-  "Get USDC and ETH balances for an address on Arbitrum Sepolia. USDC is the BYTE Library settlement asset; ETH covers gas.",
   {
-    address: z.string().describe("Ethereum address (0x...)"),
+    description: "Get USDC and ETH balances for an address on Arbitrum Sepolia. USDC is the BYTE Library settlement asset; ETH covers gas.",
+    inputSchema: {
+      address: z.string().describe("Ethereum address (0x...)"),
+    },
+    outputSchema: {
+      usdc: z.string().optional().describe("USDC balance (atomic, 6 decimals)"),
+      eth: z.string().optional().describe("ETH balance (wei)"),
+      address: z.string().optional().describe("Echoed address"),
+    },
+    annotations: {
+      title: "Get token balances",
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: true,
+    },
   },
   async ({ address }) => {
     try {
@@ -205,10 +287,35 @@ server.tool(
   }
 );
 
-server.tool(
+server.registerTool(
   "byte_list_feeds",
-  "List all active data feeds in the BYTE Library catalog with topics, price-per-KB, and frequency.",
-  {},
+  {
+    description: "List all active data feeds in the BYTE Library catalog with topics, price-per-KB, and frequency.",
+    inputSchema: {},
+    outputSchema: {
+      feeds: z
+        .array(
+          z
+            .object({
+              slug: z.string().optional().describe("Feed slug used in x402 routes"),
+              topic: z.string().optional().describe("Topic identifier"),
+              pricePerKB: z.number().optional().describe("Price per KB in USDC"),
+              frequency: z.number().optional().describe("Expected publish cadence in seconds"),
+              status: z.string().optional().describe("Feed status"),
+            })
+            .passthrough(),
+        )
+        .optional()
+        .describe("Catalog of active feeds"),
+    },
+    annotations: {
+      title: "List feeds",
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: true,
+    },
+  },
   async () => {
     try {
       const feeds = await listFeeds();
@@ -234,19 +341,48 @@ server.tool(
   }
 );
 
-server.tool(
+server.registerTool(
   "byte_list_my_subscriptions",
-  "List every active subscription for a given wallet address. Each entry has the publisher address, topic, status, when you subscribed, messages received in 7/30 days, USDC spent in 7/30 days, and the timestamp of the last message received. Use this to see what you're currently paying for and decide whether to unsubscribe.",
   {
-    subscriber: z
-      .string()
-      .regex(/^0x[a-fA-F0-9]{40}$/, "Must be a 0x-prefixed 40-hex-char address")
-      .describe("Wallet address to list subscriptions for"),
-    indexerUrl: z
-      .string()
-      .url()
-      .optional()
-      .describe("Optional indexer URL override (default: BYTE_INDEXER_URL env or http://localhost:8080)"),
+    description: "List every active subscription for a given wallet address. Each entry has the publisher address, topic, status, when you subscribed, messages received in 7/30 days, USDC spent in 7/30 days, and the timestamp of the last message received. Use this to see what you're currently paying for and decide whether to unsubscribe.",
+    inputSchema: {
+      subscriber: z
+        .string()
+        .regex(/^0x[a-fA-F0-9]{40}$/, "Must be a 0x-prefixed 40-hex-char address")
+        .describe("Wallet address to list subscriptions for"),
+      indexerUrl: z
+        .string()
+        .url()
+        .optional()
+        .describe("Optional indexer URL override (default: BYTE_INDEXER_URL env or http://localhost:8080)"),
+    },
+    outputSchema: {
+      subscriptions: z
+        .array(
+          z
+            .object({
+              publisher: z.string().optional().describe("Publisher address subscribed to"),
+              topic: z.string().optional().describe("Publisher topic"),
+              status: z.string().optional().describe("Subscription status"),
+              subscribedAt: z.number().optional().describe("Unix timestamp of subscribe tx"),
+              messages7d: z.number().optional().describe("Messages received in last 7 days"),
+              messages30d: z.number().optional().describe("Messages received in last 30 days"),
+              spent7d: z.string().optional().describe("USDC spent in last 7 days (atomic)"),
+              spent30d: z.string().optional().describe("USDC spent in last 30 days (atomic)"),
+              lastMessageAt: z.number().optional().describe("Unix timestamp of most recent message"),
+            })
+            .passthrough(),
+        )
+        .optional()
+        .describe("Active subscriptions for the given wallet"),
+    },
+    annotations: {
+      title: "List my subscriptions",
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: true,
+    },
   },
   async ({ subscriber, indexerUrl }) => {
     try {
@@ -270,19 +406,35 @@ server.tool(
   }
 );
 
-server.tool(
+server.registerTool(
   "byte_subscription_health",
-  "Get the content-drift signal for a publisher. Compares their last 7 days of publishing activity (cadence, message count) against their 23-day baseline (days 8-30). Returns 'stable' (steady publishing), 'moderate' (20-50% cadence shift or 24-48h silence), 'significant' (>50% shift or >48h silence), or 'unknown' (new publisher, insufficient baseline). Use this to detect when a publisher you subscribe to has pivoted content or gone dormant.",
   {
-    publisher: z
-      .string()
-      .regex(/^0x[a-fA-F0-9]{40}$/, "Must be a 0x-prefixed 40-hex-char address")
-      .describe("Publisher address to check"),
-    indexerUrl: z
-      .string()
-      .url()
-      .optional()
-      .describe("Optional indexer URL override"),
+    description: "Get the content-drift signal for a publisher. Compares their last 7 days of publishing activity (cadence, message count) against their 23-day baseline (days 8-30). Returns 'stable' (steady publishing), 'moderate' (20-50% cadence shift or 24-48h silence), 'significant' (>50% shift or >48h silence), or 'unknown' (new publisher, insufficient baseline). Use this to detect when a publisher you subscribe to has pivoted content or gone dormant.",
+    inputSchema: {
+      publisher: z
+        .string()
+        .regex(/^0x[a-fA-F0-9]{40}$/, "Must be a 0x-prefixed 40-hex-char address")
+        .describe("Publisher address to check"),
+      indexerUrl: z
+        .string()
+        .url()
+        .optional()
+        .describe("Optional indexer URL override"),
+    },
+    outputSchema: {
+      status: z
+        .enum(["stable", "moderate", "significant", "unknown"])
+        .optional()
+        .describe("Content-drift bucket for the publisher"),
+      details: z.unknown().optional().describe("Underlying counts, cadence ratios, and last-message timestamp"),
+    },
+    annotations: {
+      title: "Subscription health",
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: true,
+    },
   },
   async ({ publisher, indexerUrl }) => {
     try {
@@ -308,14 +460,28 @@ server.tool(
 
 // ─── Write tools (require PRIVATE_KEY) ──────────────────────────────────────
 
-server.tool(
+server.registerTool(
   "byte_unsubscribe",
-  "Unsubscribe from a publisher's data feed. Takes effect next block: no more billing, no more data flow. Reversible — you can resubscribe later via byte_subscribe. Use this when a publisher has pivoted content (check with byte_subscription_health first) or when you simply don't want the feed anymore. Requires PRIVATE_KEY for the connected wallet.",
   {
-    publisher: z
-      .string()
-      .regex(/^0x[a-fA-F0-9]{40}$/, "Must be a 0x-prefixed 40-hex-char address")
-      .describe("Publisher address to unsubscribe from"),
+    description: "Unsubscribe from a publisher's data feed. Takes effect next block: no more billing, no more data flow. Reversible — you can resubscribe later via byte_subscribe. Use this when a publisher has pivoted content (check with byte_subscription_health first) or when you simply don't want the feed anymore. Requires PRIVATE_KEY for the connected wallet.",
+    inputSchema: {
+      publisher: z
+        .string()
+        .regex(/^0x[a-fA-F0-9]{40}$/, "Must be a 0x-prefixed 40-hex-char address")
+        .describe("Publisher address to unsubscribe from"),
+    },
+    outputSchema: {
+      txHash: z.string().optional().describe("Unsubscribe transaction hash"),
+      success: z.boolean().optional().describe("True if the unsubscribe landed on-chain"),
+      error: z.string().optional().describe("Error message if the operation failed"),
+    },
+    annotations: {
+      title: "Unsubscribe",
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: true,
+    },
   },
   async ({ publisher }) => {
     try {
@@ -339,15 +505,30 @@ server.tool(
   }
 );
 
-server.tool(
+server.registerTool(
   "byte_subscribe",
-  "Subscribe to a BYTE Library publisher's data feed. By default also sets USDC allowance to DataStreamLib to type(uint256).max so the subscription doesn't silently lose payments when allowance depletes (the contract's allowance-skip path emits DataStreamed with amount=0 on transferFrom failure rather than reverting). Pass skipAllowance: true to opt out and set a finite cap manually. Requires PRIVATE_KEY.",
   {
-    publisher: z.string().describe("Publisher Ethereum address (0x...) to subscribe to"),
-    skipAllowance: z
-      .boolean()
-      .optional()
-      .describe("If true, don't bundle the USDC approve(max) call. Default false. Auto-approve is also skipped when the wallet already has ≥ $1000 USDC of allowance to DataStreamLib."),
+    description: "Subscribe to a BYTE Library publisher's data feed. By default also sets USDC allowance to DataStreamLib to type(uint256).max so the subscription doesn't silently lose payments when allowance depletes (the contract's allowance-skip path emits DataStreamed with amount=0 on transferFrom failure rather than reverting). Pass skipAllowance: true to opt out and set a finite cap manually. Requires PRIVATE_KEY.",
+    inputSchema: {
+      publisher: z.string().describe("Publisher Ethereum address (0x...) to subscribe to"),
+      skipAllowance: z
+        .boolean()
+        .optional()
+        .describe("If true, don't bundle the USDC approve(max) call. Default false. Auto-approve is also skipped when the wallet already has ≥ $1000 USDC of allowance to DataStreamLib."),
+    },
+    outputSchema: {
+      subscribeTx: z.string().optional().describe("Subscribe transaction hash"),
+      approveTx: z.string().optional().describe("USDC approve(max) transaction hash, if bundled"),
+      success: z.boolean().optional().describe("True if subscribe landed on-chain"),
+      error: z.string().optional().describe("Error message if the operation failed"),
+    },
+    annotations: {
+      title: "Subscribe",
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: true,
+    },
   },
   async ({ publisher, skipAllowance }) => {
     try {
@@ -374,24 +555,39 @@ server.tool(
   }
 );
 
-server.tool(
+server.registerTool(
   "byte_register_publisher",
-  "Register as a data publisher on BYTE Library. Registers a schema and the publisher on-chain. Requires PRIVATE_KEY. BYTE Library v1 publishers are first-party and unstaked — leave stake at '0'; a non-zero USDC stake is approved to DataRegistry first if you choose to post one.",
   {
-    stake: z
-      .string()
-      .describe("USDC reputation stake to post, as a decimal string. Default '0' — BYTE Library v1 publishers are unstaked."),
-    topic: z
-      .string()
-      .describe("Data feed topic (e.g. 'eth-price', 'weather-nyc', 'gas-tracker')"),
-    expectedSize: z
-      .number()
-      .describe("Expected payload size in bytes per message"),
-    maxSize: z.number().describe("Maximum payload size in bytes per message"),
-    frequency: z.number().describe("Expected publishing frequency in seconds"),
-    pricePerKB: z
-      .number()
-      .describe("Price per kilobyte in USDC (e.g. 0.003)"),
+    description: "Register as a data publisher on BYTE Library. Registers a schema and the publisher on-chain. Requires PRIVATE_KEY. BYTE Library v1 publishers are first-party and unstaked — leave stake at '0'; a non-zero USDC stake is approved to DataRegistry first if you choose to post one.",
+    inputSchema: {
+      stake: z
+        .string()
+        .describe("USDC reputation stake to post, as a decimal string. Default '0' — BYTE Library v1 publishers are unstaked."),
+      topic: z
+        .string()
+        .describe("Data feed topic (e.g. 'eth-price', 'weather-nyc', 'gas-tracker')"),
+      expectedSize: z
+        .number()
+        .describe("Expected payload size in bytes per message"),
+      maxSize: z.number().describe("Maximum payload size in bytes per message"),
+      frequency: z.number().describe("Expected publishing frequency in seconds"),
+      pricePerKB: z
+        .number()
+        .describe("Price per kilobyte in USDC (e.g. 0.003)"),
+    },
+    outputSchema: {
+      txHash: z.string().optional().describe("Register transaction hash"),
+      publisherAddress: z.string().optional().describe("Registered publisher address (the signer)"),
+      success: z.boolean().optional().describe("True if registration landed on-chain"),
+      error: z.string().optional().describe("Error message if the operation failed"),
+    },
+    annotations: {
+      title: "Register publisher",
+      readOnlyHint: false,
+      destructiveHint: true,
+      idempotentHint: false,
+      openWorldHint: true,
+    },
   },
   async (params) => {
     try {
@@ -418,15 +614,31 @@ server.tool(
   }
 );
 
-server.tool(
+server.registerTool(
   "byte_publish_data",
-  "Publish data to a subscriber via the BYTE Library DataStream contract. Hashes the payload, records size on-chain, and settles the fee in USDC. Requires PRIVATE_KEY.",
   {
-    subscriber: z.string().describe("Subscriber Ethereum address (0x...)"),
-    data: z.string().describe("Data payload to publish (will be hashed on-chain)"),
-    maxFee: z
-      .number()
-      .describe("Maximum fee in USDC willing to pay for this publish (e.g. 0.05)"),
+    description: "Publish data to a subscriber via the BYTE Library DataStream contract. Hashes the payload, records size on-chain, and settles the fee in USDC. Requires PRIVATE_KEY.",
+    inputSchema: {
+      subscriber: z.string().describe("Subscriber Ethereum address (0x...)"),
+      data: z.string().describe("Data payload to publish (will be hashed on-chain)"),
+      maxFee: z
+        .number()
+        .describe("Maximum fee in USDC willing to pay for this publish (e.g. 0.05)"),
+    },
+    outputSchema: {
+      txHash: z.string().optional().describe("Publish transaction hash"),
+      payloadHash: z.string().optional().describe("keccak256 of the payload as recorded on-chain"),
+      feePaid: z.string().optional().describe("Actual USDC fee paid (atomic)"),
+      success: z.boolean().optional().describe("True if publish landed on-chain"),
+      error: z.string().optional().describe("Error message if the operation failed"),
+    },
+    annotations: {
+      title: "Publish data",
+      readOnlyHint: false,
+      destructiveHint: true,
+      idempotentHint: false,
+      openWorldHint: true,
+    },
   },
   async (params) => {
     try {
@@ -455,53 +667,74 @@ server.tool(
 
 // ─── Fact-oracle tool (NEW in v0.4.0) ──────────────────────────────────────
 
-server.tool(
+server.registerTool(
   "byte_query_fact",
-  "Query a BYTE Library fact-oracle publisher for a verified factual answer with citations. Posts the question to a registered fact-oracle publisher (topic='fact-oracle'), waits for the on-chain BroadcastStreamed response, and returns the answer plus structured citation URLs. Use for grounding LLM outputs in real-time verified information.",
   {
-    question: z
-      .string()
-      .min(3)
-      .max(2048)
-      .describe(
-        "The factual question to ask (e.g. 'What was last night's Lakers vs Warriors score?'). Should be specific and verifiable."
-      ),
-    subscriber_address: z
-      .string()
-      .regex(/^0x[0-9a-fA-F]{40}$/)
-      .describe(
-        "Your wallet address. You MUST be subscribed to the chosen publisher (with sufficient USDC escrow) or the publisher's on-chain broadcast will be skipped."
-      ),
-    max_byte_cost: z
-      .number()
-      .min(100)
-      .max(10000)
-      .optional()
-      .describe(
-        "Max response payload bytes you're willing to pay for (defaults to 2000, ≈$1 at $0.0005/byte). Publisher refuses if can't fit answer."
-      ),
-    topic_filter: z
-      .string()
-      .optional()
-      .describe(
-        "Optional topic filter (e.g. 'fact-oracle' default; future: 'sports', 'finance')."
-      ),
-    min_publisher_pqs: z
-      .number()
-      .min(0)
-      .max(10000)
-      .optional()
-      .describe(
-        "Minimum PQS to consider (BPS scale, 0-10000). 9000 = Elite-only, 7500 = Premium+."
-      ),
-    max_response_latency_ms: z
-      .number()
-      .min(5000)
-      .max(180000)
-      .optional()
-      .describe(
-        "Max time to wait for the publisher's broadcast (default 30000 ms). Local-LLM publishers (Ollama + Searxng + 3-sample NLI gate) take ~30-60s; Anthropic + passthrough takes ~10-20s. Hard ceiling 180s."
-      ),
+    description: "Query a BYTE Library fact-oracle publisher for a verified factual answer with citations. Posts the question to a registered fact-oracle publisher (topic='fact-oracle'), waits for the on-chain BroadcastStreamed response, and returns the answer plus structured citation URLs. Use for grounding LLM outputs in real-time verified information.",
+    inputSchema: {
+      question: z
+        .string()
+        .min(3)
+        .max(2048)
+        .describe(
+          "The factual question to ask (e.g. 'What was last night's Lakers vs Warriors score?'). Should be specific and verifiable."
+        ),
+      subscriber_address: z
+        .string()
+        .regex(/^0x[0-9a-fA-F]{40}$/)
+        .describe(
+          "Your wallet address. You MUST be subscribed to the chosen publisher (with sufficient USDC escrow) or the publisher's on-chain broadcast will be skipped."
+        ),
+      max_byte_cost: z
+        .number()
+        .min(100)
+        .max(10000)
+        .optional()
+        .describe(
+          "Max response payload bytes you're willing to pay for (defaults to 2000, ≈$1 at $0.0005/byte). Publisher refuses if can't fit answer."
+        ),
+      topic_filter: z
+        .string()
+        .optional()
+        .describe(
+          "Optional topic filter (e.g. 'fact-oracle' default; future: 'sports', 'finance')."
+        ),
+      min_publisher_pqs: z
+        .number()
+        .min(0)
+        .max(10000)
+        .optional()
+        .describe(
+          "Minimum PQS to consider (BPS scale, 0-10000). 9000 = Elite-only, 7500 = Premium+."
+        ),
+      max_response_latency_ms: z
+        .number()
+        .min(5000)
+        .max(180000)
+        .optional()
+        .describe(
+          "Max time to wait for the publisher's broadcast (default 30000 ms). Local-LLM publishers (Ollama + Searxng + 3-sample NLI gate) take ~30-60s; Anthropic + passthrough takes ~10-20s. Hard ceiling 180s."
+        ),
+    },
+    outputSchema: {
+      answer: z.string().optional().describe("Publisher's grounded answer to the question"),
+      citations: z
+        .array(z.string())
+        .optional()
+        .describe("URLs cited by the publisher in support of the answer"),
+      publisher: z.string().optional().describe("Publisher address that fulfilled the query"),
+      txHash: z.string().optional().describe("BroadcastStreamed transaction hash"),
+      payloadHash: z.string().optional().describe("keccak256 of the response payload"),
+      feePaid: z.string().optional().describe("USDC fee paid for the broadcast (atomic)"),
+      error: z.string().optional().describe("Error message if the query failed (no eligible publisher, broadcast timeout, etc.)"),
+    },
+    annotations: {
+      title: "Query fact",
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: true,
+    },
   },
   async (params) => {
     try {
@@ -531,20 +764,37 @@ server.tool(
 
 // ─── Pay-per-call (x402) tool ─────────────────────────────────────────────
 
-server.tool(
+server.registerTool(
   "byte_buy_data",
-  "Buy a single data packet from any BYTE Library feed via the x402 payment gateway. No subscription, no allowance, no prior on-chain setup — pay-per-call USDC settlement. The MCP server signs an EIP-3009 transferWithAuthorization on behalf of the wallet whose PRIVATE_KEY is configured, the x402 facilitator submits the tx, and the data comes back inline with the on-chain settlement tx hash. Use byte_subscribe instead if you want a continuous stream of broadcasts from a publisher. The catalog of available feed slugs lives at https://x402.payperbyte.io/feeds (free GET). Requires PRIVATE_KEY env var on the MCP server and USDC balance on the configured wallet (Arbitrum Sepolia).",
   {
-    feed: z
-      .string()
-      .min(1)
-      .describe(
-        "Feed slug — one of: weather, earthquakes, space-weather, news-feed, " +
-          "code-pulse, runtime-eol, threat-intel, btc-metrics, pkg-facts, " +
-          "cve-facts, wiki-facts, merchant-trust, crypto-top100, defi-yields, " +
-          "byte-status. (For fact-oracle Q&A use byte_query_fact instead — it " +
-          "uses a different request-response flow.)",
-      ),
+    description: "Buy a single data packet from any BYTE Library feed via the x402 payment gateway. No subscription, no allowance, no prior on-chain setup — pay-per-call USDC settlement. The MCP server signs an EIP-3009 transferWithAuthorization on behalf of the wallet whose PRIVATE_KEY is configured, the x402 facilitator submits the tx, and the data comes back inline with the on-chain settlement tx hash. Use byte_subscribe instead if you want a continuous stream of broadcasts from a publisher. The catalog of available feed slugs lives at https://x402.payperbyte.io/feeds (free GET). Requires PRIVATE_KEY env var on the MCP server and USDC balance on the configured wallet (Arbitrum Sepolia).",
+    inputSchema: {
+      feed: z
+        .string()
+        .min(1)
+        .describe(
+          "Feed slug — one of: weather, earthquakes, space-weather, news-feed, " +
+            "code-pulse, runtime-eol, threat-intel, btc-metrics, pkg-facts, " +
+            "cve-facts, wiki-facts, merchant-trust, crypto-top100, defi-yields, " +
+            "byte-status. (For fact-oracle Q&A use byte_query_fact instead — it " +
+            "uses a different request-response flow.)",
+        ),
+    },
+    outputSchema: {
+      data: z.unknown().optional().describe("Decoded feed payload returned by the publisher"),
+      payloadHash: z.string().optional().describe("keccak256 of the response payload"),
+      txHash: z.string().optional().describe("x402 settlement transaction hash"),
+      feed: z.string().optional().describe("Echoed feed slug"),
+      pricePaid: z.string().optional().describe("USDC paid for this packet (atomic)"),
+      error: z.string().optional().describe("Error message if the buy failed"),
+    },
+    annotations: {
+      title: "Buy data",
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: true,
+    },
   },
   async ({ feed }) => {
     try {
@@ -662,7 +912,7 @@ async function main() {
     app.get("/health", (_req, res) =>
       res.json({
         status: "ok",
-        version: "0.10.4",
+        version: "0.10.6",
         transport: "http",
         sessions: Object.keys(transports).length,
       }),
