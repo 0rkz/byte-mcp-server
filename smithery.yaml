@@ -1,11 +1,12 @@
 # Smithery configuration: https://smithery.ai/docs/config#smitheryyaml
 #
 # byte-mcp-server supports two transports:
-#   - HTTP (default for Smithery hosted listings, since 0.10.0; current 0.10.5):
+#   - HTTP (default for Smithery hosted listings, since 0.10.0; current 0.10.6):
 #       https://mcp.payperbyte.io/mcp
 #       — scanner-friendly: 202 on orphan notifications, stateless fallback
 #         for streamable-http requests missing session-id (v0.10.2+)
 #       — multi-session McpServer factory (v0.10.1+)
+#       — full outputSchema + annotations on all 14 tools (v0.10.6+)
 #   - stdio (for local Claude Desktop / Cursor / Windsurf installs):
 #       npx -y byte-mcp-server@latest
 #
