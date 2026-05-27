@@ -1,5 +1,7 @@
 # BYTE Library MCP Server
 
+[![smithery badge](https://smithery.ai/badge/byte/byte-library)](https://smithery.ai/servers/byte/byte-library)
+
 A [Model Context Protocol](https://modelcontextprotocol.io/) server that gives AI agents direct access to **[BYTE Library](https://www.payperbyte.io)** — per-byte USDC data feeds on Arbitrum. Agents discover feeds, subscribe to streams, or pay-per-call for one-off data via x402. Every settlement carries an EIP-712 `PayloadAttestation` receipt. No tokens, no API keys, no off-chain accounts: settle in USDC, route through MCP.
 
 > **🧪 Testnet only.** This release targets **Arbitrum Sepolia** (chain `421614`). Use a testnet-only wallet — **never** configure `PRIVATE_KEY` to a key holding mainnet funds. Get free Sepolia ETH from any Arbitrum Sepolia faucet. Mainnet (Arbitrum One) is the next milestone, gated on the Pashov security audit.
