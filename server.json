@@ -1,7 +1,7 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-09-16/server.schema.json",
   "name": "io.github.0rkz/byte-protocol",
-  "description": "BYTE Library — per-byte USDC data feeds + oracles for AI agents on Arbitrum. Pay-per-call via x402 with EIP-712 PayloadAttestation receipts. No API keys, no token.",
+  "description": "BYTE Library — per-byte USDC data feeds for AI agents on Arbitrum. EIP-712-attested, no token.",
   "repository": {
     "url": "https://github.com/0rkz/byte-mcp-server",
     "source": "github"
