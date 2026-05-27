@@ -1,18 +1,18 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-09-16/server.schema.json",
   "name": "io.github.0rkz/byte-protocol",
-  "description": "Per-byte USDC data feeds + oracles for AI agents on Arbitrum. Verifiable, no token, no API keys.",
+  "description": "BYTE Library — per-byte USDC data feeds + oracles for AI agents on Arbitrum. Pay-per-call via x402 with EIP-712 PayloadAttestation receipts. No API keys, no token.",
   "repository": {
     "url": "https://github.com/0rkz/byte-mcp-server",
     "source": "github"
   },
-  "version": "0.10.4",
+  "version": "0.10.5",
   "packages": [
     {
       "registryType": "npm",
       "registryBaseUrl": "https://registry.npmjs.org",
       "identifier": "byte-mcp-server",
-      "version": "0.10.4",
+      "version": "0.10.5",
       "transport": {
         "type": "stdio"
       },
