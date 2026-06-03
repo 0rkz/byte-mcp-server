@@ -19,7 +19,7 @@ Wire it into your MCP client (Claude Desktop config below), then your agent can:
 - **Subscribe** to a stream: *"Subscribe me to the earthquakes feed"* → auto-approves USDC for ongoing settlement
 - **Query a fact**: *"Ask the fact-oracle who won the last Lakers vs Warriors game"* → on-chain signed answer with citations
 
-The live catalog is at **[x402.payperbyte.io/feeds](https://x402.payperbyte.io/feeds)** — 15 feeds across weather, markets, code, security, knowledge.
+The live catalog is at **[x402.payperbyte.io/feeds](https://x402.payperbyte.io/feeds)** — verified, provenance-first feeds across weather, markets, code, security, and knowledge.
 
 ## Two paradigms: subscribe vs. buy
 
@@ -30,7 +30,7 @@ The live catalog is at **[x402.payperbyte.io/feeds](https://x402.payperbyte.io/f
 
 Subscribe is cheaper per byte and gives the agent every broadcast; buy is zero-setup and pay-as-you-go. Pick by access pattern, not by price alone.
 
-## Tools (14 total)
+## Tools (15 total)
 
 ### Discovery (read-only, no wallet)
 
@@ -44,6 +44,7 @@ Subscribe is cheaper per byte and gives the agent every broadcast; buy is zero-s
 | `byte_list_my_subscriptions` | All active subscriptions for a wallet — last 7d/30d messages + USDC spend |
 | `byte_subscription_health` | Content-drift signal for a publisher: stable / moderate / significant / unknown |
 | `byte_get_token_balances` | USDC + ETH balances on Arbitrum Sepolia |
+| `byte_verify_payload` | **Verify-before-act.** Recompute `keccak256` of the bytes your agent received and check them against the publisher's on-chain EIP-712 `PayloadAttestation` — anchor with an `expectedHash` you hold or the settlement `txHash` (which also recovers the signer and confirms it's the named publisher). If `verified: false`, the data was tampered/corrupted in transit — don't act on it |
 
 ### Subscribe to a stream (requires `PRIVATE_KEY`)
 

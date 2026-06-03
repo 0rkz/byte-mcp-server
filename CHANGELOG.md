@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.11.0 — 2026-06-03
+
+**New tool: `byte_verify_payload` — verify-before-act** (15 tools total). The provenance gate the whole protocol is built around, now exposed over MCP. An agent recomputes `keccak256` of the bytes it received and checks them against the publisher's on-chain EIP-712 `PayloadAttestation` *before acting* — anchored by either an `expectedHash` it already holds (e.g. from `byte_query_fact` / `byte_buy_data`) or the settlement `txHash` (which also recovers the attestation signer and confirms it is the named publisher). On `verified: false` the bytes were tampered or corrupted in transit and the agent must refuse. Read-only; no wallet or payment required. Implemented in `src/lib/verify.ts`.
+
+- **Test hardening.** `test/r2-publish-smoke.mjs` now pins its EIP-712 domain to `config.ts` (`ADDRESSES.DataStream` / `CONFIG.chainId`) — the same source the real publish path reads — instead of a hardcoded constant. It had been carrying the dead v1 DataStream (`0x4b24...4c053`, the same address the 0.10.4 config bug fixed), so it was validating the wrong domain; it now validates production and can't silently drift on future redeploys.
+
+## 0.10.6 — 2026-05-27
+
+**`registerTool` migration.** All 14 tools moved to the SDK's `registerTool` API with explicit `outputSchema` + `annotations` (readOnly / destructive / idempotent / openWorld hints) for richer client and scanner introspection.
+
+## 0.10.5 — 2026-05-27
+
+**Description-only patch + MCP Registry copy refresh.** `package.json` / `server.json` descriptions trimmed to the ≤100-char registry schema cap and aligned with the README hero. No code-path changes.
+
 ## 0.10.4 — 2026-05-25
 
 **Bugfix: stale r2 DataStream address + hosted-indexer default.** Two real bugs surfaced by a smoke test against the v0.10.3 npm install:

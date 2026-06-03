@@ -22,6 +22,7 @@ import {
 } from "./tools/actions.js";
 import { queryFact } from "./tools/fact.js";
 import { buyData } from "./tools/buy.js";
+import { verifyPayload } from "./lib/verify.js";
 
 import { CONFIG } from "./lib/config.js";
 const DEFAULT_INDEXER_URL = CONFIG.indexerUrl;
@@ -33,7 +34,7 @@ const DEFAULT_INDEXER_URL = CONFIG.indexerUrl;
 function createMcpServer(): McpServer {
   const server = new McpServer({
     name: "byte-protocol",
-    version: "0.10.6",
+    version: "0.11.0",
   });
 
 // ─── Read-only tools ────────────────────────────────────────────────────────
@@ -822,6 +823,80 @@ server.registerTool(
   },
 );
 
+// ─── Verify-before-act tool (provenance gate) ──────────────────────────────
+//
+// The verb the whole protocol is for: recompute keccak256 of the bytes an agent
+// is about to act on and check them against the publisher's on-chain EIP-712
+// PayloadAttestation BEFORE acting. Pass txHash to also recover the attestation
+// signer and confirm it is the named publisher. On mismatch the agent must refuse.
+server.registerTool(
+  "byte_verify_payload",
+  {
+    description:
+      "Verify-before-act: confirm a data payload an agent is about to act on actually matches what the publisher cryptographically attested to on-chain. Recomputes keccak256 of the received bytes and compares it to the on-chain EIP-712 PayloadAttestation hash. ALWAYS call this on BYTE-sourced data before acting on it; if verified=false the bytes were tampered/corrupted in transit and MUST NOT be used. Anchor the check with EITHER expectedHash (an on-chain payloadHash you already hold, e.g. from byte_query_fact / byte_buy_data) OR txHash (the settlement tx — also recovers the attestation signer and confirms it is the named publisher). Read-only; no wallet or payment required.",
+    inputSchema: {
+      data: z
+        .string()
+        .describe("The exact payload bytes the agent received and is about to act on — the raw delivered string, or a 0x-prefixed hex byte string."),
+      expectedHash: z
+        .string()
+        .regex(/^0x[0-9a-fA-F]{64}$/)
+        .optional()
+        .describe("On-chain payloadHash to verify against (0x + 64 hex), e.g. the payloadHash returned by byte_query_fact or byte_buy_data."),
+      txHash: z
+        .string()
+        .regex(/^0x[0-9a-fA-F]{64}$/)
+        .optional()
+        .describe("Settlement tx hash whose on-chain BroadcastStreamed attestation to verify against. When provided, also recovers the EIP-712 signer and confirms it is the attesting publisher."),
+      hashMode: z
+        .enum(["raw", "canonical"])
+        .optional()
+        .describe("How to hash structured payloads: 'raw' (keccak of the utf8 string, default — matches byte_publish_data) or 'canonical' (keccak of key-sorted, whitespace-free JSON)."),
+    },
+    outputSchema: {
+      verified: z.boolean().describe("True only if the recomputed hash matches the on-chain attested hash AND (when a signer was recovered) the signer is the publisher. If false: do NOT act on the data."),
+      recomputedHash: z.string().describe("keccak256 of the received bytes"),
+      onChainHash: z.string().describe("The on-chain attested payloadHash compared against"),
+      hashMatch: z.boolean().describe("Whether the recomputed hash equals the on-chain hash"),
+      signer: z.string().optional().describe("Recovered EIP-712 attestation signer (txHash mode)"),
+      attestingPublisher: z.string().optional().describe("Publisher named in the on-chain event (txHash mode)"),
+      signerMatch: z.boolean().optional().describe("Whether the recovered signer is the attesting publisher"),
+      reason: z.string().describe("Human-readable verdict an agent can surface when it acts or refuses"),
+    },
+    annotations: {
+      title: "Verify payload (verify-before-act)",
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: true,
+    },
+  },
+  async ({ data, expectedHash, txHash, hashMode }) => {
+    try {
+      const verdict = await verifyPayload({
+        received: data,
+        expectedHash,
+        txHash,
+        mode: hashMode,
+      });
+      return {
+        content: [{ type: "text" as const, text: JSON.stringify(verdict, null, 2) }],
+        isError: !verdict.verified,
+      };
+    } catch (error) {
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: `Error verifying payload: ${error instanceof Error ? error.message : String(error)}`,
+          },
+        ],
+        isError: true,
+      };
+    }
+  },
+);
+
   return server;
 }
 
@@ -912,7 +987,7 @@ async function main() {
     app.get("/health", (_req, res) =>
       res.json({
         status: "ok",
-        version: "0.10.6",
+        version: "0.11.0",
         transport: "http",
         sessions: Object.keys(transports).length,
       }),

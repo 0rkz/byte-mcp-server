@@ -26,10 +26,12 @@
 
 import { keccak256, toBytes, recoverTypedDataAddress } from "viem";
 import { privateKeyToAccount as p2a } from "viem/accounts";
+// Pin the domain to the SAME source the real publish path (actions.ts) reads from,
+// so this smoke validates the PRODUCTION domain and can't silently drift on a
+// redeploy (the old hardcoded EXPECTED_DATA_STREAM was the dead v1 contract).
+import { ADDRESSES, CONFIG } from "../dist/lib/config.js";
 
 const TEST_KEY = "0x" + "a".repeat(64);
-const EXPECTED_DATA_STREAM = "0x4b24006bc32A08176D5e2E779f8328Ce4384c053";
-const ARB_SEPOLIA_CHAIN_ID = 421614;
 
 const account = p2a(TEST_KEY);
 console.log(`Test publisher address (derived from key): ${account.address}`);
@@ -44,9 +46,13 @@ const deadline = BigInt(Math.floor(Date.now() / 1000) + 300);
 const domain = {
   name: "BYTE Library",
   version: "1",
-  chainId: ARB_SEPOLIA_CHAIN_ID,
-  verifyingContract: EXPECTED_DATA_STREAM,
+  chainId: CONFIG.chainId,
+  verifyingContract: ADDRESSES.DataStream,
 };
+console.log(
+  `Validating production EIP-712 domain → verifyingContract=${domain.verifyingContract} ` +
+    `chainId=${domain.chainId} (from config — the same source actions.ts:publishData uses)`,
+);
 
 const types = {
   PayloadAttestation: [
