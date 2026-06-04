@@ -22,11 +22,11 @@ const DEFAULT_INDEXER_URL = CONFIG.indexerUrl;
 function createMcpServer() {
     const server = new McpServer({
         name: "byte-protocol",
-        version: "0.11.0",
+        version: "0.11.1",
     });
     // ─── Read-only tools ────────────────────────────────────────────────────────
     server.registerTool("byte_search_publishers", {
-        description: "Search BYTE Library publishers by topic and sort order. Returns publisher addresses, topics, subscriber counts, message counts, and price-per-KB.",
+        description: "Search PayPerByte publishers by topic and sort order. Returns publisher addresses, topics, subscriber counts, message counts, and price-per-KB.",
         inputSchema: {
             query: z
                 .string()
@@ -89,7 +89,7 @@ function createMcpServer() {
         }
     });
     server.registerTool("byte_get_publisher", {
-        description: "Get on-chain info for a specific BYTE Library publisher: status, subscriber and message counts, USDC revenue, and the registered schema (size bounds, cadence, price-per-KB).",
+        description: "Get on-chain info for a specific PayPerByte publisher: status, subscriber and message counts, USDC revenue, and the registered schema (size bounds, cadence, price-per-KB).",
         inputSchema: {
             address: z.string().describe("Publisher Ethereum address (0x...)"),
         },
@@ -133,7 +133,7 @@ function createMcpServer() {
         }
     });
     server.registerTool("byte_get_network_stats", {
-        description: "Get BYTE Library network-wide statistics: total publishers, messages streamed, and total subscriber fees settled in USDC.",
+        description: "Get PayPerByte network-wide statistics: total publishers, messages streamed, and total subscriber fees settled in USDC.",
         inputSchema: {},
         outputSchema: {
             totalPublishers: z.number().optional().describe("Active publisher count network-wide"),
@@ -172,7 +172,7 @@ function createMcpServer() {
         }
     });
     server.registerTool("byte_check_subscription", {
-        description: "Check if an address is subscribed to a specific publisher on BYTE Library.",
+        description: "Check if an address is subscribed to a specific publisher on PayPerByte.",
         inputSchema: {
             subscriber: z.string().describe("Subscriber Ethereum address (0x...)"),
             publisher: z.string().describe("Publisher Ethereum address (0x...)"),
@@ -212,7 +212,7 @@ function createMcpServer() {
         }
     });
     server.registerTool("byte_get_token_balances", {
-        description: "Get USDC and ETH balances for an address on Arbitrum Sepolia. USDC is the BYTE Library settlement asset; ETH covers gas.",
+        description: "Get USDC and ETH balances for an address on Arbitrum Sepolia. USDC is the PayPerByte settlement asset; ETH covers gas.",
         inputSchema: {
             address: z.string().describe("Ethereum address (0x...)"),
         },
@@ -253,7 +253,7 @@ function createMcpServer() {
         }
     });
     server.registerTool("byte_list_feeds", {
-        description: "List all active data feeds in the BYTE Library catalog with topics, price-per-KB, and frequency.",
+        description: "List all active data feeds in the PayPerByte catalog with topics, price-per-KB, and frequency.",
         inputSchema: {},
         outputSchema: {
             feeds: z
@@ -450,7 +450,7 @@ function createMcpServer() {
         }
     });
     server.registerTool("byte_subscribe", {
-        description: "Subscribe to a BYTE Library publisher's data feed. By default also sets USDC allowance to DataStreamLib to type(uint256).max so the subscription doesn't silently lose payments when allowance depletes (the contract's allowance-skip path emits DataStreamed with amount=0 on transferFrom failure rather than reverting). Pass skipAllowance: true to opt out and set a finite cap manually. Requires PRIVATE_KEY.",
+        description: "Subscribe to a PayPerByte publisher's data feed. By default also sets USDC allowance to DataStreamLib to type(uint256).max so the subscription doesn't silently lose payments when allowance depletes (the contract's allowance-skip path emits DataStreamed with amount=0 on transferFrom failure rather than reverting). Pass skipAllowance: true to opt out and set a finite cap manually. Requires PRIVATE_KEY.",
         inputSchema: {
             publisher: z.string().describe("Publisher Ethereum address (0x...) to subscribe to"),
             skipAllowance: z
@@ -496,11 +496,11 @@ function createMcpServer() {
         }
     });
     server.registerTool("byte_register_publisher", {
-        description: "Register as a data publisher on BYTE Library. Registers a schema and the publisher on-chain. Requires PRIVATE_KEY. BYTE Library v1 publishers are first-party and unstaked — leave stake at '0'; a non-zero USDC stake is approved to DataRegistry first if you choose to post one.",
+        description: "Register as a data publisher on PayPerByte. Registers a schema and the publisher on-chain. Requires PRIVATE_KEY. PayPerByte v1 publishers are first-party and unstaked — leave stake at '0'; a non-zero USDC stake is approved to DataRegistry first if you choose to post one.",
         inputSchema: {
             stake: z
                 .string()
-                .describe("USDC reputation stake to post, as a decimal string. Default '0' — BYTE Library v1 publishers are unstaked."),
+                .describe("USDC reputation stake to post, as a decimal string. Default '0' — PayPerByte v1 publishers are unstaked."),
             topic: z
                 .string()
                 .describe("Data feed topic (e.g. 'eth-price', 'weather-nyc', 'gas-tracker')"),
@@ -551,7 +551,7 @@ function createMcpServer() {
         }
     });
     server.registerTool("byte_publish_data", {
-        description: "Publish data to a subscriber via the BYTE Library DataStream contract. Hashes the payload, records size on-chain, and settles the fee in USDC. Requires PRIVATE_KEY.",
+        description: "Publish data to a subscriber via the PayPerByte DataStream contract. Hashes the payload, records size on-chain, and settles the fee in USDC. Requires PRIVATE_KEY.",
         inputSchema: {
             subscriber: z.string().describe("Subscriber Ethereum address (0x...)"),
             data: z.string().describe("Data payload to publish (will be hashed on-chain)"),
@@ -599,7 +599,7 @@ function createMcpServer() {
     });
     // ─── Fact-oracle tool (NEW in v0.4.0) ──────────────────────────────────────
     server.registerTool("byte_query_fact", {
-        description: "Query a BYTE Library fact-oracle publisher for a verified factual answer with citations. Posts the question to a registered fact-oracle publisher (topic='fact-oracle'), waits for the on-chain BroadcastStreamed response, and returns the answer plus structured citation URLs. Use for grounding LLM outputs in real-time verified information.",
+        description: "Query a PayPerByte fact-oracle publisher for a verified factual answer with citations. Posts the question to a registered fact-oracle publisher (topic='fact-oracle'), waits for the on-chain BroadcastStreamed response, and returns the answer plus structured citation URLs. Use for grounding LLM outputs in real-time verified information.",
         inputSchema: {
             question: z
                 .string()
@@ -679,7 +679,7 @@ function createMcpServer() {
     });
     // ─── Pay-per-call (x402) tool ─────────────────────────────────────────────
     server.registerTool("byte_buy_data", {
-        description: "Buy a single data packet from any BYTE Library feed via the x402 payment gateway. No subscription, no allowance, no prior on-chain setup — pay-per-call USDC settlement. The MCP server signs an EIP-3009 transferWithAuthorization on behalf of the wallet whose PRIVATE_KEY is configured, the x402 facilitator submits the tx, and the data comes back inline with the on-chain settlement tx hash. Use byte_subscribe instead if you want a continuous stream of broadcasts from a publisher. The catalog of available feed slugs lives at https://x402.payperbyte.io/feeds (free GET). Requires PRIVATE_KEY env var on the MCP server and USDC balance on the configured wallet (Arbitrum Sepolia).",
+        description: "Buy a single data packet from any PayPerByte feed via the x402 payment gateway. No subscription, no allowance, no prior on-chain setup — pay-per-call USDC settlement. The MCP server signs an EIP-3009 transferWithAuthorization on behalf of the wallet whose PRIVATE_KEY is configured, the x402 facilitator submits the tx, and the data comes back inline with the on-chain settlement tx hash. Use byte_subscribe instead if you want a continuous stream of broadcasts from a publisher. The catalog of available feed slugs lives at https://x402.payperbyte.io/feeds (free GET). Requires PRIVATE_KEY env var on the MCP server and USDC balance on the configured wallet (Arbitrum Sepolia).",
         inputSchema: {
             feed: z
                 .string()
@@ -881,19 +881,19 @@ async function main() {
         app.delete("/mcp", sessionRouted);
         app.get("/health", (_req, res) => res.json({
             status: "ok",
-            version: "0.11.0",
+            version: "0.11.1",
             transport: "http",
             sessions: Object.keys(transports).length,
         }));
         app.listen(port, () => {
-            console.error(`BYTE Library MCP server (HTTP) listening on :${port}`);
+            console.error(`PayPerByte MCP server (HTTP) listening on :${port}`);
         });
     }
     else {
         const server = createMcpServer();
         const transport = new StdioServerTransport();
         await server.connect(transport);
-        console.error("BYTE Library MCP server running on stdio");
+        console.error("PayPerByte MCP server running on stdio");
     }
 }
 main().catch((error) => {

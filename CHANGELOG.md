@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.11.1 — 2026-06-03
+
+**Branding: consolidated the display name to PayPerByte.** Normalized the display/marketing name across the npm description, `server.json`, `manifest.json`, and the README to one brand — **PayPerByte** — and retired the fragmented "BYTE Library" display name. No code or API changes: the package name (`byte-mcp-server`), the MCP Registry id (`io.github.0rkz/byte-protocol`), and the `byte_*` tool names are all unchanged, so existing installs and configs are unaffected.
+
 ## 0.11.0 — 2026-06-03
 
 **New tool: `byte_verify_payload` — verify-before-act** (15 tools total). The provenance gate the whole protocol is built around, now exposed over MCP. An agent recomputes `keccak256` of the bytes it received and checks them against the publisher's on-chain EIP-712 `PayloadAttestation` *before acting* — anchored by either an `expectedHash` it already holds (e.g. from `byte_query_fact` / `byte_buy_data`) or the settlement `txHash` (which also recovers the attestation signer and confirms it is the named publisher). On `verified: false` the bytes were tampered or corrupted in transit and the agent must refuse. Read-only; no wallet or payment required. Implemented in `src/lib/verify.ts`.

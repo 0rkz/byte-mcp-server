@@ -1,8 +1,8 @@
-# BYTE Library MCP Server
+# PayPerByte MCP Server
 
 [![smithery badge](https://smithery.ai/badge/byte/byte-library)](https://smithery.ai/servers/byte/byte-library)
 
-A [Model Context Protocol](https://modelcontextprotocol.io/) server that gives AI agents direct access to **[BYTE Library](https://www.payperbyte.io)** — per-byte USDC data feeds on Arbitrum. Agents discover feeds, subscribe to streams, or pay-per-call for one-off data via x402. Every settlement carries an EIP-712 `PayloadAttestation` receipt. No tokens, no API keys, no off-chain accounts: settle in USDC, route through MCP.
+A [Model Context Protocol](https://modelcontextprotocol.io/) server that gives AI agents direct access to **[PayPerByte](https://www.payperbyte.io)** — per-byte USDC data feeds on Arbitrum. Agents discover feeds, subscribe to streams, or pay-per-call for one-off data via x402. Every settlement carries an EIP-712 `PayloadAttestation` receipt. No tokens, no API keys, no off-chain accounts: settle in USDC, route through MCP.
 
 > **🧪 Testnet only.** This release targets **Arbitrum Sepolia** (chain `421614`). Use a testnet-only wallet — **never** configure `PRIVATE_KEY` to a key holding mainnet funds. Get free Sepolia ETH from any Arbitrum Sepolia faucet. Mainnet (Arbitrum One) is the next milestone, gated on the Pashov security audit.
 
@@ -14,7 +14,7 @@ npx -y byte-mcp-server
 
 Wire it into your MCP client (Claude Desktop config below), then your agent can:
 
-- **Discover** feeds: *"List the BYTE Library catalog"* / *"Search publishers for weather"*
+- **Discover** feeds: *"List the PayPerByte catalog"* / *"Search publishers for weather"*
 - **Buy one packet** (x402, no setup): *"Buy the latest weather data"* → ~$0.021 USDC, ~3 seconds, on-chain receipt
 - **Subscribe** to a stream: *"Subscribe me to the earthquakes feed"* → auto-approves USDC for ongoing settlement
 - **Query a fact**: *"Ask the fact-oracle who won the last Lakers vs Warriors game"* → on-chain signed answer with citations
@@ -98,12 +98,12 @@ claude mcp add byte-library -- npx -y byte-mcp-server
 |---|---|---|---|
 | `PRIVATE_KEY` | only for write/buy/query tools | — | Arbitrum Sepolia wallet key |
 | `RPC_URL` | no | `https://sepolia-rollup.arbitrum.io/rpc` | Arbitrum Sepolia RPC |
-| `INDEXER_URL` | no | `http://localhost:8080` | BYTE Library indexer API |
+| `INDEXER_URL` | no | `http://localhost:8080` | PayPerByte indexer API |
 | `BYTE_GATEWAY_URL` | no | `https://x402.payperbyte.io` | x402 gateway base URL (used by `byte_buy_data`) |
 
 ## Network
 
-Current release targets **Arbitrum Sepolia** (chain `421614`) — BYTE Library's testnet. Mainnet (Arbitrum One) is the next milestone, gated on the external security audit. Contract addresses are pinned in the bundled config; the npm release ships ready-to-use defaults.
+Current release targets **Arbitrum Sepolia** (chain `421614`) — PayPerByte's testnet. Mainnet (Arbitrum One) is the next milestone, gated on the external security audit. Contract addresses are pinned in the bundled config; the npm release ships ready-to-use defaults.
 
 ## Development
 
@@ -120,7 +120,7 @@ MIT — see [LICENSE](LICENSE).
 
 ## Links
 
-- **[payperbyte.io](https://www.payperbyte.io)** — BYTE Library home
+- **[payperbyte.io](https://www.payperbyte.io)** — PayPerByte home
 - **[x402.payperbyte.io/feeds](https://x402.payperbyte.io/feeds)** — live feed catalog
 - **[Model Context Protocol](https://modelcontextprotocol.io/)** — MCP spec
 - **[MCP TypeScript SDK](https://github.com/modelcontextprotocol/typescript-sdk)**
