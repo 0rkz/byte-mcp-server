@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <!-- PayPerByte mark — 8-bar BYTE glyph on brand dark #1B1E23. Copper index bar #C97A4A. -->
+  <rect width="32" height="32" rx="6" fill="#1B1E23"/>
+  <g transform="translate(4.5,4)">
+    <rect x="0"  y="14" width="2" height="10" fill="#E8E2D5"/>
+    <rect x="3"  y="8"  width="2" height="16" fill="#E8E2D5"/>
+    <rect x="6"  y="16" width="2" height="8"  fill="#E8E2D5"/>
+    <rect x="9"  y="2"  width="2" height="22" fill="#E8E2D5"/>
+    <rect x="12" y="10" width="2" height="14" fill="#C97A4A"/>
+    <rect x="15" y="0"  width="2" height="24" fill="#E8E2D5"/>
+    <rect x="18" y="12" width="2" height="12" fill="#E8E2D5"/>
+    <rect x="21" y="6"  width="2" height="18" fill="#E8E2D5"/>
+  </g>
+</svg>
