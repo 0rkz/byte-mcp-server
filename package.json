@@ -41,8 +41,8 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
     "@types/express": "^5.0.6",
-    "@x402/core": "~2.13.0",
-    "@x402/evm": "^2.13.0",
+    "@x402/core": "2.13.0",
+    "@x402/evm": "2.13.0",
     "dotenv": "^16.4.5",
     "express": "^5.2.1",
     "viem": "^2.21.0",
@@ -52,7 +52,13 @@
     "fast-uri": "^3.1.2",
     "hono": "^4.12.22",
     "ip-address": "^10.2.0",
-    "qs": "^6.15.2"
+    "qs": "^6.15.2",
+    "@x402/core": "2.13.0"
+  },
+  "pnpm": {
+    "overrides": {
+      "@x402/core": "2.13.0"
+    }
   },
   "devDependencies": {
     "@types/node": "^20.14.0",
