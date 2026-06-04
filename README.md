@@ -1,6 +1,6 @@
 # PayPerByte MCP Server
 
-[![smithery badge](https://smithery.ai/badge/byte/byte-library)](https://smithery.ai/servers/byte/byte-library)
+[![smithery badge](https://smithery.ai/badge/byte/byte-library)](https://smithery.ai/servers/byte/byte-library) [![0rkz/byte-mcp-server MCP server](https://glama.ai/mcp/servers/0rkz/byte-mcp-server/badges/score.svg)](https://glama.ai/mcp/servers/0rkz/byte-mcp-server)
 
 A [Model Context Protocol](https://modelcontextprotocol.io/) server that gives AI agents direct access to **[PayPerByte](https://www.payperbyte.io)** — per-byte USDC data feeds on Arbitrum. Agents discover feeds, subscribe to streams, or pay-per-call for one-off data via x402. Every settlement carries an EIP-712 `PayloadAttestation` receipt. No tokens, no API keys, no off-chain accounts: settle in USDC, route through MCP.
 

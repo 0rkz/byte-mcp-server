@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "payperbyte": {
+      "command": "npx",
+      "args": ["-y", "byte-mcp-server"]
+    }
+  }
+}
