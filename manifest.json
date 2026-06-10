@@ -2,9 +2,9 @@
   "manifest_version": "0.2",
   "name": "byte-mcp-server",
   "display_name": "PayPerByte",
-  "version": "0.11.1",
-  "description": "Per-byte USDC data feeds for AI agents on Arbitrum. First-party publishers, no API keys, EIP-712-attested payloads.",
-  "long_description": "An MCP server for PayPerByte — a per-byte USDC data marketplace on Arbitrum. AI agents can discover first-party publishers, subscribe to live feeds (weather, markets, threat-intel, earthquakes, fact-oracles), monitor subscription health, publish their own data, buy single packets via the x402 pay-per-call gateway, and verify-before-act — recompute a payload's keccak256 and check it against the publisher's on-chain EIP-712 PayloadAttestation before trusting it. All settled in USDC; every settlement emits an EIP-712 PayloadAttestation for a cryptographic delivery receipt. The 9 read-only tools need no wallet; the write tools (subscribe, unsubscribe, register_publisher, publish_data) and byte_buy_data (x402) require a private key.",
+  "version": "0.11.2",
+  "description": "Per-byte USDC data feeds for AI agents. x402 pay-per-call on Base mainnet; EIP-712-attested payloads, no API keys.",
+  "long_description": "An MCP server for PayPerByte — verified, provenance-first data feeds for AI agents. Two rails: pay-per-call via the x402 gateway settles real USDC on Base mainnet (flagship: the $0.05 Address Reputation Oracle — a signed ALLOW/WARN/BLOCK verdict on a receiving address before an agent releases funds); the on-chain subscription/broadcast layer (BYTE Library contracts, fact-oracles, indexer) runs on Arbitrum Sepolia testnet, mainnet gated on an external security audit. Agents discover first-party publishers, subscribe to live feeds (weather, markets, threat-intel, earthquakes, fact-oracles), buy single packets via x402, and verify-before-act — recompute a payload's keccak256 and check it against the publisher's EIP-712 PayloadAttestation before trusting it. The 9 read-only tools need no wallet; the write tools and byte_buy_data require a private key (buys spend real USDC — use a dedicated wallet). No token.",
   "author": {
     "name": "0rkz",
     "url": "https://www.payperbyte.io"
@@ -34,7 +34,7 @@
     "private_key": {
       "type": "string",
       "title": "Wallet Private Key",
-      "description": "Ethereum private key for write operations (subscribe, publish, faucet). Leave blank for read-only mode.",
+      "description": "Ethereum private key for write/buy tools (subscribe, publish, buy_data — buy_data spends real Base-mainnet USDC; use a dedicated wallet). Leave blank for read-only mode.",
       "sensitive": true,
       "required": false
     },

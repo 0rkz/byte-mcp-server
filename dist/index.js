@@ -22,7 +22,7 @@ const DEFAULT_INDEXER_URL = CONFIG.indexerUrl;
 function createMcpServer() {
     const server = new McpServer({
         name: "byte-protocol",
-        version: "0.11.1",
+        version: "0.11.2",
     });
     // ─── Read-only tools ────────────────────────────────────────────────────────
     server.registerTool("byte_search_publishers", {
@@ -218,7 +218,7 @@ function createMcpServer() {
         }
     });
     server.registerTool("byte_get_token_balances", {
-        description: "Get USDC and ETH balances for an address on Arbitrum Sepolia. USDC is the PayPerByte settlement asset; ETH covers gas.",
+        description: "Get USDC and ETH balances for an address on Arbitrum Sepolia (the on-chain testnet layer — MockUSDC settles subscriptions and fact-oracle queries there). Does NOT show the Base-mainnet USDC balance that byte_buy_data spends.",
         inputSchema: {
             address: z.string().describe("Ethereum address (0x...)"),
         },
@@ -318,7 +318,7 @@ function createMcpServer() {
                 .string()
                 .url()
                 .optional()
-                .describe("Optional indexer URL override (default: BYTE_INDEXER_URL env or http://localhost:8080)"),
+                .describe("Optional indexer URL override (default: INDEXER_URL/BYTE_INDEXER_URL env or https://feeds.payperbyte.io)"),
         },
         outputSchema: {
             subscriptions: z
@@ -712,7 +712,7 @@ function createMcpServer() {
     });
     // ─── Pay-per-call (x402) tool ─────────────────────────────────────────────
     server.registerTool("byte_buy_data", {
-        description: "Buy a single data packet from any PayPerByte feed via the x402 payment gateway. No subscription, no allowance, no prior on-chain setup — pay-per-call USDC settlement. The MCP server signs an EIP-3009 transferWithAuthorization on behalf of the wallet whose PRIVATE_KEY is configured, the x402 facilitator submits the tx, and the data comes back inline with the on-chain settlement tx hash. Use byte_subscribe instead if you want a continuous stream of broadcasts from a publisher. The catalog of available feed slugs lives at https://x402.payperbyte.io/feeds (free GET). Requires PRIVATE_KEY env var on the MCP server and USDC balance on the configured wallet (Arbitrum Sepolia).",
+        description: "Buy a single data packet from any PayPerByte feed via the x402 payment gateway. No subscription, no allowance, no prior on-chain setup — pay-per-call USDC settlement. The MCP server signs an EIP-3009 transferWithAuthorization on behalf of the wallet whose PRIVATE_KEY is configured, the x402 facilitator submits the tx, and the data comes back inline with the on-chain settlement tx hash. Use byte_subscribe instead if you want a continuous stream of broadcasts from a publisher. The catalog of available feed slugs lives at https://x402.payperbyte.io/feeds (free GET). Requires PRIVATE_KEY env var on the MCP server and USDC on the configured wallet. NOTE: paid feeds settle REAL USDC on Base mainnet (eip155:8453) — the exact price is quoted in the 402 challenge (flagship address-reputation: $0.05/verdict). Use a dedicated wallet holding only what you intend to spend.",
         inputSchema: {
             feed: z
                 .string()
@@ -924,7 +924,7 @@ async function main() {
         app.delete("/mcp", sessionRouted);
         app.get("/health", (_req, res) => res.json({
             status: "ok",
-            version: "0.11.1",
+            version: "0.11.2",
             transport: "http",
             sessions: Object.keys(transports).length,
         }));

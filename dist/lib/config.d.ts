@@ -11,6 +11,11 @@ export declare const CONFIG: {
      *  publisher/subscription/event aggregates). */
     readonly gatewayUrl: string;
     readonly privateKey: `0x${string}` | undefined;
+    /** Chain of the ON-CHAIN layer (BYTE Library contracts, indexer, EIP-712
+     *  attestation domain): Arbitrum Sepolia, audit-gated. The x402 PAYMENT rail
+     *  is independent — byte_buy_data signs whatever network the gateway's 402
+     *  challenge quotes (Base mainnet, eip155:8453, real USDC as of 2026-06-10);
+     *  nothing here pins it. */
     readonly chainId: 421614;
 };
 /** BYTE Library r2 contract addresses on Arbitrum Sepolia (testnet).

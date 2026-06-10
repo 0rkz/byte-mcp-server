@@ -17,6 +17,11 @@ export const CONFIG = {
    *  publisher/subscription/event aggregates). */
   gatewayUrl: process.env.BYTE_GATEWAY_URL || "https://x402.payperbyte.io",
   privateKey: process.env.PRIVATE_KEY as `0x${string}` | undefined,
+  /** Chain of the ON-CHAIN layer (BYTE Library contracts, indexer, EIP-712
+   *  attestation domain): Arbitrum Sepolia, audit-gated. The x402 PAYMENT rail
+   *  is independent — byte_buy_data signs whatever network the gateway's 402
+   *  challenge quotes (Base mainnet, eip155:8453, real USDC as of 2026-06-10);
+   *  nothing here pins it. */
   chainId: 421614,
 } as const;
 

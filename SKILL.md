@@ -2,15 +2,17 @@
 name: payperbyte
 description: >-
   Buy or subscribe to verified, provenance-first data for AI agents via
-  PayPerByte (machine name BYTE Library) — per-byte USDC feeds on Arbitrum with
-  no API key and no token. Use when an agent needs trustworthy external data it
-  can act on: crypto/DeFi markets, weather, earthquakes, space weather, news,
-  OSS releases, threat-intel, CVE/package/wiki facts, merchant trust, x402
-  network metrics, perp funding, stablecoin/bridge rails, or slashable
-  fact/legal/evidence oracles. The differentiator is verify-before-act: every
-  payload carries an on-chain EIP-712 PayloadAttestation, so the agent can prove
-  the exact bytes and the publisher before trusting the data. Testnet today
-  (Arbitrum Sepolia); no external-traction claims.
+  PayPerByte (machine name BYTE Library) — per-byte USDC feeds with no API key
+  and no token. Use when an agent needs trustworthy external data it can act
+  on: a signed go/no-go on a receiving address before paying it (flagship),
+  crypto/DeFi markets, weather, earthquakes, space weather, news, OSS releases,
+  threat-intel, CVE/package/wiki facts, merchant trust, x402 network metrics,
+  perp funding, stablecoin/bridge rails, or slashable fact/legal/evidence
+  oracles. The differentiator is verify-before-act: every payload carries an
+  EIP-712 PayloadAttestation, so the agent can prove the exact bytes and the
+  publisher before trusting the data. x402 pay-per-call settles real USDC on
+  Base mainnet; the on-chain subscription/attestation layer is Arbitrum Sepolia
+  testnet (audit-gated). No external-traction claims.
 ---
 
 # PayPerByte (BYTE Library) — verified per-byte data for agents
@@ -28,6 +30,9 @@ Reach for PayPerByte when the task needs external data the agent will *act on*
 and provenance matters — i.e. you want to be able to prove the data was not
 altered. Good triggers:
 
+- "Should I pay this address?" — the flagship **Address Reputation Oracle**
+  returns a signed ALLOW/WARN/BLOCK verdict for (domain, receiving address,
+  amount, chain) *before* an agent releases USDC ($0.05 per verdict).
 - "Get the current BTC/crypto market snapshot", "top DeFi yields", "perp funding
   rates", "stablecoin supply / bridge latency".
 - "What's the weather / are there recent earthquakes / space-weather alerts".
@@ -38,30 +43,36 @@ altered. Good triggers:
   (fact-oracle), "current text of <US Code section>" (usc-statute), "fact-check
   this claim with cited sources" (evidence-pack).
 
-Do **not** use it for: general reasoning, data the model already knows reliably,
-or anything requiring mainnet settlement (PayPerByte is on Arbitrum Sepolia
-testnet — see Status).
+Do **not** use it for: general reasoning, or data the model already knows
+reliably. Note that paid x402 calls spend **real USDC** — see Status.
 
 ## Status (state this honestly)
 
-- Arbitrum Sepolia **testnet**, chain `421614` / `eip155:421614`. Settlement is a
-  testnet MockUSDC (EIP-3009, 6 decimals).
-- Mainnet (Arbitrum One) is the next milestone, gated on an external security
-  audit. Not live.
-- **No token.** No external-user, revenue, or traction claims — the loop is
-  dogfooded on testnet.
-- Use a **testnet-only** wallet. Never set `PRIVATE_KEY` to a key holding
-  mainnet funds.
+- **x402 pay-per-call rail (`byte_buy_data`): Base mainnet, `eip155:8453`, real
+  USDC** (Circle USDC, EIP-3009, 6 decimals). Per-feed price is quoted in the
+  402 challenge; the flagship address-reputation verdict is $0.05. Every paid
+  200 returns an `X-BYTE-Attestation` EIP-712 receipt over the exact response
+  bytes.
+- **On-chain layer (subscriptions, broadcasts, fact-oracle escrow): Arbitrum
+  Sepolia testnet, chain `421614` / `eip155:421614`**, settled in a testnet
+  MockUSDC. Mainnet for this layer is gated on an external security audit.
+- The EIP-712 `PayloadAttestation` signing domain (literal name `BYTE Library`)
+  is anchored on `eip155:421614` regardless of which rail the agent paid on; an
+  off-chain attestation is not a claim that the verdict was broadcast on-chain.
+- **No token.** No external-user, revenue, or traction claims.
+- `PRIVATE_KEY` signs real Base-mainnet USDC for buys AND testnet txs for the
+  on-chain tools. Use a **dedicated wallet** holding only what you intend to
+  spend.
 
 ## Two access modes
 
-| Mode | Tool | Best for | Price |
-|---|---|---|---|
-| Buy (x402) | `byte_buy_data` | One-off snapshot for *this* query — zero setup | $0.005 USDC/KB, $0.001 floor |
-| Subscribe | `byte_subscribe` | Continuous stream — every update delivered | $0.003 USDC/KB per delivery |
+| Mode | Tool | Rail | Best for | Price |
+|---|---|---|---|---|
+| Buy (x402) | `byte_buy_data` | Base mainnet — **real USDC** | One-off snapshot or verdict for *this* query — zero setup | Per-feed, quoted in the 402 challenge ($0.05 flagship) |
+| Subscribe | `byte_subscribe` | Arbitrum Sepolia — testnet MockUSDC | Continuous stream — every update delivered | $0.003/KB per delivery |
 
-Pick by access pattern. Buy is pay-as-you-go with no allowance; subscribe is
-cheaper per byte and delivers every broadcast.
+Pick by access pattern. Buy is pay-as-you-go with no allowance and settles real
+money; subscribe delivers every broadcast on the audit-gated testnet layer.
 
 ## The core flow
 
@@ -89,7 +100,8 @@ Read-only (no wallet): `byte_list_feeds`, `byte_search_publishers`,
 `byte_list_my_subscriptions`, `byte_subscription_health`,
 `byte_get_token_balances`, `byte_verify_payload`.
 
-Write/buy/query (require `PRIVATE_KEY` on a testnet wallet): `byte_subscribe`,
+Write/buy/query (require `PRIVATE_KEY` on a dedicated wallet — `byte_buy_data`
+spends real Base-mainnet USDC; the rest are testnet): `byte_subscribe`,
 `byte_unsubscribe`, `byte_register_publisher`, `byte_publish_data`,
 `byte_buy_data`, `byte_query_fact`.
 
@@ -101,9 +113,10 @@ npx -y byte-mcp-server
 
 - Claude Code: `claude mcp add byte-library -- npx -y byte-mcp-server`
 - Hosted remote (streamable-HTTP): `https://mcp.payperbyte.io/mcp`
-- Read-only tools work with no config. Add `PRIVATE_KEY` (testnet) to enable
-  subscribe / publish / buy / query, and optionally `RPC_URL`
-  (default `https://sepolia-rollup.arbitrum.io/rpc`).
+- Read-only tools work with no config. Add `PRIVATE_KEY` (dedicated wallet —
+  buys spend real Base-mainnet USDC) to enable subscribe / publish / buy /
+  query, and optionally `RPC_URL` (default
+  `https://sepolia-rollup.arbitrum.io/rpc`, the testnet read layer).
 
 ## Without MCP (raw x402 HTTP)
 
@@ -111,7 +124,8 @@ Hit the gateway directly:
 
 - Catalog (free): `GET https://x402.payperbyte.io/feeds`
 - An unpaid feed request returns HTTP 402 with the x402 v2 challenge in the
-  `payment-required` header; pay the quoted USDC with an x402 client and retry.
+  `payment-required` header; pay the quoted USDC (Base mainnet) with an x402
+  client and retry. Paid 200s carry the `X-BYTE-Attestation` receipt header.
 - Machine-readable contracts: `/openapi.json`, `/.well-known/x402.json`
   (alias `/x402-manifest`), `/.well-known/agent.json`.
 

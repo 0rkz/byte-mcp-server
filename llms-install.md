@@ -23,11 +23,11 @@ That is the only required setup. The server starts over stdio and exposes 15 too
 
 | Env var | Default | Purpose |
 |---|---|---|
-| `RPC_URL` | Arbitrum Sepolia public RPC | Arbitrum RPC endpoint |
+| `RPC_URL` | Arbitrum Sepolia public RPC | Arbitrum RPC endpoint (on-chain read layer) |
 | `INDEXER_URL` | `https://feeds.payperbyte.io` | hosted indexer (read tools) |
-| `PRIVATE_KEY` | — | **only** for write / x402 pay-per-call tools. Use a testnet-only key; leave unset for read-only use. |
+| `PRIVATE_KEY` | — | **only** for write / x402 pay-per-call tools. `byte_buy_data` spends **real USDC on Base mainnet** — use a dedicated wallet; leave unset for read-only use. |
 
-The 10 read-only tools (discovery, feed catalog, publisher info, network stats, balances, fact-oracle queries, and `byte_verify_payload`) need **no wallet and no config**.
+The 9 read-only tools (discovery, feed catalog, publisher info, network stats, balances, subscription checks, and `byte_verify_payload`) need **no wallet and no config**.
 
 ## Verify the install
 
@@ -40,5 +40,5 @@ If a feed list / stats come back, the server is set up correctly.
 
 ## Notes
 
-- Network: Arbitrum Sepolia **testnet**; settlement asset is a MockUSDC. No token.
-- Write tools (`byte_subscribe`, `byte_publish_data`, `byte_buy_data`, `byte_register_publisher`) require `PRIVATE_KEY` set to a testnet wallet.
+- Two rails: x402 pay-per-call (`byte_buy_data`) settles **real USDC on Base mainnet** (`eip155:8453`); the on-chain subscribe/publish/fact-oracle layer is Arbitrum Sepolia **testnet** (MockUSDC, mainnet audit-gated). No token.
+- Write tools (`byte_subscribe`, `byte_publish_data`, `byte_buy_data`, `byte_register_publisher`) require `PRIVATE_KEY` — use a dedicated wallet holding only what you intend to spend.

@@ -1,24 +1,24 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-09-16/server.schema.json",
   "name": "io.github.0rkz/byte-protocol",
-  "description": "PayPerByte — per-byte USDC data feeds for AI agents on Arbitrum. EIP-712-attested, no token.",
+  "description": "PayPerByte — USDC data feeds for AI agents. x402 pay-per-call on Base; EIP-712-attested. No token.",
   "repository": {
     "url": "https://github.com/0rkz/byte-mcp-server",
     "source": "github"
   },
-  "version": "0.11.1",
+  "version": "0.11.2",
   "packages": [
     {
       "registryType": "npm",
       "registryBaseUrl": "https://registry.npmjs.org",
       "identifier": "byte-mcp-server",
-      "version": "0.11.1",
+      "version": "0.11.2",
       "transport": {
         "type": "stdio"
       },
       "environmentVariables": [
         {
-          "description": "Ethereum private key for write operations (subscribe, unsubscribe, publish, buy_data). Not required for read-only tools.",
+          "description": "Ethereum private key for write/buy tools (subscribe, unsubscribe, publish, buy_data). buy_data spends real Base-mainnet USDC — use a dedicated wallet. Not required for read-only tools.",
           "isRequired": false,
           "format": "string",
           "isSecret": true,

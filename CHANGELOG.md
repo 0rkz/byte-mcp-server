@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.11.2 — 2026-06-10
+
+**Truth pass: the x402 payment rail is live on Base mainnet.** Docs, tool descriptions, and package metadata now state the two rails honestly instead of the blanket "testnet only" frame:
+
+- **x402 pay-per-call (`byte_buy_data`): Base mainnet (`eip155:8453`), real USDC.** The buy path was already challenge-driven (it signs whatever network the gateway's 402 challenge quotes), so no code change was needed for settlement — the gateway flipped, and the docs now say so. Flagship feed: the $0.05 Address Reputation Oracle (signed ALLOW/WARN/BLOCK verdict on a receiving address). Paid 200s carry the `X-BYTE-Attestation` EIP-712 receipt header.
+- **On-chain layer (subscriptions, broadcasts, fact-oracle escrow, indexer): unchanged — Arbitrum Sepolia testnet (chain `421614`)**, mainnet gated on an external security audit. The EIP-712 `PayloadAttestation` signing domain stays anchored at `421614` regardless of payment rail.
+- `byte_buy_data` and `byte_get_token_balances` tool descriptions updated accordingly (`byte_get_token_balances` now states explicitly that it does NOT show the Base-mainnet balance buys spend from).
+- `PRIVATE_KEY` guidance flipped from "testnet-only wallet" to "dedicated wallet holding only what you intend to spend" — one key signs real Base-mainnet USDC for buys and testnet txs for everything else.
+- Doc fixes: README env table showed the pre-0.10.4 `INDEXER_URL` default (`localhost:8080` → `https://feeds.payperbyte.io`); same fix in the `byte_list_my_subscriptions` input description. llms-install.md claimed 10 read-only tools (it's 9 — `byte_query_fact` requires a key). manifest.json `PRIVATE_KEY` description referenced a "faucet" tool that doesn't exist.
+
+No tool, schema, or settlement-code changes — descriptions and metadata only.
+
 ## 0.11.1 — 2026-06-03
 
 **Branding: consolidated the display name to PayPerByte.** Normalized the display/marketing name across the npm description, `server.json`, `manifest.json`, and the README to one brand — **PayPerByte** — and retired the fragmented "BYTE Library" display name. No code or API changes: the package name (`byte-mcp-server`), the MCP Registry id (`io.github.0rkz/byte-protocol`), and the `byte_*` tool names are all unchanged, so existing installs and configs are unaffected.
