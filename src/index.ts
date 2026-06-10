@@ -93,6 +93,7 @@ server.registerTool(
             text: JSON.stringify(results, null, 2),
           },
         ],
+        structuredContent: { publishers: results },
       };
     } catch (error) {
       return {
@@ -120,7 +121,9 @@ server.registerTool(
       status: z.string().optional().describe("On-chain publisher status"),
       subscribers: z.number().optional().describe("Active subscriber count"),
       messages: z.number().optional().describe("Total messages published"),
-      revenue: z.string().optional().describe("Total USDC revenue (atomic)"),
+      revenueUsdc: z.string().optional().describe("Total USDC revenue (decimal string)"),
+      registeredAt: z.number().optional().describe("Unix timestamp of publisher registration"),
+      lastActive: z.number().optional().describe("Unix timestamp of last on-chain activity"),
       schema: z.unknown().optional().describe("Registered schema (topic, sizes, cadence, price)"),
     },
     annotations: {
@@ -141,6 +144,7 @@ server.registerTool(
             text: JSON.stringify(result, null, 2),
           },
         ],
+        structuredContent: result,
       };
     } catch (error) {
       return {
@@ -162,9 +166,9 @@ server.registerTool(
     description: "Get PayPerByte network-wide statistics: total publishers, messages streamed, and total subscriber fees settled in USDC.",
     inputSchema: {},
     outputSchema: {
-      totalPublishers: z.number().optional().describe("Active publisher count network-wide"),
-      totalMessages: z.number().optional().describe("Total messages streamed all-time"),
-      totalSubscriberFees: z.string().optional().describe("Total subscriber fees settled (USDC atomic)"),
+      publishers: z.number().optional().describe("Active publisher count network-wide"),
+      messages: z.number().optional().describe("Total messages streamed all-time"),
+      totalSubscriberFeesUsdc: z.string().optional().describe("Total subscriber fees settled (USDC, decimal string)"),
     },
     annotations: {
       title: "Get network stats",
@@ -184,6 +188,7 @@ server.registerTool(
             text: JSON.stringify(stats, null, 2),
           },
         ],
+        structuredContent: stats,
       };
     } catch (error) {
       return {
@@ -228,6 +233,7 @@ server.registerTool(
             text: JSON.stringify(result, null, 2),
           },
         ],
+        structuredContent: result,
       };
     } catch (error) {
       return {
@@ -273,6 +279,7 @@ server.registerTool(
             text: JSON.stringify(result, null, 2),
           },
         ],
+        structuredContent: result,
       };
     } catch (error) {
       return {
@@ -298,11 +305,10 @@ server.registerTool(
         .array(
           z
             .object({
-              slug: z.string().optional().describe("Feed slug used in x402 routes"),
+              publisher: z.string().optional().describe("Publisher address for the feed"),
               topic: z.string().optional().describe("Topic identifier"),
-              pricePerKB: z.number().optional().describe("Price per KB in USDC"),
+              pricePerKB: z.string().optional().describe("Price per KB in USDC (decimal string)"),
               frequency: z.number().optional().describe("Expected publish cadence in seconds"),
-              status: z.string().optional().describe("Feed status"),
             })
             .passthrough(),
         )
@@ -327,6 +333,7 @@ server.registerTool(
             text: JSON.stringify(feeds, null, 2),
           },
         ],
+        structuredContent: { feeds },
       };
     } catch (error) {
       return {
@@ -364,13 +371,13 @@ server.registerTool(
             .object({
               publisher: z.string().optional().describe("Publisher address subscribed to"),
               topic: z.string().optional().describe("Publisher topic"),
-              status: z.string().optional().describe("Subscription status"),
-              subscribedAt: z.number().optional().describe("Unix timestamp of subscribe tx"),
+              status: z.union([z.string(), z.number()]).nullable().optional().describe("Subscription status (string label or numeric code)"),
+              subscribedAt: z.union([z.number(), z.string()]).nullable().optional().describe("Unix timestamp of subscribe tx"),
               messages7d: z.number().optional().describe("Messages received in last 7 days"),
               messages30d: z.number().optional().describe("Messages received in last 30 days"),
-              spent7d: z.string().optional().describe("USDC spent in last 7 days (atomic)"),
-              spent30d: z.string().optional().describe("USDC spent in last 30 days (atomic)"),
-              lastMessageAt: z.number().optional().describe("Unix timestamp of most recent message"),
+              spend7dUsdc: z.string().optional().describe("USDC spent in last 7 days (decimal string)"),
+              spend30dUsdc: z.string().optional().describe("USDC spent in last 30 days (decimal string)"),
+              lastMessageAt: z.union([z.number(), z.string()]).nullable().optional().describe("Unix timestamp of most recent message"),
             })
             .passthrough(),
         )
@@ -392,6 +399,7 @@ server.registerTool(
         content: [
           { type: "text" as const, text: JSON.stringify(results, null, 2) },
         ],
+        structuredContent: { subscriptions: results },
       };
     } catch (error) {
       return {
@@ -422,13 +430,22 @@ server.registerTool(
         .optional()
         .describe("Optional indexer URL override"),
     },
-    outputSchema: {
-      status: z
-        .enum(["stable", "moderate", "significant", "unknown"])
-        .optional()
-        .describe("Content-drift bucket for the publisher"),
-      details: z.unknown().optional().describe("Underlying counts, cadence ratios, and last-message timestamp"),
-    },
+    outputSchema: z
+      .object({
+        publisher: z.string().optional().describe("Publisher address checked"),
+        signal: z
+          .enum(["stable", "moderate", "significant", "unknown"])
+          .optional()
+          .describe("Content-drift bucket for the publisher"),
+        messages7d: z.number().nullable().optional().describe("Messages in the last 7 days"),
+        messages30d: z.number().nullable().optional().describe("Messages in the last 30 days"),
+        messages_7d: z.number().nullable().optional().describe("Messages in the last 7 days (indexer key)"),
+        messages_30d: z.number().nullable().optional().describe("Messages in the last 30 days (indexer key)"),
+        silence_hours: z.number().nullable().optional().describe("Hours since the last message (null if never)"),
+        cadence_drift_bps: z.number().nullable().optional().describe("Cadence drift vs 23-day baseline (bps)"),
+        volume_ratio_bps: z.number().nullable().optional().describe("7d/baseline volume ratio (bps)"),
+      })
+      .passthrough(),
     annotations: {
       title: "Subscription health",
       readOnlyHint: true,
@@ -444,6 +461,7 @@ server.registerTool(
         content: [
           { type: "text" as const, text: JSON.stringify(result, null, 2) },
         ],
+        structuredContent: result as unknown as Record<string, unknown>,
       };
     } catch (error) {
       return {
@@ -472,9 +490,11 @@ server.registerTool(
         .describe("Publisher address to unsubscribe from"),
     },
     outputSchema: {
+      subscriber: z.string().optional().describe("Subscriber address (the signer)"),
+      publisher: z.string().optional().describe("Publisher unsubscribed from"),
       txHash: z.string().optional().describe("Unsubscribe transaction hash"),
-      success: z.boolean().optional().describe("True if the unsubscribe landed on-chain"),
-      error: z.string().optional().describe("Error message if the operation failed"),
+      status: z.string().optional().describe("Receipt status ('success' | 'reverted')"),
+      blockNumber: z.string().optional().describe("Block number the tx landed in"),
     },
     annotations: {
       title: "Unsubscribe",
@@ -491,6 +511,7 @@ server.registerTool(
         content: [
           { type: "text" as const, text: JSON.stringify(result, null, 2) },
         ],
+        structuredContent: result,
       };
     } catch (error) {
       return {
@@ -518,10 +539,10 @@ server.registerTool(
         .describe("If true, don't bundle the USDC approve(max) call. Default false. Auto-approve is also skipped when the wallet already has ≥ $1000 USDC of allowance to DataStreamLib."),
     },
     outputSchema: {
-      subscribeTx: z.string().optional().describe("Subscribe transaction hash"),
-      approveTx: z.string().optional().describe("USDC approve(max) transaction hash, if bundled"),
       success: z.boolean().optional().describe("True if subscribe landed on-chain"),
-      error: z.string().optional().describe("Error message if the operation failed"),
+      txHash: z.string().optional().describe("Subscribe transaction hash"),
+      allowanceTxHash: z.string().optional().describe("USDC approve(max) transaction hash, if bundled"),
+      publisher: z.string().optional().describe("Publisher subscribed to"),
     },
     annotations: {
       title: "Subscribe",
@@ -541,6 +562,7 @@ server.registerTool(
             text: JSON.stringify(result, null, 2),
           },
         ],
+        structuredContent: result,
       };
     } catch (error) {
       return {
@@ -577,10 +599,13 @@ server.registerTool(
         .describe("Price per kilobyte in USDC (e.g. 0.003)"),
     },
     outputSchema: {
-      txHash: z.string().optional().describe("Register transaction hash"),
-      publisherAddress: z.string().optional().describe("Registered publisher address (the signer)"),
       success: z.boolean().optional().describe("True if registration landed on-chain"),
-      error: z.string().optional().describe("Error message if the operation failed"),
+      txHash: z.string().optional().describe("Publisher-registration transaction hash"),
+      schemaTxHash: z.string().optional().describe("Schema-registration transaction hash"),
+      approveTxHash: z.string().optional().describe("USDC stake approval tx hash, if a non-zero stake was posted"),
+      publisher: z.string().optional().describe("Registered publisher address (the signer)"),
+      stakeUsdc: z.string().optional().describe("USDC stake posted (decimal string; '0' for v1 first-party)"),
+      topic: z.string().optional().describe("Registered feed topic"),
     },
     annotations: {
       title: "Register publisher",
@@ -600,6 +625,7 @@ server.registerTool(
             text: JSON.stringify(result, null, 2),
           },
         ],
+        structuredContent: result,
       };
     } catch (error) {
       return {
@@ -627,11 +653,10 @@ server.registerTool(
         .describe("Maximum fee in USDC willing to pay for this publish (e.g. 0.05)"),
     },
     outputSchema: {
-      txHash: z.string().optional().describe("Publish transaction hash"),
-      payloadHash: z.string().optional().describe("keccak256 of the payload as recorded on-chain"),
-      feePaid: z.string().optional().describe("Actual USDC fee paid (atomic)"),
       success: z.boolean().optional().describe("True if publish landed on-chain"),
-      error: z.string().optional().describe("Error message if the operation failed"),
+      txHash: z.string().optional().describe("Publish transaction hash"),
+      payloadSize: z.number().optional().describe("Payload size recorded on-chain (bytes)"),
+      payloadHash: z.string().optional().describe("keccak256 of the payload as recorded on-chain"),
     },
     annotations: {
       title: "Publish data",
@@ -651,6 +676,7 @@ server.registerTool(
             text: JSON.stringify(result, null, 2),
           },
         ],
+        structuredContent: result,
       };
     } catch (error) {
       return {
@@ -717,18 +743,24 @@ server.registerTool(
           "Max time to wait for the publisher's broadcast (default 30000 ms). Local-LLM publishers (Ollama + Searxng + 3-sample NLI gate) take ~30-60s; Anthropic + passthrough takes ~10-20s. Hard ceiling 180s."
         ),
     },
-    outputSchema: {
-      answer: z.string().optional().describe("Publisher's grounded answer to the question"),
-      citations: z
-        .array(z.string())
-        .optional()
-        .describe("URLs cited by the publisher in support of the answer"),
-      publisher: z.string().optional().describe("Publisher address that fulfilled the query"),
-      txHash: z.string().optional().describe("BroadcastStreamed transaction hash"),
-      payloadHash: z.string().optional().describe("keccak256 of the response payload"),
-      feePaid: z.string().optional().describe("USDC fee paid for the broadcast (atomic)"),
-      error: z.string().optional().describe("Error message if the query failed (no eligible publisher, broadcast timeout, etc.)"),
-    },
+    outputSchema: z
+      .object({
+        answer: z.string().optional().describe("Publisher's grounded answer to the question"),
+        citations: z
+          .array(z.unknown())
+          .optional()
+          .describe("URLs/sources cited by the publisher in support of the answer"),
+        publisher_address: z.string().optional().describe("Publisher address that fulfilled the query"),
+        publisher_pqs: z.number().optional().describe("Publisher quality score (PQS) at fulfillment"),
+        confidence: z.number().optional().describe("Publisher-reported confidence (0-1)"),
+        request_id: z.string().optional().describe("Request id binding the query to this answer"),
+        payload_hash: z.string().optional().describe("keccak256 of the response payload"),
+        response_size_bytes: z.number().optional().describe("Size of the response payload (bytes)"),
+        publisher_tx_or_status: z.string().optional().describe("Delivery status or settlement reference"),
+        elapsed_ms: z.number().optional().describe("End-to-end time to obtain the answer (ms)"),
+        error: z.string().optional().describe("Error message if the query failed (no eligible publisher, broadcast timeout, etc.)"),
+      })
+      .passthrough(),
     annotations: {
       title: "Query fact",
       readOnlyHint: false,
@@ -747,6 +779,7 @@ server.registerTool(
             text: JSON.stringify(result, null, 2),
           },
         ],
+        structuredContent: result as unknown as Record<string, unknown>,
         isError: "error" in result,
       };
     } catch (error) {
@@ -781,14 +814,19 @@ server.registerTool(
             "uses a different request-response flow.)",
         ),
     },
-    outputSchema: {
-      data: z.unknown().optional().describe("Decoded feed payload returned by the publisher"),
-      payloadHash: z.string().optional().describe("keccak256 of the response payload"),
-      txHash: z.string().optional().describe("x402 settlement transaction hash"),
-      feed: z.string().optional().describe("Echoed feed slug"),
-      pricePaid: z.string().optional().describe("USDC paid for this packet (atomic)"),
-      error: z.string().optional().describe("Error message if the buy failed"),
-    },
+    outputSchema: z
+      .object({
+        feed: z.string().optional().describe("Echoed feed slug"),
+        paid: z.boolean().optional().describe("True if an x402 payment was made (false on free/cached feeds)"),
+        price: z.string().optional().describe("USDC paid for this packet (e.g. '$0.001000'); omitted on free feeds"),
+        txHash: z.string().optional().describe("x402 settlement transaction hash"),
+        payer: z.string().optional().describe("Wallet that signed the EIP-3009 authorization"),
+        status: z.number().optional().describe("HTTP status of the (post-payment) gateway response"),
+        data: z.unknown().optional().describe("Decoded feed payload returned by the publisher"),
+        error: z.string().optional().describe("Error message if the buy failed"),
+        detail: z.string().optional().describe("Additional error detail, if any"),
+      })
+      .passthrough(),
     annotations: {
       title: "Buy data",
       readOnlyHint: false,
@@ -807,6 +845,7 @@ server.registerTool(
             text: JSON.stringify(result, null, 2),
           },
         ],
+        structuredContent: result as unknown as Record<string, unknown>,
         isError: "error" in result,
       };
     } catch (error) {
@@ -861,6 +900,9 @@ server.registerTool(
       signer: z.string().optional().describe("Recovered EIP-712 attestation signer (txHash mode)"),
       attestingPublisher: z.string().optional().describe("Publisher named in the on-chain event (txHash mode)"),
       signerMatch: z.boolean().optional().describe("Whether the recovered signer is the attesting publisher"),
+      source: z.string().optional().describe("Which anchor was used: 'txHash' or 'expectedHash'"),
+      txHash: z.string().optional().describe("Settlement tx hash verified against (txHash mode)"),
+      blockNumber: z.string().optional().describe("Block number of the settlement tx (txHash mode)"),
       reason: z.string().describe("Human-readable verdict an agent can surface when it acts or refuses"),
     },
     annotations: {
@@ -881,6 +923,7 @@ server.registerTool(
       });
       return {
         content: [{ type: "text" as const, text: JSON.stringify(verdict, null, 2) }],
+        structuredContent: verdict as unknown as Record<string, unknown>,
         isError: !verdict.verified,
       };
     } catch (error) {

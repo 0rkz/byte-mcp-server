@@ -12,3 +12,6 @@ node_modules/
 
 # mcp-publisher credentials (NEVER commit)
 .mcpregistry_*
+
+# Claude Code session config (local only)
+.claude/
