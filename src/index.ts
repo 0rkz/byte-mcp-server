@@ -23,6 +23,7 @@ import {
 import { queryFact } from "./tools/fact.js";
 import { buyData } from "./tools/buy.js";
 import { verifyPayload } from "./lib/verify.js";
+import { primeCatalogCache, getCachedCatalog } from "./lib/catalog.js";
 
 import { CONFIG } from "./lib/config.js";
 const DEFAULT_INDEXER_URL = CONFIG.indexerUrl;
@@ -806,13 +807,7 @@ server.registerTool(
       feed: z
         .string()
         .min(1)
-        .describe(
-          "Feed slug — one of: weather, earthquakes, space-weather, news-feed, " +
-            "code-pulse, runtime-eol, threat-intel, btc-metrics, pkg-facts, " +
-            "cve-facts, wiki-facts, merchant-trust, crypto-top100, defi-yields, " +
-            "byte-status. (For fact-oracle Q&A use byte_query_fact instead — it " +
-            "uses a different request-response flow.)",
-        ),
+        .describe(buildFeedSlugDescribe()),
     },
     outputSchema: z
       .object({
@@ -945,7 +940,25 @@ server.registerTool(
 
 // ─── Start server ───────────────────────────────────────────────────────────
 
+function buildFeedSlugDescribe(): string {
+  const feeds = getCachedCatalog();
+  if (!feeds.length) {
+    return (
+      "Feed slug — see https://x402.payperbyte.io/feeds for the live catalog. " +
+      "(For fact-oracle Q&A use byte_query_fact instead — it uses a different request-response flow.)"
+    );
+  }
+  const list = feeds.map((f) => `${f.id} (${f.price})`).join(", ");
+  return (
+    `Feed slug — one of: ${list}. ` +
+    "Full catalog: https://x402.payperbyte.io/feeds (free GET). " +
+    "(For fact-oracle Q&A use byte_query_fact instead — it uses a different request-response flow.)"
+  );
+}
+
 async function main() {
+  await primeCatalogCache();
+
   const useHttp =
     process.argv.includes("--http") || process.env.MCP_TRANSPORT === "http";
 

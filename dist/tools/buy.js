@@ -24,7 +24,6 @@ import { x402HTTPClient } from "@x402/core/http";
 import { registerExactEvmScheme } from "@x402/evm/exact/client";
 import { privateKeyToAccount } from "viem/accounts";
 import { CONFIG } from "../lib/config.js";
-const GATEWAY_URL = process.env.BYTE_GATEWAY_URL || "https://x402.payperbyte.io";
 let cachedClient = null;
 /**
  * Build the x402 HTTP client once and reuse. The signer is bound to
@@ -47,7 +46,7 @@ function getClient() {
 }
 export async function buyData(params) {
     const slug = params.feed.replace(/^\/+/, "").replace(/^feeds\//, "");
-    const url = `${GATEWAY_URL}/feeds/${slug}`;
+    const url = `${CONFIG.gatewayUrl}/feeds/${slug}`;
     let client;
     try {
         client = getClient();

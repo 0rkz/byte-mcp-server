@@ -37,7 +37,11 @@
     "start": "node dist/index.js",
     "dev": "tsc --watch",
     "test": "node test/e2e.mjs",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build",
+    "probe:buy": "npm run build && node probe/buy.mjs",
+    "probe:dry": "npm run build && node probe/buy.mjs --dry-run",
+    "probe:duck": "node probe/duck.mjs",
+    "probe": "npm run build && node probe/pipeline.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
