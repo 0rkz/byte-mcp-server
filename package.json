@@ -1,6 +1,6 @@
 {
   "name": "byte-mcp-server",
-  "version": "0.11.2",
+  "version": "0.11.3",
   "description": "MCP server for PayPerByte — verified, provenance-first data feeds for AI agents. Pay-per-call via x402 settled in USDC on Base mainnet, or subscribe to first-party on-chain streams (Arbitrum Sepolia, audit-gated); every payload carries an EIP-712 PayloadAttestation provenance receipt. No API keys, no token.",
   "mcpName": "io.github.0rkz/byte-protocol",
   "type": "module",
@@ -18,12 +18,20 @@
     "mcp",
     "model-context-protocol",
     "byte-protocol",
+    "payperbyte",
+    "byte-library",
     "data-marketplace",
     "ai-agents",
-    "arbitrum",
-    "depin",
     "x402",
-    "agent-commerce"
+    "x402-mcp",
+    "agent-commerce",
+    "base",
+    "usdc",
+    "arbitrum",
+    "eip-712",
+    "provenance",
+    "oracle",
+    "depin"
   ],
   "files": [
     "dist",
@@ -37,7 +45,11 @@
     "start": "node dist/index.js",
     "dev": "tsc --watch",
     "test": "node test/e2e.mjs",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build",
+    "probe:buy": "npm run build && node probe/buy.mjs",
+    "probe:dry": "npm run build && node probe/buy.mjs --dry-run",
+    "probe:duck": "node probe/duck.mjs",
+    "probe": "npm run build && node probe/pipeline.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",

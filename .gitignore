@@ -1,6 +1,7 @@
 node_modules/
 .env
 *.log
+probe/out/
 
 # MCPB bundle — build artifact, rebuilt via `mcpb pack` (see manifest.json)
 *.mcpb

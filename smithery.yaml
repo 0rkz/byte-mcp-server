@@ -1,7 +1,7 @@
 # Smithery configuration: https://smithery.ai/docs/config#smitheryyaml
 #
 # byte-mcp-server supports two transports:
-#   - HTTP (default for Smithery hosted listings, since 0.10.0; current 0.11.2):
+#   - HTTP (default for Smithery hosted listings, since 0.10.0; current 0.11.3):
 #       https://mcp.payperbyte.io/mcp
 #       — scanner-friendly: 202 on orphan notifications, stateless fallback
 #         for streamable-http requests missing session-id (v0.10.2+)
@@ -27,5 +27,5 @@ startCommand:
         description: "Ethereum private key for write operations (subscribe, publish, unsubscribe, buy_data). Leave blank for read-only mode."
       rpcUrl:
         type: string
-        description: "Arbitrum RPC URL. Defaults to public Arbitrum Sepolia RPC."
+        description: "RPC for the on-chain library + EIP-712 attestation layer (Arbitrum Sepolia, eip155:421614). The x402 pay-per-call buy rail settles USDC on Base mainnet and needs no RPC here. Defaults to public Arbitrum Sepolia RPC."
         default: "https://sepolia-rollup.arbitrum.io/rpc"

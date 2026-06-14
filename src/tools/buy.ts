@@ -26,8 +26,6 @@ import { registerExactEvmScheme } from "@x402/evm/exact/client";
 import { privateKeyToAccount } from "viem/accounts";
 import { CONFIG } from "../lib/config.js";
 
-const GATEWAY_URL = process.env.BYTE_GATEWAY_URL || "https://x402.payperbyte.io";
-
 interface BuyResult {
   feed: string;
   paid: boolean;
@@ -73,7 +71,7 @@ function getClient(): x402HTTPClient {
 
 export async function buyData(params: { feed: string }): Promise<BuyResult | BuyError> {
   const slug = params.feed.replace(/^\/+/, "").replace(/^feeds\//, "");
-  const url = `${GATEWAY_URL}/feeds/${slug}`;
+  const url = `${CONFIG.gatewayUrl}/feeds/${slug}`;
 
   let client: x402HTTPClient;
   try {
