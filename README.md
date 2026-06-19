@@ -31,7 +31,7 @@ The live catalog is at **[x402.payperbyte.io/feeds](https://x402.payperbyte.io/f
 See the whole verify-before-act loop in one command — no install, no signup, no wallet:
 
 ```bash
-npx @payperbyte/foreseal-demo
+npx @foreseal/demo
 ```
 
 It runs locally (no real USDC) and shows an agent **ACT** on genuine bytes and **REFUSE** four attacks — a tampered byte, a forged signature, a missing receipt, a forked signing domain — in about a second.
@@ -39,7 +39,7 @@ It runs locally (no real USDC) and shows an agent **ACT** on genuine bytes and *
 The same primitive ships as two packages you can drop into your own stack:
 
 - **Kit** — [`@payperbyte/sdk`](https://www.npmjs.com/package/@payperbyte/sdk): the buyer verifies a receipt before acting.
-- **Gate** — [`@payperbyte/x402-middleware`](https://www.npmjs.com/package/@payperbyte/x402-middleware): a seller stamps a verifiable receipt on any x402 endpoint.
+- **Gate** — [`@foreseal/gate`](https://www.npmjs.com/package/@foreseal/gate): a seller stamps a verifiable receipt on any x402 endpoint.
 
 ## Two paradigms: subscribe vs. buy
 
