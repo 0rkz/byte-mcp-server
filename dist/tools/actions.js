@@ -1,7 +1,6 @@
 import { parseUnits, keccak256, toBytes } from "viem";
-import { arbitrumSepolia } from "viem/chains";
 import { publicClient, getWalletClient, getWalletAddress, DataRegistryAbi, DataStreamAbi, SchemaRegistryAbi, Erc20Abi, } from "../lib/contracts.js";
-import { ADDRESSES, GAS_LIMITS, USDC_DECIMALS } from "../lib/config.js";
+import { ADDRESSES, CONFIG, GAS_LIMITS, USDC_DECIMALS } from "../lib/config.js";
 /**
  * Unsubscribes from a publisher's data feed. Takes effect in the next block —
  * no more billing, no more data flow. Reversible via `subscribe(publisher)`
@@ -173,7 +172,7 @@ export async function publishData(params) {
         domain: {
             name: "BYTE Library",
             version: "1",
-            chainId: arbitrumSepolia.id,
+            chainId: CONFIG.chainId,
             verifyingContract: ADDRESSES.DataStream,
         },
         types: {
