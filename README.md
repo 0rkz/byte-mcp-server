@@ -26,6 +26,21 @@ Wire it into your MCP client (Claude Desktop config below), then your agent can:
 
 The live catalog is at **[x402.payperbyte.io/feeds](https://x402.payperbyte.io/feeds)** — verified, provenance-first feeds across weather, markets, code, security, and knowledge.
 
+## Verify before acting (ForeSeal)
+
+See the whole verify-before-act loop in one command — no install, no signup, no wallet:
+
+```bash
+npx @foreseal/demo
+```
+
+It runs locally (no real USDC) and shows an agent **ACT** on genuine bytes and **REFUSE** four attacks — a tampered byte, a forged signature, a missing receipt, a forked signing domain — in about a second.
+
+The same primitive ships as two packages you can drop into your own stack:
+
+- **Kit** — [`@payperbyte/sdk`](https://www.npmjs.com/package/@payperbyte/sdk): the buyer verifies a receipt before acting.
+- **Gate** — [`@foreseal/gate`](https://www.npmjs.com/package/@foreseal/gate): a seller stamps a verifiable receipt on any x402 endpoint.
+
 ## Two paradigms: subscribe vs. buy
 
 | Mode | Tool | Rail | Best for | Pricing |
