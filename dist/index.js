@@ -713,12 +713,20 @@ function createMcpServer() {
     });
     // ─── Pay-per-call (x402) tool ─────────────────────────────────────────────
     server.registerTool("byte_buy_data", {
-        description: "Buy a single data packet from any PayPerByte feed via the x402 payment gateway. No subscription, no allowance, no prior on-chain setup — pay-per-call USDC settlement. The MCP server signs an EIP-3009 transferWithAuthorization on behalf of the wallet whose PRIVATE_KEY is configured, the x402 facilitator submits the tx, and the data comes back inline with the on-chain settlement tx hash. Use byte_subscribe instead if you want a continuous stream of broadcasts from a publisher. The catalog of available feed slugs lives at https://x402.payperbyte.io/feeds (free GET). Requires PRIVATE_KEY env var on the MCP server and USDC on the configured wallet. NOTE: paid feeds settle REAL USDC on Base mainnet (eip155:8453) — the exact price is quoted in the 402 challenge (flagship address-reputation: $0.05/verdict). Use a dedicated wallet holding only what you intend to spend.",
+        description: "Buy a single data packet from any PayPerByte feed via the x402 payment gateway. No subscription, no allowance, no prior on-chain setup — pay-per-call USDC settlement. The MCP server signs an EIP-3009 transferWithAuthorization on behalf of the wallet whose PRIVATE_KEY is configured, the x402 facilitator submits the tx, and the data comes back inline with the on-chain settlement tx hash. Use byte_subscribe instead if you want a continuous stream of broadcasts from a publisher. The catalog of available feed slugs lives at https://x402.payperbyte.io/feeds (free GET). GET data feeds (weather, defi-yields, …) need only `feed`; POST verdict oracles (address-reputation, sanctions-screen, pkg-verdict, reasoning-verdict) additionally require a JSON `body` (the query) — supplying `body` switches this call to POST. Requires PRIVATE_KEY env var on the MCP server and USDC on the configured wallet. NOTE: paid feeds settle REAL USDC on Base mainnet (eip155:8453) — the exact price is quoted in the 402 challenge (flagship address-reputation: $0.05/verdict). Use a dedicated wallet holding only what you intend to spend.",
         inputSchema: {
             feed: z
                 .string()
                 .min(1)
                 .describe(buildFeedSlugDescribe()),
+            body: z
+                .record(z.string(), z.unknown())
+                .optional()
+                .describe("Optional JSON query body for POST oracles. Supplying it switches the " +
+                "call from GET to POST. Required by the verdict oracles, e.g. " +
+                "address-reputation {domain,address[,amount,chain]}, " +
+                "sanctions-screen {address|name}, pkg-verdict {ecosystem,package[,version]}, " +
+                "reasoning-verdict {subject}. Omit for GET data feeds (weather, defi-yields, …)."),
         },
         outputSchema: z
             .object({
@@ -740,9 +748,9 @@ function createMcpServer() {
             idempotentHint: false,
             openWorldHint: true,
         },
-    }, async ({ feed }) => {
+    }, async ({ feed, body }) => {
         try {
-            const result = await buyData({ feed });
+            const result = await buyData({ feed, body });
             return {
                 content: [
                     {

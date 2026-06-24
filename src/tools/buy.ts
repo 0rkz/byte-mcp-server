@@ -69,9 +69,16 @@ function getClient(): x402HTTPClient {
   return cachedClient;
 }
 
-export async function buyData(params: { feed: string }): Promise<BuyResult | BuyError> {
+export async function buyData(params: { feed: string; body?: unknown }): Promise<BuyResult | BuyError> {
   const slug = params.feed.replace(/^\/+/, "").replace(/^feeds\//, "");
   const url = `${CONFIG.gatewayUrl}/feeds/${slug}`;
+
+  // POST oracles (address-reputation, sanctions-screen, pkg-verdict,
+  // reasoning-verdict, …) require a JSON query body. When `body` is supplied this
+  // call becomes a POST carrying that body (on both the 402 probe and the paid
+  // replay); without `body` it stays a GET — the plain data-feed path.
+  const hasBody = params.body !== undefined && params.body !== null;
+  const bodyStr = hasBody ? JSON.stringify(params.body) : undefined;
 
   let client: x402HTTPClient;
   try {
@@ -80,7 +87,12 @@ export async function buyData(params: { feed: string }): Promise<BuyResult | Buy
     return { error: e instanceof Error ? e.message : String(e) };
   }
 
-  const initial = await fetch(url);
+  const initial = await fetch(
+    url,
+    hasBody
+      ? { method: "POST", headers: { "content-type": "application/json" }, body: bodyStr }
+      : {},
+  );
 
   // Free / cached / unknown-error pass-through.
   if (initial.status !== 402) {
@@ -115,8 +127,17 @@ export async function buyData(params: { feed: string }): Promise<BuyResult | Buy
     };
   }
 
-  const headers = client.encodePaymentSignatureHeader(paymentPayload);
-  const paid = await fetch(url, { headers });
+  const payHeaders = client.encodePaymentSignatureHeader(paymentPayload);
+  // Merge the x402 payment header(s) with the POST content-type when sending a
+  // body. `new Headers()` accepts either a plain object or a Headers instance.
+  const reqHeaders = new Headers(payHeaders as HeadersInit);
+  if (hasBody) reqHeaders.set("content-type", "application/json");
+  const paid = await fetch(
+    url,
+    hasBody
+      ? { method: "POST", headers: reqHeaders, body: bodyStr }
+      : { headers: reqHeaders },
+  );
 
   if (!paid.ok) {
     return {

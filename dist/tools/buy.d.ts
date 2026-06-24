@@ -39,5 +39,6 @@ interface BuyError {
 }
 export declare function buyData(params: {
     feed: string;
+    body?: unknown;
 }): Promise<BuyResult | BuyError>;
 export {};
