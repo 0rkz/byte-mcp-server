@@ -19,6 +19,19 @@
  * actually moves the USDC, so the caller doesn't need ETH at all in
  * principle — but the wallet must hold USDC to be debited.
  */
+interface Verification {
+    /** hashMatch AND signerMatch — safe to act on the bytes. */
+    verified: boolean;
+    /** keccak256(responseBody) === receipt.payloadHash. */
+    hashMatch: boolean;
+    /** the receipt recovered to the PINNED gateway attester. */
+    signerMatch: boolean;
+    /** the EIP-712 signer recovered from the receipt, or null. */
+    recovered: string | null;
+    /** the attester the receipt was pinned against. */
+    attester: string;
+    reason: string;
+}
 interface BuyResult {
     feed: string;
     paid: boolean;
@@ -32,6 +45,8 @@ interface BuyResult {
     data: unknown;
     /** Status code from the final (post-payment) response. */
     status: number;
+    /** Inline verify-before-act result over the X-BYTE-Attestation receipt. */
+    verification?: Verification;
 }
 interface BuyError {
     error: string;

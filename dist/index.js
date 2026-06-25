@@ -737,6 +737,12 @@ function createMcpServer() {
             payer: z.string().optional().describe("Wallet that signed the EIP-3009 authorization"),
             status: z.number().optional().describe("HTTP status of the (post-payment) gateway response"),
             data: z.unknown().optional().describe("Decoded feed payload returned by the publisher"),
+            verification: z
+                .record(z.string(), z.unknown())
+                .optional()
+                .describe("Inline verify-before-act over the X-BYTE-Attestation receipt: " +
+                "{verified, hashMatch, signerMatch, recovered, attester, reason}. " +
+                "verified=true means the bytes are intact AND signed by the pinned gateway attester."),
             error: z.string().optional().describe("Error message if the buy failed"),
             detail: z.string().optional().describe("Additional error detail, if any"),
         })

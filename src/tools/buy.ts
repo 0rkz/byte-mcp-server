@@ -25,6 +25,71 @@ import { x402HTTPClient } from "@x402/core/http";
 import { registerExactEvmScheme } from "@x402/evm/exact/client";
 import { privateKeyToAccount } from "viem/accounts";
 import { CONFIG } from "../lib/config.js";
+import { recoverAttestationSigner, computePayloadHash } from "../lib/verify.js";
+
+/** Gateway attester to PIN receipts against (out-of-band, from
+ *  /.well-known/agent.json → receipt.attester). Env-overridable if it rotates. */
+const PINNED_GATEWAY_ATTESTER = (
+  process.env.BYTE_GATEWAY_ATTESTER || "0x77c86a5367d941091a31BC97104609F2Db33C472"
+).toLowerCase();
+
+interface Verification {
+  /** hashMatch AND signerMatch — safe to act on the bytes. */
+  verified: boolean;
+  /** keccak256(responseBody) === receipt.payloadHash. */
+  hashMatch: boolean;
+  /** the receipt recovered to the PINNED gateway attester. */
+  signerMatch: boolean;
+  /** the EIP-712 signer recovered from the receipt, or null. */
+  recovered: string | null;
+  /** the attester the receipt was pinned against. */
+  attester: string;
+  reason: string;
+}
+
+/**
+ * Verify-before-act on the X-BYTE-Attestation receipt the gateway returns:
+ * recompute keccak256(EXACT body bytes) === payloadHash AND recover the EIP-712
+ * signer and confirm it is the pinned gateway attester. Throw-free.
+ */
+async function verifyReceiptInline(
+  body: string,
+  headerValue: string | null,
+): Promise<Verification> {
+  const base = { attester: PINNED_GATEWAY_ATTESTER };
+  if (!headerValue) {
+    return { verified: false, hashMatch: false, signerMatch: false, recovered: null, ...base,
+      reason: "no X-BYTE-Attestation header on the paid response — provenance unproven" };
+  }
+  try {
+    const r = JSON.parse(headerValue);
+    const hashMatch = computePayloadHash(body).toLowerCase() === String(r.payloadHash).toLowerCase();
+    const { signer } = await recoverAttestationSigner({
+      publisher: r.publisher,
+      payloadHash: r.payloadHash,
+      payloadLength: BigInt(r.payloadLength),
+      deadline: BigInt(r.deadline),
+      signature: r.signature,
+    });
+    const signerMatch = signer.toLowerCase() === PINNED_GATEWAY_ATTESTER;
+    return {
+      verified: hashMatch && signerMatch,
+      hashMatch,
+      signerMatch,
+      recovered: signer,
+      ...base,
+      reason:
+        hashMatch && signerMatch
+          ? "receipt verified — bytes intact AND signed by the pinned gateway attester (safe to act)"
+          : !hashMatch
+            ? "HASH MISMATCH — the response bytes are NOT what the attester signed; do not act"
+            : "attestation did not recover to the pinned gateway attester; do not act",
+    };
+  } catch {
+    return { verified: false, hashMatch: false, signerMatch: false, recovered: null, ...base,
+      reason: "X-BYTE-Attestation header malformed or unverifiable — fail-closed" };
+  }
+}
 
 interface BuyResult {
   feed: string;
@@ -39,6 +104,8 @@ interface BuyResult {
   data: unknown;
   /** Status code from the final (post-payment) response. */
   status: number;
+  /** Inline verify-before-act result over the X-BYTE-Attestation receipt. */
+  verification?: Verification;
 }
 
 interface BuyError {
@@ -159,6 +226,17 @@ export async function buyData(params: { feed: string; body?: unknown }): Promise
     : undefined;
   const account = privateKeyToAccount(CONFIG.privateKey!);
 
+  // Read the EXACT response bytes ONCE (the bytes the gateway hashed + signed),
+  // verify the X-BYTE-Attestation receipt inline, then parse for the caller.
+  const text = await paid.text();
+  const verification = await verifyReceiptInline(text, paid.headers.get("x-byte-attestation"));
+  let data: unknown;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    data = text;
+  }
+
   return {
     feed: slug,
     paid: true,
@@ -166,6 +244,7 @@ export async function buyData(params: { feed: string; body?: unknown }): Promise
     txHash: (settlement as { transaction?: string } | undefined)?.transaction,
     payer: account.address,
     status: paid.status,
-    data: await paid.json(),
+    data,
+    verification,
   };
 }
