@@ -698,7 +698,7 @@ server.registerTool(
 server.registerTool(
   "byte_query_fact",
   {
-    description: "Query a PayPerByte fact-oracle publisher for a verified factual answer with citations. Posts the question to a registered fact-oracle publisher (topic='fact-oracle'), waits for the on-chain BroadcastStreamed response, and returns the answer plus structured citation URLs. Use for grounding LLM outputs in real-time verified information.",
+    description: "Query a PayPerByte fact-oracle publisher for a signed answer with citations. Posts the question to a registered fact-oracle publisher (topic='fact-oracle'), waits for the on-chain BroadcastStreamed response, and returns the answer plus structured citation URLs. The signed receipt proves which publisher produced the answer (provenance + tamper-evidence), NOT that the answer is correct — ground your output in the cited sources, not in a truth guarantee.",
     inputSchema: {
       question: z
         .string()
@@ -854,10 +854,12 @@ server.registerTool(
       // Fail closed on verify-before-act: a successful HTTP 200 whose receipt did
       // NOT verify (forged signer / tampered bytes / missing-or-malformed
       // attestation) MUST surface as isError so an MCP client never silently acts
-      // on unverified bytes. `verified !== true` (not `=== false`) so an absent/
-      // malformed verification flag also fails closed.
+      // on unverified bytes. Any data-bearing result that is NOT an explicit error
+      // must carry a verification verdict; an absent verification block (e.g. a 200
+      // that skipped the 402 handshake) fails closed too. (`buyData` now attaches a
+      // verdict on BOTH the paid and the non-402 paths; this guard is belt-and-braces.)
       const v = (result as { verification?: { verified?: boolean } }).verification;
-      const verifyFailed = v !== undefined && v.verified !== true;
+      const verifyFailed = "error" in result ? false : v === undefined || v.verified !== true;
       return {
         content: [
           {

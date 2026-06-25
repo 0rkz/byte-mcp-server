@@ -1,8 +1,10 @@
 # PayPerByte MCP Server
 
+<!-- mcp-name: io.github.0rkz/byte-protocol -->
+
 [![smithery badge](https://smithery.ai/badge/byte/byte-library)](https://smithery.ai/servers/byte/byte-library) [![0rkz/byte-mcp-server MCP server](https://glama.ai/mcp/servers/0rkz/byte-mcp-server/badges/score.svg)](https://glama.ai/mcp/servers/0rkz/byte-mcp-server)
 
-A [Model Context Protocol](https://modelcontextprotocol.io/) server that gives AI agents direct access to **[PayPerByte](https://www.payperbyte.io)** — verified, provenance-first data feeds for AI agents. Agents discover feeds, pay-per-call via x402 (settled in **USDC on Base mainnet**), or subscribe to on-chain streams (Arbitrum Sepolia testnet). Every paid x402 response carries an EIP-712 `PayloadAttestation` receipt (`X-BYTE-Attestation` header) the agent verifies before acting. No tokens, no API keys, no off-chain accounts.
+A [Model Context Protocol](https://modelcontextprotocol.io/) server that gives AI agents direct access to **[PayPerByte](https://www.payperbyte.io)** — cryptographically attested, provenance-verifiable data feeds for AI agents (the receipt proves which publisher signed the exact bytes, not that the data is correct). Agents discover feeds, pay-per-call via x402 (settled in **USDC on Base mainnet**), or subscribe to on-chain streams (Arbitrum Sepolia testnet). Every paid x402 response carries an EIP-712 `PayloadAttestation` receipt (`X-BYTE-Attestation` header) the agent verifies before acting. No tokens, no API keys, no off-chain accounts.
 
 > **Two rails — read this before setting `PRIVATE_KEY`.**
 >
@@ -24,7 +26,7 @@ Wire it into your MCP client (Claude Desktop config below), then your agent can:
 - **Subscribe** to a stream (testnet): *"Subscribe me to the earthquakes feed"* → auto-approves MockUSDC for ongoing settlement on Arbitrum Sepolia
 - **Query a fact** (testnet): *"Ask the fact-oracle who won the last Lakers vs Warriors game"* → on-chain signed answer with citations
 
-The live catalog is at **[x402.payperbyte.io/feeds](https://x402.payperbyte.io/feeds)** — verified, provenance-first feeds across weather, markets, code, security, and knowledge.
+The live catalog is at **[x402.payperbyte.io/feeds](https://x402.payperbyte.io/feeds)** — cryptographically attested, provenance-verifiable feeds across weather, markets, code, security, and knowledge.
 
 ## Verify before acting (ForeSeal)
 
@@ -49,6 +51,34 @@ The same primitive ships as two packages you can drop into your own stack:
 | **Subscribe** | `byte_subscribe` | Arbitrum Sepolia — testnet MockUSDC | Continuous streams (every weather update, every new earthquake) | $0.003 / KB per delivery |
 
 Buy is zero-setup, pay-as-you-go, and live with real settlement; subscribe delivers every broadcast on the audit-gated testnet layer. Pick by access pattern.
+
+### Buying a verdict (POST oracle)
+
+GET data feeds need only a `feed`. The **verdict oracles** (`address-reputation`, `sanctions-screen`, `pkg-verdict`, `reasoning-verdict`) are POST endpoints — pass the query as a `body` and `byte_buy_data` switches the call from GET to POST automatically:
+
+```jsonc
+// byte_buy_data tool call — screen a payee before releasing USDC
+{
+  "feed": "address-reputation",
+  "body": { "domain": "example.com", "address": "0x1234…abcd" }
+}
+```
+
+The paid response returns the signed verdict **and** an inline verify-before-act result over the `X-BYTE-Attestation` receipt:
+
+```jsonc
+{
+  "feed": "address-reputation",
+  "paid": true,
+  "price": "$0.050000",
+  "txHash": "0x…",
+  "data": { "answer": { "verdict": "ALLOW", "score": 88, "reasons": ["…"] }, "attestation": { "…": "…" } },
+  "verification": { "verified": true, "hashMatch": true, "signerMatch": true,
+                    "reason": "receipt verified — bytes intact AND signed by the pinned gateway attester (safe to act)" }
+}
+```
+
+Act only when `verification.verified === true`. Other POST bodies: `sanctions-screen {address|name}`, `pkg-verdict {ecosystem,package[,version]}`, `reasoning-verdict {subject}`. Omit `body` entirely for GET data feeds (weather, defi-yields, …).
 
 ## Tools (15 total)
 

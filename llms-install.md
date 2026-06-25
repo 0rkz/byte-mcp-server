@@ -38,6 +38,17 @@ Ask Cline to run a read-only tool — no wallet required:
 
 If a feed list / stats come back, the server is set up correctly.
 
+## Buy a verdict (POST oracle)
+
+`byte_buy_data` buys one packet from any feed. GET data feeds (weather, defi-yields, …) need only `feed`; the **verdict oracles** (`address-reputation`, `sanctions-screen`, `pkg-verdict`, `reasoning-verdict`) are POST endpoints — supply a JSON `body` and the call switches from GET to POST:
+
+```jsonc
+// screen a payee before releasing USDC (real $0.05 on Base mainnet — needs PRIVATE_KEY)
+{ "feed": "address-reputation", "body": { "domain": "example.com", "address": "0x1234…abcd" } }
+```
+
+The result includes the signed verdict in `data` plus an inline `verification` block (`{ verified, hashMatch, signerMatch, reason }`) — act only when `verification.verified` is `true`. Other bodies: `sanctions-screen {address|name}`, `pkg-verdict {ecosystem,package}`, `reasoning-verdict {subject}`.
+
 ## Notes
 
 - Two rails: x402 pay-per-call (`byte_buy_data`) settles **real USDC on Base mainnet** (`eip155:8453`); the on-chain subscribe/publish/fact-oracle layer is Arbitrum Sepolia **testnet** (MockUSDC, mainnet audit-gated). No token.
