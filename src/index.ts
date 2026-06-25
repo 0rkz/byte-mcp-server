@@ -851,15 +851,24 @@ server.registerTool(
   async ({ feed, body }) => {
     try {
       const result = await buyData({ feed, body });
+      // Fail closed on verify-before-act: a successful HTTP 200 whose receipt did
+      // NOT verify (forged signer / tampered bytes / missing-or-malformed
+      // attestation) MUST surface as isError so an MCP client never silently acts
+      // on unverified bytes. `verified !== true` (not `=== false`) so an absent/
+      // malformed verification flag also fails closed.
+      const v = (result as { verification?: { verified?: boolean } }).verification;
+      const verifyFailed = v !== undefined && v.verified !== true;
       return {
         content: [
           {
             type: "text" as const,
-            text: JSON.stringify(result, null, 2),
+            text: verifyFailed
+              ? `RECEIPT UNVERIFIED — do NOT act on these bytes.\n${JSON.stringify(result, null, 2)}`
+              : JSON.stringify(result, null, 2),
           },
         ],
         structuredContent: result as unknown as Record<string, unknown>,
-        isError: "error" in result,
+        isError: "error" in result || verifyFailed,
       };
     } catch (error) {
       return {
