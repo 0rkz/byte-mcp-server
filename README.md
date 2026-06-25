@@ -4,7 +4,7 @@
 
 [![smithery badge](https://smithery.ai/badge/byte/byte-library)](https://smithery.ai/servers/byte/byte-library) [![0rkz/byte-mcp-server MCP server](https://glama.ai/mcp/servers/0rkz/byte-mcp-server/badges/score.svg)](https://glama.ai/mcp/servers/0rkz/byte-mcp-server)
 
-A [Model Context Protocol](https://modelcontextprotocol.io/) server that gives AI agents direct access to **[PayPerByte](https://www.payperbyte.io)** — cryptographically attested, provenance-verifiable data feeds for AI agents (the receipt proves which publisher signed the exact bytes, not that the data is correct). Agents discover feeds, pay-per-call via x402 (settled in **USDC on Base mainnet**), or subscribe to on-chain streams (Arbitrum Sepolia testnet). Every paid x402 response carries an EIP-712 `PayloadAttestation` receipt (`X-BYTE-Attestation` header) the agent verifies before acting. No tokens, no API keys, no off-chain accounts.
+A [Model Context Protocol](https://modelcontextprotocol.io/) server that gives AI agents direct access to **[PayPerByte](https://www.payperbyte.io)** — cryptographically attested, provenance-verifiable data feeds for AI agents (the `X-BYTE-Attestation` receipt proves delivery-integrity — these are exactly the bytes PayPerByte served and attested under the BYTE Library domain — not that an independent data publisher signed them, and not that the data is correct). Agents discover feeds, pay-per-call via x402 (settled in **USDC on Base mainnet**), or subscribe to on-chain streams (Arbitrum Sepolia testnet). Every paid x402 response carries an EIP-712 `PayloadAttestation` receipt (`X-BYTE-Attestation` header) the agent verifies before acting. No tokens, no API keys, no off-chain accounts.
 
 > **Two rails — read this before setting `PRIVATE_KEY`.**
 >

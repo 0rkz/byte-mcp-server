@@ -115,11 +115,26 @@ export async function buyData(params) {
                 detail: (await initial.text()).slice(0, 500),
             };
         }
+        // Non-402 200 (free / cached / broadcast). Verify-before-act STILL applies:
+        // read the exact bytes once, verify any X-BYTE-Attestation receipt inline
+        // (fails closed when the response carries no attestation), then parse — so a
+        // 200 that skipped the 402 handshake can never reach the agent as actable
+        // bytes without a verification verdict.
+        const text = await initial.text();
+        const verification = await verifyReceiptInline(text, initial.headers.get("x-byte-attestation"));
+        let data;
+        try {
+            data = JSON.parse(text);
+        }
+        catch {
+            data = text;
+        }
         return {
             feed: slug,
             paid: false,
             status: initial.status,
-            data: await initial.json(),
+            data,
+            verification,
         };
     }
     // 402 — extract payment requirements and sign.
