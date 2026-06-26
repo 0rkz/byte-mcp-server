@@ -19,9 +19,13 @@
  * actually moves the USDC, so the caller doesn't need ETH at all in
  * principle — but the wallet must hold USDC to be debited.
  */
-interface Verification {
-    /** hashMatch AND signerMatch — safe to act on the bytes. */
-    verified: boolean;
+/** The GATEWAY leg: the X-BYTE-Attestation receipt over the EXACT response bytes,
+ *  recovered to the pinned gateway attester. Proves the gateway DELIVERED these
+ *  exact bytes — it is NOT a verification of the data publisher's own attestation. */
+interface GatewayLeg {
+    /** hashMatch AND signerMatch — the GATEWAY delivered these exact bytes intact.
+     *  NOT a guarantee the per-feed publisher attestation verifies (see embeddedAttestation). */
+    gatewayVerified: boolean;
     /** keccak256(responseBody) === receipt.payloadHash. */
     hashMatch: boolean;
     /** the receipt recovered to the PINNED gateway attester. */
@@ -31,6 +35,17 @@ interface Verification {
     /** the attester the receipt was pinned against. */
     attester: string;
     reason: string;
+}
+/** Two-leg-aware verification: the gateway DELIVERY envelope (verified here) PLUS
+ *  the per-feed PUBLISHER attestation embedded in the answer — whose PRESENCE is
+ *  surfaced but which is NOT verified here (that is the verifyEmbeddedAttestation
+ *  fast-follow). An agent must verify the embedded leg before trusting the DATA. */
+interface Verification extends GatewayLeg {
+    /** The publisher's EIP-712 attestation embedded in the answer (answer.attestation):
+     *  "present" on POST verdict-oracle responses, "absent" on plain GET data feeds. */
+    embeddedAttestation: "present" | "absent";
+    /** Two-leg guidance — exactly what gatewayVerified does and does not cover. */
+    note: string;
 }
 interface BuyResult {
     feed: string;

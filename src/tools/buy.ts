@@ -33,9 +33,13 @@ const PINNED_GATEWAY_ATTESTER = (
   process.env.BYTE_GATEWAY_ATTESTER || "0x77c86a5367d941091a31BC97104609F2Db33C472"
 ).toLowerCase();
 
-interface Verification {
-  /** hashMatch AND signerMatch — safe to act on the bytes. */
-  verified: boolean;
+/** The GATEWAY leg: the X-BYTE-Attestation receipt over the EXACT response bytes,
+ *  recovered to the pinned gateway attester. Proves the gateway DELIVERED these
+ *  exact bytes — it is NOT a verification of the data publisher's own attestation. */
+interface GatewayLeg {
+  /** hashMatch AND signerMatch — the GATEWAY delivered these exact bytes intact.
+   *  NOT a guarantee the per-feed publisher attestation verifies (see embeddedAttestation). */
+  gatewayVerified: boolean;
   /** keccak256(responseBody) === receipt.payloadHash. */
   hashMatch: boolean;
   /** the receipt recovered to the PINNED gateway attester. */
@@ -47,6 +51,18 @@ interface Verification {
   reason: string;
 }
 
+/** Two-leg-aware verification: the gateway DELIVERY envelope (verified here) PLUS
+ *  the per-feed PUBLISHER attestation embedded in the answer — whose PRESENCE is
+ *  surfaced but which is NOT verified here (that is the verifyEmbeddedAttestation
+ *  fast-follow). An agent must verify the embedded leg before trusting the DATA. */
+interface Verification extends GatewayLeg {
+  /** The publisher's EIP-712 attestation embedded in the answer (answer.attestation):
+   *  "present" on POST verdict-oracle responses, "absent" on plain GET data feeds. */
+  embeddedAttestation: "present" | "absent";
+  /** Two-leg guidance — exactly what gatewayVerified does and does not cover. */
+  note: string;
+}
+
 /**
  * Verify-before-act on the X-BYTE-Attestation receipt the gateway returns:
  * recompute keccak256(EXACT body bytes) === payloadHash AND recover the EIP-712
@@ -55,11 +71,11 @@ interface Verification {
 async function verifyReceiptInline(
   body: string,
   headerValue: string | null,
-): Promise<Verification> {
+): Promise<GatewayLeg> {
   const base = { attester: PINNED_GATEWAY_ATTESTER };
   if (!headerValue) {
-    return { verified: false, hashMatch: false, signerMatch: false, recovered: null, ...base,
-      reason: "no X-BYTE-Attestation header on the paid response — provenance unproven" };
+    return { gatewayVerified: false, hashMatch: false, signerMatch: false, recovered: null, ...base,
+      reason: "no X-BYTE-Attestation header on the paid response — gateway delivery unproven" };
   }
   try {
     const r = JSON.parse(headerValue);
@@ -73,22 +89,60 @@ async function verifyReceiptInline(
     });
     const signerMatch = signer.toLowerCase() === PINNED_GATEWAY_ATTESTER;
     return {
-      verified: hashMatch && signerMatch,
+      gatewayVerified: hashMatch && signerMatch,
       hashMatch,
       signerMatch,
       recovered: signer,
       ...base,
       reason:
         hashMatch && signerMatch
-          ? "receipt verified — bytes intact AND signed by the pinned gateway attester (safe to act)"
+          ? "gateway delivery verified — these exact bytes were signed by the pinned gateway attester"
           : !hashMatch
-            ? "HASH MISMATCH — the response bytes are NOT what the attester signed; do not act"
-            : "attestation did not recover to the pinned gateway attester; do not act",
+            ? "HASH MISMATCH — the response bytes are NOT what the gateway attester signed; do not act"
+            : "gateway receipt did not recover to the pinned gateway attester; do not act",
     };
   } catch {
-    return { verified: false, hashMatch: false, signerMatch: false, recovered: null, ...base,
+    return { gatewayVerified: false, hashMatch: false, signerMatch: false, recovered: null, ...base,
       reason: "X-BYTE-Attestation header malformed or unverifiable — fail-closed" };
   }
+}
+
+/**
+ * Two-leg-aware verification + parse, used by BOTH the paid and free response
+ * paths. The GATEWAY leg (verifyReceiptInline) proves the gateway delivered these
+ * exact bytes. The per-feed PUBLISHER attestation embedded in the answer
+ * (answer.attestation) is only DETECTED here, NOT verified — surfacing it (with a
+ * note + the verify recipe) keeps byte_buy_data honest until the
+ * verifyEmbeddedAttestation SDK helper lands (fast-follow).
+ */
+async function verifyDelivery(
+  body: string,
+  headerValue: string | null,
+): Promise<{ data: unknown; verification: Verification }> {
+  let data: unknown;
+  try {
+    data = JSON.parse(body);
+  } catch {
+    data = body;
+  }
+  const leg = await verifyReceiptInline(body, headerValue);
+  const att = (data as { attestation?: { signature?: unknown } } | null)?.attestation;
+  const embeddedPresent = !!(att && typeof att === "object" && att.signature);
+  return {
+    data,
+    verification: {
+      ...leg,
+      embeddedAttestation: embeddedPresent ? "present" : "absent",
+      note: embeddedPresent
+        ? "gatewayVerified covers the DELIVERY envelope only (the gateway signed these exact " +
+          "bytes). The per-feed PUBLISHER attestation (answer.attestation) is PRESENT but NOT " +
+          "verified here — before acting on the verdict/data, recompute keccak256 over the " +
+          "canonical (insertion-order, minified) `answer` bytes and recover its signer, then " +
+          "confirm it is the feed's publisher (verify recipe; verifyEmbeddedAttestation is a fast-follow)."
+        : "gatewayVerified covers the delivery envelope; no embedded per-feed attestation in this " +
+          "response (e.g. a plain GET data feed).",
+    },
+  };
 }
 
 interface BuyResult {
@@ -175,16 +229,10 @@ export async function buyData(params: { feed: string; body?: unknown }): Promise
     // 200 that skipped the 402 handshake can never reach the agent as actable
     // bytes without a verification verdict.
     const text = await initial.text();
-    const verification = await verifyReceiptInline(
+    const { data, verification } = await verifyDelivery(
       text,
       initial.headers.get("x-byte-attestation"),
     );
-    let data: unknown;
-    try {
-      data = JSON.parse(text);
-    } catch {
-      data = text;
-    }
     return {
       feed: slug,
       paid: false,
@@ -244,15 +292,10 @@ export async function buyData(params: { feed: string; body?: unknown }): Promise
   const account = privateKeyToAccount(CONFIG.privateKey!);
 
   // Read the EXACT response bytes ONCE (the bytes the gateway hashed + signed),
-  // verify the X-BYTE-Attestation receipt inline, then parse for the caller.
+  // run the two-leg verify (gateway delivery leg + embedded-attestation presence),
+  // and parse for the caller.
   const text = await paid.text();
-  const verification = await verifyReceiptInline(text, paid.headers.get("x-byte-attestation"));
-  let data: unknown;
-  try {
-    data = JSON.parse(text);
-  } catch {
-    data = text;
-  }
+  const { data, verification } = await verifyDelivery(text, paid.headers.get("x-byte-attestation"));
 
   return {
     feed: slug,

@@ -15,7 +15,12 @@ import { buyData } from "./tools/buy.js";
 import { verifyPayload } from "./lib/verify.js";
 import { primeCatalogCache, getCachedCatalog } from "./lib/catalog.js";
 import { CONFIG } from "./lib/config.js";
+import { createRequire } from "node:module";
 const DEFAULT_INDEXER_URL = CONFIG.indexerUrl;
+// Single source of truth for the server version — read from package.json at
+// runtime (from dist/index.js, ../package.json is the package root) so the MCP
+// never self-reports a stale hardcoded number.
+const PKG_VERSION = createRequire(import.meta.url)("../package.json").version;
 // Each MCP session needs its own McpServer instance (the SDK Server class
 // errors with "Already connected to a transport" if one instance is reused
 // across concurrent transports). The HTTP transport spawns a fresh one per
@@ -23,7 +28,7 @@ const DEFAULT_INDEXER_URL = CONFIG.indexerUrl;
 function createMcpServer() {
     const server = new McpServer({
         name: "byte-protocol",
-        version: "0.11.2",
+        version: PKG_VERSION,
     });
     // ─── Read-only tools ────────────────────────────────────────────────────────
     server.registerTool("byte_search_publishers", {
@@ -713,7 +718,7 @@ function createMcpServer() {
     });
     // ─── Pay-per-call (x402) tool ─────────────────────────────────────────────
     server.registerTool("byte_buy_data", {
-        description: "Buy a single data packet from any PayPerByte feed via the x402 payment gateway. No subscription, no allowance, no prior on-chain setup — pay-per-call USDC settlement. The MCP server signs an EIP-3009 transferWithAuthorization on behalf of the wallet whose PRIVATE_KEY is configured, the x402 facilitator submits the tx, and the data comes back inline with the on-chain settlement tx hash. Use byte_subscribe instead if you want a continuous stream of broadcasts from a publisher. The catalog of available feed slugs lives at https://x402.payperbyte.io/feeds (free GET). GET data feeds (weather, defi-yields, …) need only `feed`; POST verdict oracles (address-reputation, sanctions-screen, pkg-verdict, reasoning-verdict) additionally require a JSON `body` (the query) — supplying `body` switches this call to POST. Requires PRIVATE_KEY env var on the MCP server and USDC on the configured wallet. NOTE: paid feeds settle REAL USDC on Base mainnet (eip155:8453) — the exact price is quoted in the 402 challenge (flagship address-reputation: $0.05/verdict). Use a dedicated wallet holding only what you intend to spend.",
+        description: "Buy a single data packet from any PayPerByte feed via the x402 payment gateway. No subscription, no allowance, no prior on-chain setup — pay-per-call USDC settlement. The MCP server signs an EIP-3009 transferWithAuthorization on behalf of the wallet whose PRIVATE_KEY is configured, the x402 facilitator submits the tx, and the data comes back inline with the on-chain settlement tx hash. Use byte_subscribe instead if you want a continuous stream of broadcasts from a publisher. The catalog of available feed slugs lives at https://x402.payperbyte.io/feeds (free GET). GET data feeds (weather, defi-yields, …) need only `feed`; the 10 POST oracles — address-reputation, sanctions-screen, pkg-verdict, reasoning-verdict, evidence-pack, usc-statute, liquidation-stream, positioning-snapshot, runtime-eol, threat-intel — additionally require a JSON `body` (the query) — supplying `body` switches this call to POST. Requires PRIVATE_KEY env var on the MCP server and USDC on the configured wallet. NOTE: paid feeds settle REAL USDC on Base mainnet (eip155:8453) — the exact price is quoted in the 402 challenge (flagship address-reputation: $0.05/verdict). Use a dedicated wallet holding only what you intend to spend.",
         inputSchema: {
             feed: z
                 .string()
@@ -740,9 +745,11 @@ function createMcpServer() {
             verification: z
                 .record(z.string(), z.unknown())
                 .optional()
-                .describe("Inline verify-before-act over the X-BYTE-Attestation receipt: " +
-                "{verified, hashMatch, signerMatch, recovered, attester, reason}. " +
-                "verified=true means the bytes are intact AND signed by the pinned gateway attester."),
+                .describe("Two-leg verify-before-act result: {gatewayVerified, hashMatch, signerMatch, " +
+                "recovered, attester, embeddedAttestation, reason, note}. gatewayVerified=true means " +
+                "the GATEWAY delivered these exact bytes (signed by the pinned gateway attester) — it " +
+                "does NOT verify the per-feed publisher's embedded attestation (answer.attestation). " +
+                "When embeddedAttestation==='present', verify that leg before trusting the data (see note)."),
             error: z.string().optional().describe("Error message if the buy failed"),
             detail: z.string().optional().describe("Additional error detail, if any"),
         })
@@ -757,15 +764,16 @@ function createMcpServer() {
     }, async ({ feed, body }) => {
         try {
             const result = await buyData({ feed, body });
-            // Fail closed on verify-before-act: a successful HTTP 200 whose receipt did
-            // NOT verify (forged signer / tampered bytes / missing-or-malformed
-            // attestation) MUST surface as isError so an MCP client never silently acts
-            // on unverified bytes. Any data-bearing result that is NOT an explicit error
-            // must carry a verification verdict; an absent verification block (e.g. a 200
-            // that skipped the 402 handshake) fails closed too. (`buyData` now attaches a
-            // verdict on BOTH the paid and the non-402 paths; this guard is belt-and-braces.)
+            // Fail closed on verify-before-act: a 200 whose GATEWAY-delivery leg did NOT
+            // verify (forged signer / tampered bytes / missing-or-malformed receipt) MUST
+            // surface as isError so an MCP client never silently acts on undelivered-intact
+            // bytes. isError gates on the gateway leg (what byte_buy_data verifies); the
+            // per-feed embedded publisher attestation is surfaced in verification.note for
+            // the agent to verify before trusting the DATA (verifyEmbeddedAttestation is a
+            // fast-follow). Any data result that is NOT an explicit error must carry a
+            // verdict; an absent verification block fails closed too.
             const v = result.verification;
-            const verifyFailed = "error" in result ? false : v === undefined || v.verified !== true;
+            const verifyFailed = "error" in result ? false : v === undefined || v.gatewayVerified !== true;
             return {
                 content: [
                     {
@@ -958,7 +966,7 @@ async function main() {
         app.delete("/mcp", sessionRouted);
         app.get("/health", (_req, res) => res.json({
             status: "ok",
-            version: "0.11.2",
+            version: PKG_VERSION,
             transport: "http",
             sessions: Object.keys(transports).length,
         }));
