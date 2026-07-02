@@ -1,5 +1,36 @@
 # Changelog
 
+## 0.11.8 — 2026-07-02
+
+- **Optional server-side spend cap for `byte_buy_data` — `MAX_PAYMENT_USDC`.** When set (decimal USDC, e.g. `0.25`), any 402 quote above the cap is refused *before* any payment is signed — exact bigint comparison in 6-decimal USDC units, **fail-closed** on an unparseable quote or cap value ("never guess about money"). Unset = uncapped (unchanged behavior); a dedicated thin wallet remains the hard backstop. (`enforceSpendCap`.)
+- **Dependencies.** `@x402/core` and `@x402/evm` pinned to exactly `2.13.0` in the lockfile.
+- **Docs.** README env-table row for `MAX_PAYMENT_USDC` + a short starter-kits section (free/MIT framing).
+
+## 0.11.7 — 2026-06-28
+
+**Two-leg `byte_buy_data` verification + single-sourced version.** The buy path now verifies the `X-BYTE-Attestation` receipt over both legs before returning bytes — it recomputes `keccak256` of the delivered payload AND recovers the EIP-712 signer, confirming the signer is the named publisher — instead of checking only one. The package version is now read from a single source so `package.json`, `server.json`, and the running server can't drift apart. `byte_buy_data`'s description was updated to match. (R4/R5 hardening.)
+
+## 0.11.6 — 2026-06-25
+
+**Reconciliation/republish bump.** Version incremented to clear npm's already-published-version 403 after a `prepublishOnly` rebuild; no functional change versus 0.11.5. The substantive two-leg-verify hardening this bump was staged for fully landed in 0.11.7.
+
+## 0.11.5 — 2026-06-25
+
+- **`byte_query_fact` honesty wording.** Tool description tightened to the authenticity/tamper-evidence scope — "proves who signed the exact bytes," not that the data is correct.
+- **`buy.ts` fail-closed hardening.** The buy path halts rather than proceeding when it cannot verify state.
+- **`package.json` description** aligned to the same honest scope wording.
+
+## 0.11.4 — 2026-06-25
+
+- **`byte_buy_data` POST support.** Agents can now buy the POST verdict oracles over MCP (previously GET feeds only).
+- **Inline verify-before-act on the `X-BYTE-Attestation` receipt.** `byte_buy_data` recomputes the payload hash and checks the receipt inline on delivery, and **fails closed (`isError`) when a receipt does not verify** rather than returning unverified bytes.
+- **Attestation signer chainId derived from `CONFIG`** to prevent migration desync — the EIP-712 signing domain can no longer silently drift from the configured chain.
+- **Docs.** README demo CTA points at `npx @foreseal/demo` (post-migration consumer rename); the Kit/Gate/demo one-liner is surfaced in the README.
+
+## 0.11.3 — 2026-06-13
+
+**Discoverability / brand pass.** `server.json`, `smithery.yaml`, and `package.json` normalized to the PayPerByte display name with Base-mainnet x402 framing and refreshed brand keywords. Also: catalog cache + a dynamic `byte_buy_data` slug list (the buyable-feed set is derived from the live catalog instead of hardcoded); a probe wash-safe split; and `repository.url` normalized to the `git+https` form. No tool, schema, or settlement-code changes.
+
 ## 0.11.2 — 2026-06-10
 
 **Truth pass: the x402 payment rail is live on Base mainnet.** Docs, tool descriptions, and package metadata now state the two rails honestly instead of the blanket "testnet only" frame:
