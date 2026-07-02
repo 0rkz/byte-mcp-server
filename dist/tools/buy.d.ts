@@ -67,6 +67,20 @@ interface BuyError {
     error: string;
     detail?: string;
 }
+/**
+ * Optional server-side spend cap: MAX_PAYMENT_USDC (decimal USDC string,
+ * e.g. "0.25"). When set, every 402 quote is checked against it BEFORE any
+ * payment is signed — a quote above the cap refuses fail-closed, as does a
+ * cap or quote amount we cannot parse (never guess about money). When unset
+ * there is no cap and behavior is unchanged. Quote amounts are the raw
+ * 6-decimal USDC units the x402 "exact" scheme quotes (same assumption as
+ * the price display below); every `accepts` entry is checked because the
+ * x402 client, not this code, picks which entry to fulfill.
+ * Exported for tests.
+ */
+export declare function enforceSpendCap(accepts: {
+    amount: string;
+}[] | undefined): BuyError | null;
 export declare function buyData(params: {
     feed: string;
     body?: unknown;

@@ -150,6 +150,7 @@ claude mcp add byte-library -- npx -y byte-mcp-server
 | `RPC_URL` | no | `https://sepolia-rollup.arbitrum.io/rpc` | Arbitrum Sepolia RPC (the on-chain read/subscribe layer) |
 | `INDEXER_URL` | no | `https://feeds.payperbyte.io` | PayPerByte indexer API |
 | `BYTE_GATEWAY_URL` | no | `https://x402.payperbyte.io` | x402 gateway base URL (used by `byte_buy_data`) |
+| `MAX_PAYMENT_USDC` | no | — (uncapped) | Server-side spend cap for `byte_buy_data`, in decimal USDC (e.g. `0.25`). When set, any 402 quote above the cap is refused before signing; unset means no cap — a dedicated thin wallet remains the hard backstop |
 
 ## Network
 
@@ -172,6 +173,10 @@ npm run build && npm start
 ## License
 
 MIT — see [LICENSE](LICENSE).
+
+## Starter kits
+
+Optional paid kits ($39 each): a [seller-side kit](https://payperbyte.gumroad.com/l/nszyv) (publish and sell a feed through the gateway) and a [buyer-side agent kit](https://payperbyte.gumroad.com/l/pvykda) (an agent that buys and verifies feeds). The npm packages are and stay free MIT — the kits sell the assembled setup.
 
 ## Links
 

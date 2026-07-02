@@ -22,8 +22,9 @@
 import { x402Client } from "@x402/core/client";
 import { x402HTTPClient } from "@x402/core/http";
 import { registerExactEvmScheme } from "@x402/evm/exact/client";
+import { formatUnits, parseUnits } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { CONFIG } from "../lib/config.js";
+import { CONFIG, USDC_DECIMALS } from "../lib/config.js";
 import { recoverAttestationSigner, computePayloadHash } from "../lib/verify.js";
 /** Gateway attester to PIN receipts against (out-of-band, from
  *  /.well-known/agent.json → receipt.attester). Env-overridable if it rotates. */
@@ -103,6 +104,50 @@ async function verifyDelivery(body, headerValue) {
         },
     };
 }
+/**
+ * Optional server-side spend cap: MAX_PAYMENT_USDC (decimal USDC string,
+ * e.g. "0.25"). When set, every 402 quote is checked against it BEFORE any
+ * payment is signed — a quote above the cap refuses fail-closed, as does a
+ * cap or quote amount we cannot parse (never guess about money). When unset
+ * there is no cap and behavior is unchanged. Quote amounts are the raw
+ * 6-decimal USDC units the x402 "exact" scheme quotes (same assumption as
+ * the price display below); every `accepts` entry is checked because the
+ * x402 client, not this code, picks which entry to fulfill.
+ * Exported for tests.
+ */
+export function enforceSpendCap(accepts) {
+    const cap = CONFIG.maxPaymentUsdc;
+    if (cap === undefined || cap === "")
+        return null;
+    let capRaw;
+    try {
+        capRaw = parseUnits(cap, USDC_DECIMALS);
+    }
+    catch {
+        return {
+            error: `payment refused: MAX_PAYMENT_USDC="${cap}" is not a valid decimal USDC amount — fix or unset it`,
+        };
+    }
+    for (const option of accepts ?? []) {
+        let quoteRaw;
+        try {
+            quoteRaw = BigInt(option.amount);
+        }
+        catch {
+            return {
+                error: `payment refused: could not parse the 402 quote amount ` +
+                    `(${JSON.stringify(option.amount)}) to compare against MAX_PAYMENT_USDC=${cap} — fail-closed`,
+            };
+        }
+        if (quoteRaw > capRaw) {
+            return {
+                error: `payment refused: quote ${formatUnits(quoteRaw, USDC_DECIMALS)} USDC exceeds ` +
+                    `MAX_PAYMENT_USDC=${cap} — raise the cap or pick a cheaper feed`,
+            };
+        }
+    }
+    return null;
+}
 let cachedClient = null;
 /**
  * Build the x402 HTTP client once and reuse. The signer is bound to
@@ -168,6 +213,10 @@ export async function buyData(params) {
     // 402 — extract payment requirements and sign.
     const challenge = await initial.json().catch(() => ({}));
     const required = client.getPaymentRequiredResponse((name) => initial.headers.get(name), challenge);
+    // Server-side spend cap — refuse BEFORE signing anything.
+    const refusal = enforceSpendCap(required.accepts);
+    if (refusal)
+        return refusal;
     let paymentPayload;
     try {
         paymentPayload = await client.createPaymentPayload(required);

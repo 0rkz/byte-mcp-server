@@ -17,6 +17,11 @@ export const CONFIG = {
    *  publisher/subscription/event aggregates). */
   gatewayUrl: process.env.BYTE_GATEWAY_URL || "https://x402.payperbyte.io",
   privateKey: process.env.PRIVATE_KEY as `0x${string}` | undefined,
+  /** Optional server-side spend cap for x402 pay-per-call purchases, as a
+   *  decimal USDC string (e.g. "0.25"). When set, byte_buy_data refuses
+   *  fail-closed any 402 quote above the cap BEFORE signing a payment.
+   *  Unset = uncapped (unchanged behavior). */
+  maxPaymentUsdc: process.env.MAX_PAYMENT_USDC,
   /** Chain of the ON-CHAIN layer (BYTE Library contracts, indexer, EIP-712
    *  attestation domain): Arbitrum Sepolia, audit-gated. The x402 PAYMENT rail
    *  is independent — byte_buy_data signs whatever network the gateway's 402
