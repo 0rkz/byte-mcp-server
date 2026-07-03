@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.11.9 — 2026-07-03
+
+**Docs / metadata sync.** README install snippets now use `payperbyte` as the MCP server key (retiring the old `byte-library` slug), and the verdict-tier pricing copy is synced to $0.10 (the x402-fetch default-client cap). No tool, schema, or settlement-code changes.
+
 ## 0.11.8 — 2026-07-02
 
 - **Optional server-side spend cap for `byte_buy_data` — `MAX_PAYMENT_USDC`.** When set (decimal USDC, e.g. `0.25`), any 402 quote above the cap is refused *before* any payment is signed — exact bigint comparison in 6-decimal USDC units, **fail-closed** on an unparseable quote or cap value ("never guess about money"). Unset = uncapped (unchanged behavior); a dedicated thin wallet remains the hard backstop. (`enforceSpendCap`.)

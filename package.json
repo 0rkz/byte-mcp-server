@@ -1,6 +1,6 @@
 {
   "name": "byte-mcp-server",
-  "version": "0.11.8",
+  "version": "0.11.9",
   "description": "MCP server for PayPerByte — cryptographically attested, provenance-verifiable data feeds for AI agents (proves which publisher signed the exact bytes, not data correctness). Pay-per-call via x402 settled in USDC on Base mainnet, or subscribe to first-party on-chain streams (Arbitrum Sepolia, audit-gated); every payload carries an EIP-712 PayloadAttestation receipt. No API keys, no token.",
   "mcpName": "io.github.0rkz/byte-protocol",
   "type": "module",
