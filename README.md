@@ -174,9 +174,9 @@ npm run build && npm start
 
 MIT — see [LICENSE](LICENSE).
 
-## Starter kits
+## Starter kit
 
-Optional paid kits ($39 each): a [seller-side kit](https://payperbyte.gumroad.com/l/nszyv) (publish and sell a feed through the gateway) and a [buyer-side agent kit](https://payperbyte.gumroad.com/l/pvykda) (an agent that buys and verifies feeds). The npm packages are and stay free MIT — the kits sell the assembled setup.
+Optional paid kit ($39): the [buyer-side agent kit](https://payperbyte.gumroad.com/l/pvykda) — an agent that buys and verifies feeds, with drop-in Claude Desktop / Claude Code / Cursor config and a free 30-minute readiness call included. The npm packages are and stay free MIT — the kit sells the assembled setup.
 
 ## Links
 
