@@ -11,7 +11,7 @@
  * Usage (PRIVATE_KEY stays in your shell — never committed/echoed):
  *   PRIVATE_KEY=0x... node scripts/buy-oracle.mjs <slug> '<json-body>'
  *
- * Settles real USDC on Base mainnet to the Safe. ~$0.05 per oracle.
+ * Settles real USDC on Base mainnet to the Safe. ~$0.10 per oracle.
  */
 import { x402Client } from "@x402/core/client";
 import { x402HTTPClient } from "@x402/core/http";

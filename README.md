@@ -8,7 +8,7 @@ A [Model Context Protocol](https://modelcontextprotocol.io/) server that gives A
 
 > **Two rails — read this before setting `PRIVATE_KEY`.**
 >
-> - **x402 pay-per-call (`byte_buy_data`): Base mainnet (`eip155:8453`), REAL USDC.** Paid feeds settle real money — the flagship [Address Reputation Oracle](https://x402.payperbyte.io/feeds/address-reputation) is $0.05 per verdict. Use a dedicated wallet holding only what you intend to spend.
+> - **x402 pay-per-call (`byte_buy_data`): Base mainnet (`eip155:8453`), REAL USDC.** Paid feeds settle real money — the flagship [Address Reputation Oracle](https://x402.payperbyte.io/feeds/address-reputation) is $0.10 per verdict. Use a dedicated wallet holding only what you intend to spend.
 > - **On-chain subscribe/publish/query layer (BYTE Library contracts + indexer): Arbitrum Sepolia testnet (chain `421614`), MockUSDC.** Mainnet for this layer is gated on an external security audit. The EIP-712 attestation signing domain stays anchored at `421614` regardless of which rail you paid on.
 >
 > One `PRIVATE_KEY` serves both rails. Never reuse a key holding funds you can't afford to spend.
@@ -22,7 +22,7 @@ npx -y byte-mcp-server
 Wire it into your MCP client (Claude Desktop config below), then your agent can:
 
 - **Discover** feeds: *"List the PayPerByte catalog"* / *"Search publishers for weather"*
-- **Buy one packet** (x402, no setup): *"Check this receiving address before I pay it"* → $0.05 real USDC on Base mainnet, signed ALLOW/WARN/BLOCK verdict with an attestation receipt
+- **Buy one packet** (x402, no setup): *"Check this receiving address before I pay it"* → $0.10 real USDC on Base mainnet, signed ALLOW/WARN/BLOCK verdict with an attestation receipt
 - **Subscribe** to a stream (testnet): *"Subscribe me to the earthquakes feed"* → auto-approves MockUSDC for ongoing settlement on Arbitrum Sepolia
 - **Query a fact** (testnet): *"Ask the fact-oracle who won the last Lakers vs Warriors game"* → on-chain signed answer with citations
 
@@ -47,7 +47,7 @@ The same primitive ships as two packages you can drop into your own stack:
 
 | Mode | Tool | Rail | Best for | Pricing |
 |---|---|---|---|---|
-| **Buy** (x402) | `byte_buy_data` | **Base mainnet — real USDC** | One-off needs (single snapshot or verdict for *this* user query) | Per-feed, quoted in the 402 challenge ($0.05 flagship; most feeds cents or less) |
+| **Buy** (x402) | `byte_buy_data` | **Base mainnet — real USDC** | One-off needs (single snapshot or verdict for *this* user query) | Per-feed, quoted in the 402 challenge ($0.10 flagship; most feeds cents or less) |
 | **Subscribe** | `byte_subscribe` | Arbitrum Sepolia — testnet MockUSDC | Continuous streams (every weather update, every new earthquake) | $0.003 / KB per delivery |
 
 Buy is zero-setup, pay-as-you-go, and live with real settlement; subscribe delivers every broadcast on the audit-gated testnet layer. Pick by access pattern.
@@ -70,7 +70,7 @@ The paid response returns the signed verdict **and** an inline verify-before-act
 {
   "feed": "address-reputation",
   "paid": true,
-  "price": "$0.050000",
+  "price": "$0.100000",
   "txHash": "0x…",
   "data": { "answer": { "verdict": "ALLOW", "score": 88, "reasons": ["…"] }, "attestation": { "…": "…" } },
   "verification": { "verified": true, "hashMatch": true, "signerMatch": true,
@@ -121,7 +121,7 @@ Edit `~/.config/claude/claude_desktop_config.json` (Linux) or `~/Library/Applica
 ```json
 {
   "mcpServers": {
-    "byte-library": {
+    "payperbyte": {
       "command": "npx",
       "args": ["-y", "byte-mcp-server"],
       "env": {
@@ -139,7 +139,7 @@ Edit `~/.config/claude/claude_desktop_config.json` (Linux) or `~/Library/Applica
 ### Claude Code
 
 ```bash
-claude mcp add byte-library -- npx -y byte-mcp-server
+claude mcp add payperbyte -- npx -y byte-mcp-server
 ```
 
 ### Environment variables

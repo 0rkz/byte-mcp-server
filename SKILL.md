@@ -32,7 +32,7 @@ altered. Good triggers:
 
 - "Should I pay this address?" — the flagship **Address Reputation Oracle**
   returns a signed ALLOW/WARN/BLOCK verdict for (domain, receiving address,
-  amount, chain) *before* an agent releases USDC ($0.05 per verdict).
+  amount, chain) *before* an agent releases USDC ($0.10 per verdict).
 - "Get the current BTC/crypto market snapshot", "top DeFi yields", "perp funding
   rates", "stablecoin supply / bridge latency".
 - "What's the weather / are there recent earthquakes / space-weather alerts".
@@ -50,7 +50,7 @@ reliably. Note that paid x402 calls spend **real USDC** — see Status.
 
 - **x402 pay-per-call rail (`byte_buy_data`): Base mainnet, `eip155:8453`, real
   USDC** (Circle USDC, EIP-3009, 6 decimals). Per-feed price is quoted in the
-  402 challenge; the flagship address-reputation verdict is $0.05. Every paid
+  402 challenge; the flagship address-reputation verdict is $0.10. Every paid
   200 returns an `X-BYTE-Attestation` EIP-712 receipt over the exact response
   bytes.
 - **On-chain layer (subscriptions, broadcasts, fact-oracle escrow): Arbitrum
@@ -68,7 +68,7 @@ reliably. Note that paid x402 calls spend **real USDC** — see Status.
 
 | Mode | Tool | Rail | Best for | Price |
 |---|---|---|---|---|
-| Buy (x402) | `byte_buy_data` | Base mainnet — **real USDC** | One-off snapshot or verdict for *this* query — zero setup | Per-feed, quoted in the 402 challenge ($0.05 flagship) |
+| Buy (x402) | `byte_buy_data` | Base mainnet — **real USDC** | One-off snapshot or verdict for *this* query — zero setup | Per-feed, quoted in the 402 challenge ($0.10 flagship) |
 | Subscribe | `byte_subscribe` | Arbitrum Sepolia — testnet MockUSDC | Continuous stream — every update delivered | $0.003/KB per delivery |
 
 Pick by access pattern. Buy is pay-as-you-go with no allowance and settles real
