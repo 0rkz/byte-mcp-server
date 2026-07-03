@@ -808,7 +808,7 @@ server.registerTool(
 server.registerTool(
   "byte_buy_data",
   {
-    description: "Buy a single data packet from any PayPerByte feed via the x402 payment gateway. No subscription, no allowance, no prior on-chain setup — pay-per-call USDC settlement. The MCP server signs an EIP-3009 transferWithAuthorization on behalf of the wallet whose PRIVATE_KEY is configured, the x402 facilitator submits the tx, and the data comes back inline with the on-chain settlement tx hash. Use byte_subscribe instead if you want a continuous stream of broadcasts from a publisher. The catalog of available feed slugs lives at https://x402.payperbyte.io/feeds (free GET). GET data feeds (weather, defi-yields, …) need only `feed`; the 10 POST oracles — address-reputation, sanctions-screen, pkg-verdict, reasoning-verdict, evidence-pack, usc-statute, liquidation-stream, positioning-snapshot, runtime-eol, threat-intel — additionally require a JSON `body` (the query) — supplying `body` switches this call to POST. Requires PRIVATE_KEY env var on the MCP server and USDC on the configured wallet. NOTE: paid feeds settle REAL USDC on Base mainnet (eip155:8453) — the exact price is quoted in the 402 challenge (flagship address-reputation: $0.10/verdict). Use a dedicated wallet holding only what you intend to spend.",
+    description: "Buy a single data packet from any PayPerByte feed via the x402 payment gateway. No subscription, no allowance, no prior on-chain setup — pay-per-call USDC settlement. The MCP server signs an EIP-3009 transferWithAuthorization on behalf of the wallet whose PRIVATE_KEY is configured, the x402 facilitator submits the tx, and the data comes back inline with the on-chain settlement tx hash. Use byte_subscribe instead if you want a continuous stream of broadcasts from a publisher. The catalog of available feed slugs lives at https://x402.payperbyte.io/feeds (free GET). GET data feeds (weather, earthquakes, …) need only `feed`; the 9 POST oracles — address-reputation, sanctions-screen, pkg-verdict, reasoning-verdict, evidence-pack, liquidation-stream, positioning-snapshot, runtime-eol, threat-intel — additionally require a JSON `body` (the query) — supplying `body` switches this call to POST. Requires PRIVATE_KEY env var on the MCP server and USDC on the configured wallet. NOTE: paid feeds settle REAL USDC on Base mainnet (eip155:8453) — the exact price is quoted in the 402 challenge (flagship address-reputation: $0.10/verdict). Use a dedicated wallet holding only what you intend to spend.",
     inputSchema: {
       feed: z
         .string()
@@ -822,14 +822,14 @@ server.registerTool(
             "call from GET to POST. Required by the verdict oracles, e.g. " +
             "address-reputation {domain,address[,amount,chain]}, " +
             "sanctions-screen {address|name}, pkg-verdict {ecosystem,package[,version]}, " +
-            "reasoning-verdict {subject}. Omit for GET data feeds (weather, defi-yields, …).",
+            "reasoning-verdict {subject}. Omit for GET data feeds (weather, earthquakes, …).",
         ),
     },
     outputSchema: z
       .object({
         feed: z.string().optional().describe("Echoed feed slug"),
         paid: z.boolean().optional().describe("True if an x402 payment was made (false on free/cached feeds)"),
-        price: z.string().optional().describe("USDC paid for this packet (e.g. '$0.001000'); omitted on free feeds"),
+        price: z.string().optional().describe("USDC paid for this packet (e.g. '$0.003000'); omitted on free feeds"),
         txHash: z.string().optional().describe("x402 settlement transaction hash"),
         payer: z.string().optional().describe("Wallet that signed the EIP-3009 authorization"),
         status: z.number().optional().describe("HTTP status of the (post-payment) gateway response"),

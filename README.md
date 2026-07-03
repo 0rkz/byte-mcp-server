@@ -78,7 +78,7 @@ The paid response returns the signed verdict **and** an inline verify-before-act
 }
 ```
 
-Act only when `verification.verified === true`. Other POST bodies: `sanctions-screen {address|name}`, `pkg-verdict {ecosystem,package[,version]}`, `reasoning-verdict {subject}`. Omit `body` entirely for GET data feeds (weather, defi-yields, …).
+Act only when `verification.verified === true`. Other POST bodies: `sanctions-screen {address|name}`, `pkg-verdict {ecosystem,package[,version]}`, `reasoning-verdict {subject}`. Omit `body` entirely for GET data feeds (weather, earthquakes, …).
 
 ## Tools (15 total)
 

@@ -5,10 +5,10 @@ description: >-
   PayPerByte (machine name BYTE Library) — per-byte USDC feeds with no API key
   and no token. Use when an agent needs trustworthy external data it can act
   on: a signed go/no-go on a receiving address before paying it (flagship),
-  crypto/DeFi markets, weather, earthquakes, space weather, news, OSS releases,
-  threat-intel, CVE/package/wiki facts, merchant trust, x402 network metrics,
-  perp funding, stablecoin/bridge rails, or slashable fact/legal/evidence
-  oracles. The differentiator is verify-before-act: every payload carries an
+  sanctions screening, package-safety and reasoning-risk verdicts, exchange
+  positioning + liquidation streams, threat-intel, runtime end-of-life status,
+  weather, earthquakes, or a cited evidence-pack fact-check
+  oracle. The differentiator is verify-before-act: every payload carries an
   EIP-712 PayloadAttestation, so the agent can prove the exact bytes and the
   publisher before trusting the data. x402 pay-per-call settles real USDC on
   Base mainnet; the on-chain subscription/attestation layer is Arbitrum Sepolia
@@ -33,15 +33,14 @@ altered. Good triggers:
 - "Should I pay this address?" — the flagship **Address Reputation Oracle**
   returns a signed ALLOW/WARN/BLOCK verdict for (domain, receiving address,
   amount, chain) *before* an agent releases USDC ($0.10 per verdict).
-- "Get the current BTC/crypto market snapshot", "top DeFi yields", "perp funding
-  rates", "stablecoin supply / bridge latency".
-- "What's the weather / are there recent earthquakes / space-weather alerts".
-- "Latest releases of <OSS project>", "is <npm/PyPI package> deprecated", "facts
-  on <CVE>", "what does Wikipedia say about <X>".
-- "Threat-intel / IOCs / exploit signals", "trust score for <merchant/seller>".
-- "Answer this factual question with a slashable, cited, on-chain answer"
-  (fact-oracle), "current text of <US Code section>" (usc-statute), "fact-check
-  this claim with cited sources" (evidence-pack).
+- "Screen <address / name> against sanctions lists" (sanctions-screen), "is
+  <npm/PyPI package> safe to install / deprecated" (pkg-verdict).
+- "Current exchange positioning snapshot" (positioning-snapshot), "recent
+  liquidation events" (liquidation-stream).
+- "What's the weather / are there recent earthquakes" (weather, earthquakes).
+- "Threat-intel / IOCs / exploit signals" (threat-intel), "is <runtime/version>
+  end-of-life" (runtime-eol).
+- "Fact-check this claim with cited sources" (evidence-pack).
 
 Do **not** use it for: general reasoning, or data the model already knows
 reliably. Note that paid x402 calls spend **real USDC** — see Status.

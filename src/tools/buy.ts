@@ -149,7 +149,7 @@ async function verifyDelivery(
 interface BuyResult {
   feed: string;
   paid: boolean;
-  /** USD amount paid (e.g., "$0.001000"). Omitted on free-feed responses. */
+  /** USD amount paid (e.g., "$0.003000"). Omitted on free-feed responses. */
   price?: string;
   /** On-chain settlement tx hash from the facilitator. */
   txHash?: string;
