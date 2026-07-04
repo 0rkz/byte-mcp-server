@@ -24,7 +24,7 @@ Wire it into your MCP client (Claude Desktop config below), then your agent can:
 - **Discover** feeds: *"List the PayPerByte catalog"* / *"Search publishers for weather"*
 - **Buy one packet** (x402, no setup): *"Check this receiving address before I pay it"* → $0.10 real USDC on Base mainnet, signed ALLOW/WARN/BLOCK verdict with an attestation receipt
 - **Subscribe** to a stream (testnet): *"Subscribe me to the earthquakes feed"* → auto-approves MockUSDC for ongoing settlement on Arbitrum Sepolia
-- **Query a fact** (testnet): *"Ask the fact-oracle who won the last Lakers vs Warriors game"* → on-chain signed answer with citations
+- **Query a fact-oracle** (testnet): post a signed EIP-712 question to a registered fact-oracle publisher for an on-chain signed answer with citations — *when a fact-oracle publisher is live (none is broadcasting today; the tool times out until one registers and broadcasts)*
 
 The live catalog is at **[x402.payperbyte.io/feeds](https://x402.payperbyte.io/feeds)** — cryptographically attested, provenance-verifiable feeds across weather, markets, code, security, and knowledge.
 
@@ -110,7 +110,7 @@ Act only when `verification.verified === true`. Other POST bodies: `sanctions-sc
 | Tool | Description |
 |---|---|
 | `byte_buy_data` | Buy one packet from any feed via the **x402 gateway** — **real USDC on Base mainnet**. No subscription, no allowance. Signs EIP-3009 `transferWithAuthorization` against the 402 challenge; the facilitator settles on-chain. Returns the data + tx hash inline |
-| `byte_query_fact` | Ask a slashable fact-oracle publisher a question. Signed EIP-712 request (binds query to your wallet so leaked queries can't burn your escrow); the answer is broadcast on-chain to your address with citations |
+| `byte_query_fact` | Ask a slashable fact-oracle publisher a question. Signed EIP-712 request (binds query to your wallet so leaked queries can't burn your escrow); the answer is broadcast on-chain to your address with citations. *Requires a live fact-oracle publisher — none is broadcasting today, so the call times out until one registers.* |
 
 ## Configuration
 

@@ -631,7 +631,7 @@ function createMcpServer() {
     });
     // ─── Fact-oracle tool (NEW in v0.4.0) ──────────────────────────────────────
     server.registerTool("byte_query_fact", {
-        description: "Query a PayPerByte fact-oracle publisher for a signed answer with citations. Posts the question to a registered fact-oracle publisher (topic='fact-oracle'), waits for the on-chain BroadcastStreamed response, and returns the answer plus structured citation URLs. The signed receipt proves which publisher produced the answer (provenance + tamper-evidence), NOT that the answer is correct — ground your output in the cited sources, not in a truth guarantee.",
+        description: "Query a PayPerByte fact-oracle publisher for a signed answer with citations. Posts the question to a registered fact-oracle publisher (topic='fact-oracle'), waits for the on-chain BroadcastStreamed response, and returns the answer plus structured citation URLs. The signed receipt proves which publisher produced the answer (provenance + tamper-evidence), NOT that the answer is correct — ground your output in the cited sources, not in a truth guarantee. Availability: this requires a registered fact-oracle publisher actively broadcasting; if none is live the call returns a timeout rather than an answer.",
         inputSchema: {
             question: z
                 .string()
