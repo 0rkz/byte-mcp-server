@@ -73,25 +73,38 @@ const ATTESTATION_TYPES = {
  * Recover the EIP-712 PayloadAttestation signer and confirm it is the named
  * publisher. This is the cryptographic "publisher really signed this hash" leg.
  */
+const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 export async function recoverAttestationSigner(att) {
-    const signer = await recoverTypedDataAddress({
-        domain: {
-            name: "BYTE Library",
-            version: "1",
-            chainId: CONFIG.chainId,
-            verifyingContract: ADDRESSES.DataStream,
-        },
-        types: ATTESTATION_TYPES,
-        primaryType: "PayloadAttestation",
-        message: {
-            publisher: att.publisher,
-            payloadHash: att.payloadHash,
-            payloadLength: att.payloadLength,
-            deadline: att.deadline,
-        },
-        signature: att.signature,
-    });
-    return { signer, match: signer.toLowerCase() === att.publisher.toLowerCase() };
+    // Fail CLOSED on empty/malformed input. recoverTypedDataAddress THROWS on a
+    // short/garbage signature or malformed message field — which would turn a
+    // forged/empty on-chain attestation into a crash instead of a clean
+    // signerMatch=false. Treat any recovery failure as "not the publisher".
+    if (!att || typeof att.signature !== "string" || att.signature.length <= 2) {
+        return { signer: ZERO_ADDRESS, match: false };
+    }
+    try {
+        const signer = await recoverTypedDataAddress({
+            domain: {
+                name: "BYTE Library",
+                version: "1",
+                chainId: CONFIG.chainId,
+                verifyingContract: ADDRESSES.DataStream,
+            },
+            types: ATTESTATION_TYPES,
+            primaryType: "PayloadAttestation",
+            message: {
+                publisher: att.publisher,
+                payloadHash: att.payloadHash,
+                payloadLength: att.payloadLength,
+                deadline: att.deadline,
+            },
+            signature: att.signature,
+        });
+        return { signer, match: signer.toLowerCase() === att.publisher.toLowerCase() };
+    }
+    catch {
+        return { signer: ZERO_ADDRESS, match: false };
+    }
 }
 /**
  * Verify-before-act. Recompute the hash of `received` and compare to the on-chain
@@ -104,7 +117,24 @@ export async function recoverAttestationSigner(att) {
  * recovered) the signer is the attesting publisher.
  */
 export async function verifyPayload(opts) {
-    const recomputed = computePayloadHash(opts.received, opts.mode ?? "raw");
+    // Fail CLOSED if the received payload can't be hashed — computePayloadHash does
+    // JSON.stringify on objects, which THROWS on a BigInt (or BigInt-containing
+    // object/array) from untrusted/adversarial input. A verify path must return a
+    // negative verdict, never throw.
+    let recomputed;
+    try {
+        recomputed = computePayloadHash(opts.received, opts.mode ?? "raw");
+    }
+    catch {
+        return {
+            verified: false,
+            recomputedHash: "0x",
+            onChainHash: "0x",
+            hashMatch: false,
+            source: opts.txHash ? "txHash" : "expectedHash",
+            reason: "could not hash the received payload (unserializable input, e.g. a BigInt) — fail-closed; pass JSON-serializable bytes/string",
+        };
+    }
     if (opts.txHash) {
         const receipt = await publicClient.getTransactionReceipt({
             hash: opts.txHash,
@@ -144,7 +174,14 @@ export async function verifyPayload(opts) {
             signer = r.signer;
             signerMatch = r.match;
         }
-        const verified = hashMatch && signerMatch !== false;
+        else {
+            // The r2 contract REQUIRES a valid attestation to emit BroadcastStreamed
+            // (DataStreamLib._verifyPayloadAttestation), so an empty/missing one on a
+            // DataStream event is anomalous → FAIL CLOSED (do not pass on the hash leg
+            // alone). Mirrors the Foreseal Kit's verify-before-act semantics.
+            signerMatch = false;
+        }
+        const verified = hashMatch && signerMatch === true;
         return {
             verified,
             recomputedHash: recomputed,
@@ -160,10 +197,13 @@ export async function verifyPayload(opts) {
                 ? "received bytes match the publisher's on-chain attested hash; attestation signed by the named publisher — safe to act"
                 : !hashMatch
                     ? "HASH MISMATCH — the received bytes are NOT what the publisher attested on-chain; do not act"
-                    : "attestation signature did not recover to the named publisher; do not act",
+                    : "attestation signature did not recover to the named publisher (or is missing); do not act",
         };
     }
-    if (opts.expectedHash) {
+    // Guard the type: normalizeHash does .toLowerCase(), which THROWS on a
+    // non-string expectedHash. A non-string falls through to the fail-closed
+    // "provide a valid anchor" return below rather than crashing.
+    if (typeof opts.expectedHash === "string" && opts.expectedHash.length > 0) {
         const onChainHash = normalizeHash(opts.expectedHash);
         const hashMatch = recomputed === onChainHash;
         return {

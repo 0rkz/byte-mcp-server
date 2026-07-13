@@ -39,10 +39,6 @@ export interface PayloadVerdict {
     blockNumber?: string;
     reason: string;
 }
-/**
- * Recover the EIP-712 PayloadAttestation signer and confirm it is the named
- * publisher. This is the cryptographic "publisher really signed this hash" leg.
- */
 export declare function recoverAttestationSigner(att: {
     publisher: Address;
     payloadHash: Hex;
