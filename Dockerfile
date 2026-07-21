@@ -8,9 +8,13 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Install only prod deps. --ignore-scripts is safe — no postinstall hooks needed.
-COPY package.json ./
-RUN npm install --omit=dev --silent --ignore-scripts && npm cache clean --force
+# Copy the lockfile too so the build is REPRODUCIBLE. `npm ci` installs the exact
+# locked versions (and fails loudly if package.json/lock drift) instead of re-resolving
+# `^` ranges against live npm on every rebuild — so an upstream publish can't silently
+# break a future Glama re-inspection. --ignore-scripts is safe (no native postinstall
+# needed); --omit=dev drops typescript/@types (dist/ is prebuilt + committed).
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev --ignore-scripts && npm cache clean --force
 
 # dist/ is the compiled output checked into the repo (see package.json "main").
 COPY dist/ ./dist/
