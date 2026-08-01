@@ -86,6 +86,30 @@ export interface PayloadVerdict {
   source: "expectedHash" | "txHash";
   txHash?: Hex;
   blockNumber?: string;
+  /**
+   * Whether the attestation's EIP-712 `deadline` has passed at check time, using
+   * EXACTLY the on-chain rule (DataStreamLib.sol:514 — `block.timestamp > att.deadline`).
+   * `undefined` when no deadline was available: the `expectedHash` anchor carries a
+   * bare hash and no deadline, so freshness is simply unknown on that path.
+   *
+   * Deliberately NOT folded into `verified` on THIS path, and that is not a
+   * fail-open. The r2 contract REVERTS AttestationExpired before it will emit
+   * BroadcastStreamed, so every event we read here was inside its window when it
+   * was published; `expired` therefore goes true for every historical settlement
+   * as a matter of course. Folding it into `verified` would make byte_verify_payload
+   * refuse to confirm the provenance of any past payload — destroying the audit use
+   * case while proving nothing, since expiry does not change which bytes were signed.
+   * `verified` answers "did publisher P sign exactly these bytes?"; `expired` answers
+   * the separate question "is that attestation still inside its validity window?".
+   * Both are surfaced, and `reason` never says "safe to act" while `expired` is true.
+   * Callers wanting freshness folded in should require `verified && !expired`.
+   */
+  expired?: boolean;
+  /** Attestation deadline, UNIX seconds, decimal string (string, not bigint, so the
+   *  verdict stays JSON-serializable for MCP structuredContent). */
+  deadline?: string;
+  /** Wall-clock time the expiry comparison was made, UNIX seconds, decimal string. */
+  checkedAt?: string;
   reason: string;
 }
 
@@ -240,6 +264,18 @@ export async function verifyPayload(opts: {
       signerMatch = false;
     }
     const verified = hashMatch && signerMatch === true;
+
+    // Expiry leg. Same comparison the contract makes (DataStreamLib.sol:514),
+    // just evaluated at read time instead of at publish time. Both operands are
+    // UNIX seconds; the event's deadline is a uint256 so bigint math is required.
+    const nowS = BigInt(Math.floor(Date.now() / 1000));
+    const deadline = args.attestationDeadline;
+    const expired = nowS > deadline;
+    const window = expired
+      ? `EXPIRED ${nowS - deadline}s ago`
+      : `still valid for ${deadline - nowS}s`;
+    const expiryNote = ` [attestation deadline ${deadline} unix-s, checked at ${nowS} unix-s — ${window}]`;
+
     return {
       verified,
       recomputedHash: recomputed,
@@ -251,11 +287,21 @@ export async function verifyPayload(opts: {
       source: "txHash",
       txHash: opts.txHash as Hex,
       blockNumber: receipt.blockNumber.toString(),
-      reason: verified
-        ? "received bytes match the publisher's on-chain attested hash; attestation signed by the named publisher — safe to act"
-        : !hashMatch
-          ? "HASH MISMATCH — the received bytes are NOT what the publisher attested on-chain; do not act"
-          : "attestation signature did not recover to the named publisher (or is missing); do not act",
+      expired,
+      deadline: deadline.toString(),
+      checkedAt: nowS.toString(),
+      reason:
+        (verified
+          ? expired
+            ? "received bytes match the publisher's on-chain attested hash and the attestation " +
+              "recovers to the named publisher — PROVENANCE VERIFIED, but the attestation's " +
+              "validity window has CLOSED. This is a point-in-time record of what the publisher " +
+              "signed, not a standing claim about the present; re-fetch before acting on it as current"
+            : "received bytes match the publisher's on-chain attested hash; attestation signed by the named publisher — safe to act"
+          : !hashMatch
+            ? "HASH MISMATCH — the received bytes are NOT what the publisher attested on-chain; do not act"
+            : "attestation signature did not recover to the named publisher (or is missing); do not act") +
+        expiryNote,
     };
   }
 

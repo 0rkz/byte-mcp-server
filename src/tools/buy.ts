@@ -28,6 +28,23 @@ import { privateKeyToAccount } from "viem/accounts";
 import { CONFIG, USDC_DECIMALS } from "../lib/config.js";
 import { recoverAttestationSigner, computePayloadHash } from "../lib/verify.js";
 
+/**
+ * Bounds on the two network legs. Neither fetch had any deadline before, so a hung
+ * or black-holed gateway hung the calling agent forever. Same house pattern as
+ * tools/fact.ts (`AbortSignal.timeout`), with two different budgets because the two
+ * legs carry very different consequences on abort:
+ *
+ *  - PROBE (the 402 quote): nothing has been signed and no money is at risk, so a
+ *    tight bound is free. Abort ⇒ clean fail-closed error, nothing happened.
+ *  - PAID (the replay carrying the signed EIP-3009 authorization): the payment
+ *    authorization is ALREADY on the wire when this timer runs, and the facilitator
+ *    may settle it regardless of whether we are still listening. A timeout here is
+ *    therefore ambiguous about money, never "nothing happened" — hence the longer
+ *    budget (settlement is the slow part) and the explicit warning in the error.
+ */
+const PROBE_TIMEOUT_MS = 15_000;
+const PAID_TIMEOUT_MS = 30_000;
+
 /** Gateway attester to PIN receipts against (out-of-band, from
  *  /.well-known/agent.json → receipt.attester). Env-overridable if it rotates. */
 const PINNED_GATEWAY_ATTESTER = (
@@ -39,7 +56,11 @@ const PINNED_GATEWAY_ATTESTER = (
  *  exact bytes — it is NOT a verification of the data publisher's own attestation. */
 interface GatewayLeg {
   /** hashMatch AND signerMatch — the GATEWAY delivered these exact bytes intact.
-   *  NOT a guarantee the per-feed publisher attestation verifies (see embeddedAttestation). */
+   *  NOT a guarantee the per-feed publisher attestation verifies (see embeddedAttestation).
+   *  Meaning is unchanged by the expiry leg: this stays the pure cryptographic
+   *  delivery answer, and `expired` is reported beside it rather than folded in, so
+   *  no already-published field quietly changes what it asserts. The buy TOOL gates
+   *  isError on both (see index.ts byte_buy_data handler). */
   gatewayVerified: boolean;
   /** keccak256(responseBody) === receipt.payloadHash. */
   hashMatch: boolean;
@@ -49,6 +70,22 @@ interface GatewayLeg {
   recovered: string | null;
   /** the attester the receipt was pinned against. */
   attester: string;
+  /**
+   * Whether the receipt's EIP-712 `deadline` has already passed, by the same rule
+   * the contract applies (DataStreamLib.sol:514 — `block.timestamp > att.deadline`).
+   * `undefined` when no usable receipt was present to read a deadline from.
+   *
+   * Unlike the historical-audit path in verify.ts, an expired receipt HERE is a
+   * genuine anomaly: the gateway mints the deadline as `now + ATTESTATION_TTL_S` at
+   * the moment it answers this very request, so a receipt that is already expired on
+   * arrival means a replayed/cached receipt, a stale-signed response, or serious clock
+   * skew. The agent is about to act on freshly bought bytes, so this fails closed.
+   */
+  expired?: boolean;
+  /** Receipt deadline, UNIX seconds, decimal string (JSON-safe, not a bigint). */
+  deadline?: string;
+  /** Wall-clock time the expiry comparison was made, UNIX seconds, decimal string. */
+  checkedAt?: string;
   reason: string;
 }
 
@@ -81,26 +118,45 @@ async function verifyReceiptInline(
   try {
     const r = JSON.parse(headerValue);
     const hashMatch = computePayloadHash(body).toLowerCase() === String(r.payloadHash).toLowerCase();
+    // BigInt() THROWS on a missing/garbage deadline — that lands in the catch below
+    // and returns the fail-closed "malformed or unverifiable" verdict, which is the
+    // behavior we want: no deadline means no freshness claim, so do not pass.
+    const deadline = BigInt(r.deadline);
     const { signer } = await recoverAttestationSigner({
       publisher: r.publisher,
       payloadHash: r.payloadHash,
       payloadLength: BigInt(r.payloadLength),
-      deadline: BigInt(r.deadline),
+      deadline,
       signature: r.signature,
     });
     const signerMatch = signer.toLowerCase() === PINNED_GATEWAY_ATTESTER;
+    const nowS = BigInt(Math.floor(Date.now() / 1000));
+    const expired = nowS > deadline;
+    const window = expired
+      ? `EXPIRED ${nowS - deadline}s ago`
+      : `still valid for ${deadline - nowS}s`;
+    const expiryNote = ` [receipt deadline ${deadline} unix-s, checked at ${nowS} unix-s — ${window}]`;
     return {
       gatewayVerified: hashMatch && signerMatch,
       hashMatch,
       signerMatch,
       recovered: signer,
       ...base,
+      expired,
+      deadline: deadline.toString(),
+      checkedAt: nowS.toString(),
       reason:
-        hashMatch && signerMatch
-          ? "gateway delivery verified — these exact bytes were signed by the pinned gateway attester"
+        (hashMatch && signerMatch
+          ? expired
+            ? "EXPIRED RECEIPT — these exact bytes do recover to the pinned gateway attester, but " +
+              "the receipt's validity window had already closed when it arrived. A freshly issued " +
+              "receipt cannot be expired on arrival, so treat this as a replayed/cached response or " +
+              "a clock-skew fault; do not act on these bytes"
+            : "gateway delivery verified — these exact bytes were signed by the pinned gateway attester"
           : !hashMatch
             ? "HASH MISMATCH — the response bytes are NOT what the gateway attester signed; do not act"
-            : "gateway receipt did not recover to the pinned gateway attester; do not act",
+            : "gateway receipt did not recover to the pinned gateway attester; do not act") +
+        expiryNote,
     };
   } catch {
     return { gatewayVerified: false, hashMatch: false, signerMatch: false, recovered: null, ...base,
@@ -247,18 +303,41 @@ export async function buyData(params: { feed: string; body?: unknown }): Promise
   const bodyStr = hasBody ? JSON.stringify(params.body) : undefined;
 
   let client: x402HTTPClient;
+  let payer: `0x${string}`;
   try {
     client = getClient();
+    // Derive the payer address HERE, on the success path. The paid-leg error
+    // handler below names this wallet, and deriving a key inside a catch block
+    // would risk throwing out of an error path; getClient() has already proven
+    // the key parses, so this cannot throw.
+    payer = privateKeyToAccount(CONFIG.privateKey!).address;
   } catch (e) {
     return { error: e instanceof Error ? e.message : String(e) };
   }
 
-  const initial = await fetch(
-    url,
-    hasBody
-      ? { method: "POST", headers: { "content-type": "application/json" }, body: bodyStr }
-      : {},
-  );
+  // Bounded 402 probe. No payment has been signed yet, so a timeout here is
+  // unambiguous: refuse fail-closed and tell the caller nothing was spent.
+  let initial: Response;
+  try {
+    initial = await fetch(url, {
+      ...(hasBody
+        ? { method: "POST", headers: { "content-type": "application/json" }, body: bodyStr }
+        : {}),
+      signal: AbortSignal.timeout(PROBE_TIMEOUT_MS),
+    });
+  } catch (e) {
+    const timedOut = e instanceof Error && (e.name === "TimeoutError" || e.name === "AbortError");
+    return {
+      error: timedOut
+        ? `gateway did not respond within ${PROBE_TIMEOUT_MS / 1000}s at ${url} — refused fail-closed`
+        : `could not reach the gateway at ${url}`,
+      detail: timedOut
+        ? "No payment was signed and no funds were spent; this failed before the 402 handshake. Retry, or check the feed slug and gateway status."
+        : e instanceof Error
+          ? e.message
+          : String(e),
+    };
+  }
 
   // Free / cached / unknown-error pass-through.
   if (initial.status !== 402) {
@@ -313,12 +392,32 @@ export async function buyData(params: { feed: string; body?: unknown }): Promise
   // body. `new Headers()` accepts either a plain object or a Headers instance.
   const reqHeaders = new Headers(payHeaders as HeadersInit);
   if (hasBody) reqHeaders.set("content-type", "application/json");
-  const paid = await fetch(
-    url,
-    hasBody
-      ? { method: "POST", headers: reqHeaders, body: bodyStr }
-      : { headers: reqHeaders },
-  );
+  // Bounded paid replay. Unlike the probe, the signed authorization is already in
+  // flight here, so a timeout does NOT mean "no payment happened" — the facilitator
+  // can still settle after we stop waiting. Fail closed on the DATA (never hand the
+  // agent bytes we could not verify) while saying plainly that funds may have moved,
+  // so the agent reconciles instead of blindly retrying and signing a second payment.
+  let paid: Response;
+  try {
+    paid = await fetch(url, {
+      ...(hasBody
+        ? { method: "POST", headers: reqHeaders, body: bodyStr }
+        : { headers: reqHeaders }),
+      signal: AbortSignal.timeout(PAID_TIMEOUT_MS),
+    });
+  } catch (e) {
+    const timedOut = e instanceof Error && (e.name === "TimeoutError" || e.name === "AbortError");
+    return {
+      error: timedOut
+        ? `gateway did not respond within ${PAID_TIMEOUT_MS / 1000}s after the payment authorization was sent — refused fail-closed, no data returned`
+        : `paid request to ${url} failed in transit — refused fail-closed, no data returned`,
+      detail:
+        "WARNING: the signed x402 payment authorization had already been sent, so settlement MAY have " +
+        "completed even though no data came back. Do NOT simply retry — that would sign a second " +
+        `payment. Check the payer wallet (${payer}) for a recent USDC transfer before re-buying.` +
+        (timedOut ? "" : ` Underlying error: ${e instanceof Error ? e.message : String(e)}`),
+    };
+  }
 
   if (!paid.ok) {
     return {
@@ -338,7 +437,6 @@ export async function buyData(params: { feed: string; body?: unknown }): Promise
   const usdc = selected && "amount" in selected
     ? `$${(Number((selected as { amount: string }).amount) / 1_000_000).toFixed(6)}`
     : undefined;
-  const account = privateKeyToAccount(CONFIG.privateKey!);
 
   // Read the EXACT response bytes ONCE (the bytes the gateway hashed + signed),
   // run the two-leg verify (gateway delivery leg + embedded-attestation presence),
@@ -351,7 +449,7 @@ export async function buyData(params: { feed: string; body?: unknown }): Promise
     paid: true,
     price: usdc,
     txHash: (settlement as { transaction?: string } | undefined)?.transaction,
-    payer: account.address,
+    payer,
     status: paid.status,
     data,
     verification,
