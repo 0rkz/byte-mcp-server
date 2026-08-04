@@ -764,7 +764,7 @@ function createMcpServer() {
     });
     // ─── Pay-per-call (x402) tool ─────────────────────────────────────────────
     server.registerTool("byte_buy_data", {
-        description: "Buy a single data packet from any PayPerByte feed via the x402 payment gateway. No subscription, no allowance, no prior on-chain setup — pay-per-call USDC settlement. The MCP server signs an EIP-3009 transferWithAuthorization on behalf of the wallet whose PRIVATE_KEY is configured, the x402 facilitator submits the tx, and the data comes back inline with the on-chain settlement tx hash. Use byte_subscribe instead if you want a continuous stream of broadcasts from a publisher. The catalog of available feed slugs lives at https://x402.payperbyte.io/feeds (free GET). GET data feeds (weather, earthquakes, …) need only `feed`; the 9 POST oracles — address-reputation, sanctions-screen, pkg-verdict, reasoning-verdict, evidence-pack, liquidation-stream, positioning-snapshot, runtime-eol, threat-intel — additionally require a JSON `body` (the query) — supplying `body` switches this call to POST. Requires PRIVATE_KEY env var on the MCP server and USDC on the configured wallet. NOTE: paid feeds settle REAL USDC on Base mainnet (eip155:8453) — the exact price is quoted in the 402 challenge (flagship address-reputation: $0.10/verdict). Use a dedicated wallet holding only what you intend to spend.",
+        description: `Buy a single data packet from any PayPerByte feed via the x402 payment gateway. No subscription, no allowance, no prior on-chain setup — pay-per-call USDC settlement. The MCP server signs an EIP-3009 transferWithAuthorization on behalf of the wallet whose PRIVATE_KEY is configured, the x402 facilitator submits the tx, and the data comes back inline with the on-chain settlement tx hash. Use byte_subscribe instead if you want a continuous stream of broadcasts from a publisher. The catalog of available feed slugs lives at https://x402.payperbyte.io/feeds (free GET). GET data feeds (weather, earthquakes, …) need only \`feed\`; ${buildPostOracleDescribe()}. Requires PRIVATE_KEY env var on the MCP server and USDC on the configured wallet. NOTE: paid feeds settle REAL USDC on Base mainnet (eip155:8453) — the exact price is quoted in the 402 challenge (flagship address-reputation: $0.10/verdict). Use a dedicated wallet holding only what you intend to spend.`,
         inputSchema: {
             feed: z
                 .string()
@@ -959,6 +959,35 @@ function buildFeedSlugDescribe() {
     return (`Feed slug — one of: ${list}. ` +
         "Full catalog: https://x402.payperbyte.io/feeds (free GET). " +
         "(For fact-oracle Q&A use byte_query_fact instead — it uses a different request-response flow.)");
+}
+/**
+ * The "POST oracles" clause of byte_buy_data's description, DERIVED from the
+ * same live catalog buildFeedSlugDescribe() reads — not a second
+ * hand-maintained list. That duplication is exactly how the prior sentence
+ * went stale: it named 9 oracles, 2 of them delisted 2026-07-28 (now
+ * 410-Gone), and omitted merchant-screen, which is live (2026-08-04 fix).
+ *
+ * `method` is an ARRAY per feed (["GET"], ["POST"], or ["GET","POST"] for
+ * dual-pattern feeds like runtime-eol/threat-intel) — confirmed directly
+ * against x402-gateway's feedMethods()/POST_ORACLES (src/index.ts) AND the
+ * live https://x402.payperbyte.io/feeds response before writing this, not
+ * assumed from a comment (one nearby comment in that file describes an
+ * OLDER comma-string return shape that no longer matches the code).
+ */
+function buildPostOracleDescribe() {
+    const feeds = getCachedCatalog();
+    const oracles = feeds.filter((f) => (f.method ?? []).includes("POST"));
+    if (!oracles.length) {
+        // Mirrors buildFeedSlugDescribe()'s empty-cache degrade above — NEVER a
+        // hardcoded list here. A hardcoded fallback would reintroduce this exact
+        // bug the first time a catalog fetch fails at startup.
+        return ("the POST oracles (see https://x402.payperbyte.io/feeds for the live list and " +
+            "each feed's `method`) additionally require a JSON `body` (the query) — " +
+            "supplying `body` switches this call to POST");
+    }
+    const names = oracles.map((f) => f.id).join(", ");
+    return (`the ${oracles.length} POST oracle${oracles.length === 1 ? "" : "s"} — ${names} — ` +
+        "additionally require a JSON `body` (the query) — supplying `body` switches this call to POST");
 }
 async function main() {
     await primeCatalogCache();

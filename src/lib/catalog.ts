@@ -11,6 +11,14 @@ export interface FeedEntry {
   expectedSizeBytes?: number;
   updateFrequency?: string;
   provenance?: string;
+  /** HTTP verb(s) this feed accepts — an ARRAY (["GET"], ["POST"], or
+   *  ["GET","POST"] for dual-pattern feeds), never a comma-joined string.
+   *  Verified directly against the gateway's own feedMethods()
+   *  (x402-gateway/src/index.ts) and the live /feeds response before adding
+   *  this field, 2026-08-04. Optional because older cached catalog shapes
+   *  (or a future gateway response) might omit it; callers must not assume
+   *  it is present. */
+  method?: ("GET" | "POST")[];
 }
 
 interface CatalogResponse {
