@@ -182,6 +182,16 @@ export async function verifyPayload(opts) {
             signerMatch = false;
         }
         const verified = hashMatch && signerMatch === true;
+        // Expiry leg. Same comparison the contract makes (DataStreamLib.sol:514),
+        // just evaluated at read time instead of at publish time. Both operands are
+        // UNIX seconds; the event's deadline is a uint256 so bigint math is required.
+        const nowS = BigInt(Math.floor(Date.now() / 1000));
+        const deadline = args.attestationDeadline;
+        const expired = nowS > deadline;
+        const window = expired
+            ? `EXPIRED ${nowS - deadline}s ago`
+            : `still valid for ${deadline - nowS}s`;
+        const expiryNote = ` [attestation deadline ${deadline} unix-s, checked at ${nowS} unix-s — ${window}]`;
         return {
             verified,
             recomputedHash: recomputed,
@@ -193,11 +203,20 @@ export async function verifyPayload(opts) {
             source: "txHash",
             txHash: opts.txHash,
             blockNumber: receipt.blockNumber.toString(),
-            reason: verified
-                ? "received bytes match the publisher's on-chain attested hash; attestation signed by the named publisher — safe to act"
+            expired,
+            deadline: deadline.toString(),
+            checkedAt: nowS.toString(),
+            reason: (verified
+                ? expired
+                    ? "received bytes match the publisher's on-chain attested hash and the attestation " +
+                        "recovers to the named publisher — PROVENANCE VERIFIED, but the attestation's " +
+                        "validity window has CLOSED. This is a point-in-time record of what the publisher " +
+                        "signed, not a standing claim about the present; re-fetch before acting on it as current"
+                    : "received bytes match the publisher's on-chain attested hash; attestation signed by the named publisher — safe to act"
                 : !hashMatch
                     ? "HASH MISMATCH — the received bytes are NOT what the publisher attested on-chain; do not act"
-                    : "attestation signature did not recover to the named publisher (or is missing); do not act",
+                    : "attestation signature did not recover to the named publisher (or is missing); do not act") +
+                expiryNote,
         };
     }
     // Guard the type: normalizeHash does .toLowerCase(), which THROWS on a
