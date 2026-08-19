@@ -43,8 +43,12 @@ import { recoverAttestationSigner, computePayloadHash } from "../lib/verify.js";
 const PROBE_TIMEOUT_MS = 15_000;
 const PAID_TIMEOUT_MS = 30_000;
 /** Gateway attester to PIN receipts against (out-of-band, from
- *  /.well-known/agent.json → receipt.attester). Env-overridable if it rotates. */
-const PINNED_GATEWAY_ATTESTER = (process.env.BYTE_GATEWAY_ATTESTER || "0x77c86a5367d941091a31BC97104609F2Db33C472").toLowerCase();
+ *  /.well-known/agent.json → receipt.attester). Env-overridable if it rotates.
+ *  Rotated 2026-08-19T23:03:00Z (key-exposure rotation; the retired
+ *  0x77c86a…C472 is disclosed in agent.json → receipt.retiredAttesters) —
+ *  a stale pin here fail-closes every buy AFTER payment settles, so update
+ *  this literal AND the systemd unit's BYTE_GATEWAY_ATTESTER together. */
+const PINNED_GATEWAY_ATTESTER = (process.env.BYTE_GATEWAY_ATTESTER || "0xB48CCc9e3ab67041e3b5D09700138E45cda6AeA8").toLowerCase();
 /**
  * Verify-before-act on the X-BYTE-Attestation receipt the gateway returns:
  * recompute keccak256(EXACT body bytes) === payloadHash AND recover the EIP-712
