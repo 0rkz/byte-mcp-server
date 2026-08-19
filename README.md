@@ -150,6 +150,7 @@ claude mcp add payperbyte -- npx -y byte-mcp-server
 | `RPC_URL` | no | `https://sepolia-rollup.arbitrum.io/rpc` | Arbitrum Sepolia RPC (the on-chain read/subscribe layer) |
 | `INDEXER_URL` | no | `https://feeds.payperbyte.io` | PayPerByte indexer API |
 | `BYTE_GATEWAY_URL` | no | `https://x402.payperbyte.io` | x402 gateway base URL (used by `byte_buy_data`) |
+| `BYTE_GATEWAY_ATTESTER` | no | current gateway attester (`0xB48CCc9e3ab67041e3b5D09700138E45cda6AeA8`, rotated 2026-08-19) | Attester address `byte_buy_data` pins the delivery receipt against. If the gateway rotates before this package updates, set this to the new `receipt.attester` from `/.well-known/agent.json` — a stale pin fail-closes buys AFTER payment settles |
 | `MAX_PAYMENT_USDC` | no | — (uncapped) | Server-side spend cap for `byte_buy_data`, in decimal USDC (e.g. `0.25`). When set, any 402 quote above the cap is refused before signing; unset means no cap — a dedicated thin wallet remains the hard backstop |
 
 ## Network

@@ -6,13 +6,13 @@
     "url": "https://github.com/0rkz/byte-mcp-server",
     "source": "github"
   },
-  "version": "0.12.1",
+  "version": "0.12.2",
   "packages": [
     {
       "registryType": "npm",
       "registryBaseUrl": "https://registry.npmjs.org",
       "identifier": "byte-mcp-server",
-      "version": "0.12.1",
+      "version": "0.12.2",
       "transport": {
         "type": "stdio"
       },
@@ -30,6 +30,13 @@
           "format": "string",
           "isSecret": false,
           "name": "RPC_URL"
+        },
+        {
+          "description": "Gateway attester address byte_buy_data pins receipts against. Defaults to the current PayPerByte gateway attester (rotated 2026-08-19; previous default 0x77c86a...C472 is retired). Override only if the gateway discloses a rotation you need ahead of a package update - see /.well-known/agent.json receipt.attester and receipt.retiredAttesters.",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false,
+          "name": "BYTE_GATEWAY_ATTESTER"
         }
       ]
     }
