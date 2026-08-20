@@ -1164,11 +1164,30 @@ async function main() {
     // ~600MB of the 1024MB budget for the app's own baseline (~140MB) plus
     // live request-processing spikes and GC slack. Both are env-tunable so
     // ops can retune without a code change if the deployed heap cap changes.
-    const SESSION_IDLE_TTL_MS = Number(process.env.MCP_SESSION_IDLE_TTL_MS ?? 30 * 60 * 1000);
-    const SESSION_SWEEP_INTERVAL_MS = Number(
-      process.env.MCP_SESSION_SWEEP_INTERVAL_MS ?? 5 * 60 * 1000,
-    );
-    const MAX_SESSIONS = Number(process.env.MCP_MAX_SESSIONS ?? 100);
+    // Fail-closed env parsing: a malformed override (e.g. MCP_MAX_SESSIONS="abc")
+    // must NOT silently disable the bound it's meant to configure. `Number("abc")`
+    // is NaN, and NaN compares false against everything (`NaN >= 100` is false),
+    // so an unvalidated `Number(process.env.X ?? default)` would make the
+    // admission check, the TTL sweep, and even /health's reported cap all
+    // silently no-op — the exact leak this fix exists to close, reintroduced via
+    // a typo'd env var. Reject non-finite/non-positive values and fall back to
+    // the default with a loud log instead.
+    function envPositiveInt(name: string, def: number): number {
+      const raw = process.env[name];
+      if (raw === undefined) return def;
+      const n = Number(raw);
+      if (!Number.isFinite(n) || n <= 0) {
+        console.error(
+          `[byte-mcp] WARNING: ${name}=${JSON.stringify(raw)} is not a positive finite number — using default ${def}`,
+        );
+        return def;
+      }
+      return n;
+    }
+
+    const SESSION_IDLE_TTL_MS = envPositiveInt("MCP_SESSION_IDLE_TTL_MS", 30 * 60 * 1000);
+    const SESSION_SWEEP_INTERVAL_MS = envPositiveInt("MCP_SESSION_SWEEP_INTERVAL_MS", 5 * 60 * 1000);
+    const MAX_SESSIONS = envPositiveInt("MCP_MAX_SESSIONS", 100);
 
     const transports: Record<string, StreamableHTTPServerTransport> = {};
     const sessionServers: Record<string, McpServer> = {};
@@ -1285,21 +1304,27 @@ async function main() {
         });
         let connected = false;
         try {
-          // IMPORTANT: McpServer.connect() "assumes ownership of the Transport,
-          // replacing any callbacks that have already been set" (SDK's own doc
-          // comment, server/mcp.js) — it overwrites transport.onclose with its
-          // own internal handler as part of connect(). Setting our cleanup
-          // handler BEFORE this call (the original code's order) means connect()
-          // silently discards it: onclose then NEVER fires our map cleanup, on
-          // ANY close, for ANY session, not even a well-behaved client's clean
-          // DELETE. That is a second, independent leak on top of the missing
-          // idle-eviction above, and it was invisible under this local
-          // reproduction because the SDK's overwritten handler still returns
-          // undefined harmlessly — nothing throws, it just silently drops our
-          // cleanup. Fix: set onclose AFTER connect() resolves (nothing touches
-          // .onclose after that point), and CHAIN it rather than replace it, so
-          // the SDK's internal protocol-level cleanup (clearing pending request
-          // handlers etc.) still runs too.
+          // NOTE (corrected 2026-08-20 per FD review — an earlier draft of this
+          // comment claimed connect() clobbers a pre-existing transport.onclose
+          // handler and treated that as a second root-cause bug. That claim was
+          // WRONG and has been retracted; see MCP_OOM_FIX_2026-08-20.md §1 for
+          // the full correction. What connect() actually does (shared/protocol.js
+          // connect(), verified by reading the implementation, not just the
+          // mcp.js doc comment that motivated the wrong claim): it captures
+          // whatever onclose handler is already on the transport and CHAINS it —
+          // `const _onclose = this.transport?.onclose; this._transport.onclose =
+          // () => { _onclose?.(); this._onclose(); };` — calling it before its
+          // own internal cleanup, not replacing it. FD also confirmed empirically
+          // against an unpatched build: initialize → DELETE already dropped the
+          // session from /health. The sole root cause this fix addresses is the
+          // missing idle-eviction for abandoned sessions (above).
+          //
+          // We still set our own onclose here, after connect() resolves, and
+          // still chain whatever the SDK put in place — not to fix a bug, but
+          // because it's the simplest correct place to hook OUR OWN bookkeeping
+          // (the transports/sessionServers/lastActivity maps and the
+          // sessionsAdmitted counter this fix adds) into the close path; the SDK
+          // has no way to know about that bookkeeping on its own.
           await sessionServer.connect(transport);
           connected = true;
         } finally {
