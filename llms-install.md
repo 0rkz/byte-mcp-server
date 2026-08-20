@@ -40,7 +40,7 @@ If a feed list / stats come back, the server is set up correctly.
 
 ## Buy a verdict (POST oracle)
 
-`byte_buy_data` buys one packet from any feed. GET data feeds (weather, earthquakes, …) need only `feed`; the **verdict oracles** (`merchant-screen`, `address-reputation`, `sanctions-screen`, `pkg-verdict`, `reasoning-verdict`, `positioning-snapshot`) are POST endpoints — supply a JSON `body` and the call switches from GET to POST:
+`byte_buy_data` buys one packet from any feed. GET data feeds (weather, earthquakes, …) need only `feed`; any feed whose `method` includes POST (live list: https://x402.payperbyte.io/feeds) takes the query as a JSON `body` and the call switches from GET to POST. The **verdict oracles** — feeds that return a signed ALLOW/WARN/BLOCK — are `merchant-screen`, `address-reputation`, `sanctions-screen`, `pkg-verdict`, `reasoning-verdict`:
 
 ```jsonc
 // screen a merchant/counterparty before settling (real $0.10 on Base mainnet — needs PRIVATE_KEY)
