@@ -1121,10 +1121,126 @@ async function main() {
     const app = express();
     app.use(express.json());
 
-    // One transport per MCP session. Smithery / Claude / Cursor each get
-    // their own session; initialize requests spawn a new transport, follow-up
-    // requests reuse it via the Mcp-Session-Id header.
+    // One transport (+ dedicated McpServer) per MCP session. Smithery / Claude /
+    // Cursor each get their own session; initialize requests spawn a new
+    // transport, follow-up requests reuse it via the Mcp-Session-Id header.
+    //
+    // Session lifecycle / leak guard: the SDK's StreamableHTTPServerTransport
+    // has NO built-in idle timeout or eviction (verified against the installed
+    // @modelcontextprotocol/sdk — neither streamableHttp.js nor
+    // webStandardStreamableHttp.js contain a setTimeout/setInterval/TTL path).
+    // A session lives in these maps until something explicitly closes it: a
+    // client DELETE, or its SSE stream ending. This endpoint is public and
+    // MCP-Registry-listed, so most callers are scanners/bots that POST
+    // `initialize` once and never call back — with no reaping, each of those
+    // sessions (a full McpServer instance + transport state) was retained
+    // forever, growing the heap until V8 hit its ceiling and crashed. That
+    // matches the production crash signature exactly ("FATAL ERROR: Reached
+    // heap limit", journalctl-confirmed on a ~10h cadence) and was reproduced
+    // locally: ~900 abandoned `initialize` calls with no other traffic
+    // exhausted a default 4GB heap and crashed in ~32s, with /health's
+    // `sessions` counter climbing 1:1 with requests sent and never dropping.
+    //
+    // Two independent bounds fix that:
+    //   1. Idle TTL sweep — evicts sessions with no activity for
+    //      SESSION_IDLE_TTL_MS, checked every SESSION_SWEEP_INTERVAL_MS. This
+    //      is what actually fixes the observed leak (trickle scanner traffic
+    //      over hours).
+    //   2. Hard session cap — bounds worst-case memory under a fast burst that
+    //      outruns the TTL sweep, by evicting the least-recently-active
+    //      session whenever a new one would exceed MAX_SESSIONS.
+    //
+    // MAX_SESSIONS default is sized against the deployed heap budget, not
+    // picked arbitrarily: local load-testing measured each idle session (one
+    // McpServer instance registering all 12 tools' Zod schemas, plus its
+    // transport's internal Maps) at a consistent ~4.2MB RSS marginal cost
+    // (measured 140MB→2.3GB baseline-to-2.3GB across 500 sessions, i.e.
+    // (2296776-140080)KB / 500 = ~4313KB/session). The deployed unit sets
+    // NODE_OPTIONS=--max-old-space-size=1024 (see
+    // byte-mcp.service.d/override.conf) — a MAX_SESSIONS=500 default would
+    // let idle-session baseline alone (~2.1GB) blow past that 1024MB heap
+    // ceiling under a sustained burst, i.e. the cap itself would still cause
+    // the crash it's meant to prevent. 100 sessions × ~4.2MB ≈ 420MB, leaving
+    // ~600MB of the 1024MB budget for the app's own baseline (~140MB) plus
+    // live request-processing spikes and GC slack. Both are env-tunable so
+    // ops can retune without a code change if the deployed heap cap changes.
+    const SESSION_IDLE_TTL_MS = Number(process.env.MCP_SESSION_IDLE_TTL_MS ?? 30 * 60 * 1000);
+    const SESSION_SWEEP_INTERVAL_MS = Number(
+      process.env.MCP_SESSION_SWEEP_INTERVAL_MS ?? 5 * 60 * 1000,
+    );
+    const MAX_SESSIONS = Number(process.env.MCP_MAX_SESSIONS ?? 100);
+
     const transports: Record<string, StreamableHTTPServerTransport> = {};
+    const sessionServers: Record<string, McpServer> = {};
+    const lastActivity: Record<string, number> = {};
+    // Synchronous admission counter — separate from Object.keys(transports).length
+    // because `transports[id]` is only populated later, inside onsessioninitialized
+    // (which fires deep inside transport.handleRequest(), well after this request's
+    // synchronous setup runs). Gating on the map size instead of this counter would
+    // let a burst of concurrent `initialize` requests all pass the check and all
+    // finish constructing (~4.2MB of Zod schemas each) before any of them lands in
+    // the map to trip a post-hoc cap — confirmed by reproduction: a single wave of
+    // 250 concurrent initializes against a construct-then-evict cap still crashed
+    // the heap. `sessionsAdmitted` increments synchronously at the admission
+    // decision, before the expensive createMcpServer() call, so no concurrent burst
+    // of any size can admit more than MAX_SESSIONS sessions.
+    let sessionsAdmitted = 0;
+    // Throttles the capacity-refusal log line (below) to at most once per 30s.
+    // Unthrottled, a sustained rejection flood — plausible against a public,
+    // unauthenticated endpoint once the cap is doing its job and legitimate
+    // scanner/bot traffic keeps retrying — would call console.error on every
+    // single incoming request. That was observed to grow RSS by ~150MB over
+    // 10,000 rejected requests in a local burst test even with the session
+    // count correctly flat at the cap: with stdout redirected to a file (as
+    // it is under systemd), Node's console.error write can outrun the
+    // writable stream's flush rate under high call volume, growing its
+    // internal buffer. Capping the LOG RATE removes that as a growth vector
+    // regardless of request rate, independent of the (already-fixed) session
+    // cap itself.
+    let lastCapWarningAt = 0;
+    let capacityRefusalsSinceLastLog = 0;
+
+    // Closing the McpServer closes its connected transport too (Server.close()
+    // → transport.close()), which — after the onclose fix below — fires the
+    // transport's onclose and deletes the map entries on the clean-close path.
+    // The explicit deletes here are belt-and-suspenders for a close() that
+    // throws or hangs — a session must not stay pinned in memory (or keep
+    // occupying an admitted slot) just because its teardown erred.
+    function evictSession(id: string, reason: string): void {
+      console.error(`[byte-mcp] evicting session ${id.slice(0, 8)}… (${reason})`);
+      const server = sessionServers[id];
+      const closer: Promise<void> | undefined = server
+        ? server.close()
+        : transports[id]?.close();
+      closer?.catch((err: unknown) => {
+        console.error(`[byte-mcp] error closing session ${id.slice(0, 8)}…:`, err);
+      });
+      if (transports[id] || sessionServers[id] || lastActivity[id] !== undefined) {
+        sessionsAdmitted = Math.max(0, sessionsAdmitted - 1);
+      }
+      delete transports[id];
+      delete sessionServers[id];
+      delete lastActivity[id];
+    }
+
+    function enforceSessionCap(): void {
+      const ids = Object.keys(transports);
+      if (ids.length <= MAX_SESSIONS) return;
+      const oldest = ids
+        .sort((a, b) => (lastActivity[a] ?? 0) - (lastActivity[b] ?? 0))
+        .slice(0, ids.length - MAX_SESSIONS);
+      for (const id of oldest) evictSession(id, "session cap");
+    }
+
+    const sweepTimer = setInterval(() => {
+      const now = Date.now();
+      for (const [id, last] of Object.entries(lastActivity)) {
+        if (now - last > SESSION_IDLE_TTL_MS) {
+          evictSession(id, `idle ${Math.round((now - last) / 60000)}m`);
+        }
+      }
+    }, SESSION_SWEEP_INTERVAL_MS);
+    sweepTimer.unref();
 
     app.post("/mcp", async (req: Request, res: Response) => {
       const sessionId = req.headers["mcp-session-id"] as string | undefined;
@@ -1132,18 +1248,86 @@ async function main() {
 
       if (sessionId && transports[sessionId]) {
         transport = transports[sessionId];
+        lastActivity[sessionId] = Date.now();
       } else if (!sessionId && isInitializeRequest(req.body)) {
+        // Reject BEFORE paying the ~4.2MB session-construction cost. See the
+        // sessionsAdmitted comment above — this synchronous check is what
+        // actually bounds concurrent-burst admission; enforceSessionCap()
+        // (evict-oldest, runs after a session finishes constructing) is only
+        // fast enough for gradual/trickle growth, not a simultaneous burst.
+        if (sessionsAdmitted >= MAX_SESSIONS) {
+          capacityRefusalsSinceLastLog++;
+          const now = Date.now();
+          if (now - lastCapWarningAt > 30_000) {
+            console.error(
+              `[byte-mcp] refusing new sessions: at capacity (${sessionsAdmitted}/${MAX_SESSIONS}), ` +
+                `${capacityRefusalsSinceLastLog} refused since last log`,
+            );
+            lastCapWarningAt = now;
+            capacityRefusalsSinceLastLog = 0;
+          }
+          res.status(503).json({
+            jsonrpc: "2.0",
+            error: { code: -32000, message: "Server busy: session capacity reached, retry shortly" },
+            id: null,
+          });
+          return;
+        }
+        sessionsAdmitted++;
+        const sessionServer = createMcpServer();
         transport = new StreamableHTTPServerTransport({
           sessionIdGenerator: () => randomUUID(),
           onsessioninitialized: (id) => {
             transports[id] = transport;
+            sessionServers[id] = sessionServer;
+            lastActivity[id] = Date.now();
           },
         });
+        let connected = false;
+        try {
+          // IMPORTANT: McpServer.connect() "assumes ownership of the Transport,
+          // replacing any callbacks that have already been set" (SDK's own doc
+          // comment, server/mcp.js) — it overwrites transport.onclose with its
+          // own internal handler as part of connect(). Setting our cleanup
+          // handler BEFORE this call (the original code's order) means connect()
+          // silently discards it: onclose then NEVER fires our map cleanup, on
+          // ANY close, for ANY session, not even a well-behaved client's clean
+          // DELETE. That is a second, independent leak on top of the missing
+          // idle-eviction above, and it was invisible under this local
+          // reproduction because the SDK's overwritten handler still returns
+          // undefined harmlessly — nothing throws, it just silently drops our
+          // cleanup. Fix: set onclose AFTER connect() resolves (nothing touches
+          // .onclose after that point), and CHAIN it rather than replace it, so
+          // the SDK's internal protocol-level cleanup (clearing pending request
+          // handlers etc.) still runs too.
+          await sessionServer.connect(transport);
+          connected = true;
+        } finally {
+          if (!connected) {
+            // connect()/transport construction failed before onsessioninitialized
+            // could ever fire — release the admitted slot immediately rather than
+            // leaking it (it would otherwise sit uncounted-down forever, shrinking
+            // effective capacity on every failed initialize).
+            sessionsAdmitted = Math.max(0, sessionsAdmitted - 1);
+          }
+        }
+        const internalOnClose = transport.onclose;
         transport.onclose = () => {
-          if (transport.sessionId) delete transports[transport.sessionId];
+          internalOnClose?.();
+          if (transport.sessionId) {
+            if (
+              transports[transport.sessionId] ||
+              sessionServers[transport.sessionId] ||
+              lastActivity[transport.sessionId] !== undefined
+            ) {
+              sessionsAdmitted = Math.max(0, sessionsAdmitted - 1);
+            }
+            delete transports[transport.sessionId];
+            delete sessionServers[transport.sessionId];
+            delete lastActivity[transport.sessionId];
+          }
         };
-        const sessionServer = createMcpServer();
-        await sessionServer.connect(transport);
+        enforceSessionCap();
       } else if (
         !sessionId &&
         typeof (req.body as { method?: string })?.method === "string" &&
@@ -1189,6 +1373,7 @@ async function main() {
         res.status(400).send("Invalid or missing session ID");
         return;
       }
+      lastActivity[sessionId] = Date.now();
       await transports[sessionId].handleRequest(req, res);
     };
     app.get("/mcp", sessionRouted);
@@ -1200,6 +1385,7 @@ async function main() {
         version: PKG_VERSION,
         transport: "http",
         sessions: Object.keys(transports).length,
+        maxSessions: MAX_SESSIONS,
       }),
     );
 
