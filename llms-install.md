@@ -40,14 +40,16 @@ If a feed list / stats come back, the server is set up correctly.
 
 ## Buy a verdict (POST oracle)
 
-`byte_buy_data` buys one packet from any feed. GET data feeds (weather, earthquakes, …) need only `feed`; the **verdict oracles** (`address-reputation`, `sanctions-screen`, `pkg-verdict`, `reasoning-verdict`) are POST endpoints — supply a JSON `body` and the call switches from GET to POST:
+`byte_buy_data` buys one packet from any feed. GET data feeds (weather, earthquakes, …) need only `feed`; the **verdict oracles** (`merchant-screen`, `address-reputation`, `sanctions-screen`, `pkg-verdict`, `reasoning-verdict`, `positioning-snapshot`) are POST endpoints — supply a JSON `body` and the call switches from GET to POST:
 
 ```jsonc
-// screen a payee before releasing USDC (real $0.10 on Base mainnet — needs PRIVATE_KEY)
-{ "feed": "address-reputation", "body": { "domain": "example.com", "address": "0x1234…abcd" } }
+// screen a merchant/counterparty before settling (real $0.10 on Base mainnet — needs PRIVATE_KEY)
+{ "feed": "merchant-screen", "body": { "domain": "example.com", "address": "0x1234…abcd", "observed_price_atomic": "100000" } }
 ```
 
-The result includes the signed verdict in `data` plus an inline `verification` block (`{ verified, hashMatch, signerMatch, reason }`) — act only when `verification.verified` is `true`. Other bodies: `sanctions-screen {address|name}`, `pkg-verdict {ecosystem,package}`, `reasoning-verdict {subject}`.
+The result includes the signed verdict in `data` plus an inline `verification` block (`{ verified, hashMatch, signerMatch, reason }`) — act only when `verification.verified` is `true`; the receipt proves provenance and integrity, not correctness. Other bodies: `address-reputation {domain,address}`, `sanctions-screen {address|name}`, `pkg-verdict {ecosystem,package}`, `reasoning-verdict {subject}`.
+
+Cheapest way to see the same verify-before-act loop before spending on a verdict: `{ "feed": "weather" }` ($0.005) or `{ "feed": "earthquakes" }` ($0.003) — no `body` needed, plain GET data feeds.
 
 ## Notes
 

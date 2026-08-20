@@ -8,7 +8,7 @@ A [Model Context Protocol](https://modelcontextprotocol.io/) server that gives A
 
 > **Two rails — read this before setting `PRIVATE_KEY`.**
 >
-> - **x402 pay-per-call (`byte_buy_data`): Base mainnet (`eip155:8453`), REAL USDC.** Paid feeds settle real money — the flagship [Address Reputation Oracle](https://x402.payperbyte.io/feeds/address-reputation) is $0.10 per verdict. Use a dedicated wallet holding only what you intend to spend.
+> - **x402 pay-per-call (`byte_buy_data`): Base mainnet (`eip155:8453`), REAL USDC.** Paid feeds settle real money — the flagship [Merchant Screen Oracle](https://x402.payperbyte.io/feeds/merchant-screen) is $0.10 per verdict: a signed ALLOW/WARN/BLOCK check on a merchant's domain and payout address, backed by a signed EIP-712 attestation over the exact response bytes — authenticity and delivery-integrity, not a correctness guarantee on the verdict itself — before an agent settles an x402 payment to it. Use a dedicated wallet holding only what you intend to spend.
 > - **On-chain subscribe/publish/query layer (BYTE Library contracts + indexer): Arbitrum Sepolia testnet (chain `421614`), MockUSDC.** Mainnet for this layer is gated on an external security audit. The EIP-712 attestation signing domain stays anchored at `421614` regardless of which rail you paid on.
 >
 > One `PRIVATE_KEY` serves both rails. Never reuse a key holding funds you can't afford to spend.
@@ -22,7 +22,8 @@ npx -y byte-mcp-server
 Wire it into your MCP client (Claude Desktop config below), then your agent can:
 
 - **Discover** feeds: *"List the PayPerByte catalog"* / *"Search publishers for weather"*
-- **Buy one packet** (x402, no setup): *"Check this receiving address before I pay it"* → $0.10 real USDC on Base mainnet, signed ALLOW/WARN/BLOCK verdict with an attestation receipt
+- **Screen a counterparty before you pay it** (x402, no setup): *"Screen this domain and payout address before I settle"* → $0.10 real USDC on Base mainnet, signed ALLOW/WARN/BLOCK verdict from the Merchant Screen Oracle with an attestation receipt
+- **Try it cheap first**: *"Get the weather"* / *"Any earthquakes over M4 today?"* → $0.005 / $0.003 real USDC, same attestation receipt on every response — the fastest way to see verify-before-act work before spending on a verdict
 - **Subscribe** to a stream (testnet): *"Subscribe me to the earthquakes feed"* → auto-approves MockUSDC for ongoing settlement on Arbitrum Sepolia
 - **Query a fact-oracle** (testnet): post a signed EIP-712 question to a registered fact-oracle publisher for an on-chain signed answer with citations — *when a fact-oracle publisher is live (none is broadcasting today; the tool times out until one registers and broadcasts)*
 
@@ -54,13 +55,13 @@ Buy is zero-setup, pay-as-you-go, and live with real settlement; subscribe deliv
 
 ### Buying a verdict (POST oracle)
 
-GET data feeds need only a `feed`. The **verdict oracles** (`address-reputation`, `sanctions-screen`, `pkg-verdict`, `reasoning-verdict`) are POST endpoints — pass the query as a `body` and `byte_buy_data` switches the call from GET to POST automatically:
+GET data feeds need only a `feed`. The **verdict oracles** (`merchant-screen`, `address-reputation`, `sanctions-screen`, `pkg-verdict`, `reasoning-verdict`, `positioning-snapshot`) are POST endpoints — pass the query as a `body` and `byte_buy_data` switches the call from GET to POST automatically:
 
 ```jsonc
-// byte_buy_data tool call — screen a payee before releasing USDC
+// byte_buy_data tool call — screen a merchant/counterparty before settling
 {
-  "feed": "address-reputation",
-  "body": { "domain": "example.com", "address": "0x1234…abcd" }
+  "feed": "merchant-screen",
+  "body": { "domain": "example.com", "address": "0x1234…abcd", "observed_price_atomic": "100000" }
 }
 ```
 
@@ -68,17 +69,17 @@ The paid response returns the signed verdict **and** an inline verify-before-act
 
 ```jsonc
 {
-  "feed": "address-reputation",
+  "feed": "merchant-screen",
   "paid": true,
   "price": "$0.100000",
   "txHash": "0x…",
-  "data": { "answer": { "verdict": "ALLOW", "score": 88, "reasons": ["…"] }, "attestation": { "…": "…" } },
+  "data": { "answer": { "verdict": "ALLOW", "reasons": ["…"] }, "attestation": { "…": "…" } },
   "verification": { "verified": true, "hashMatch": true, "signerMatch": true,
                     "reason": "receipt verified — bytes intact AND signed by the pinned gateway attester (safe to act)" }
 }
 ```
 
-Act only when `verification.verified === true`. Other POST bodies: `sanctions-screen {address|name}`, `pkg-verdict {ecosystem,package[,version]}`, `reasoning-verdict {subject}`. Omit `body` entirely for GET data feeds (weather, earthquakes, …).
+Act only when `verification.verified === true` — the receipt proves provenance and integrity, not correctness. Other POST bodies: `address-reputation {domain,address}`, `sanctions-screen {address|name}`, `pkg-verdict {ecosystem,package[,version]}`, `reasoning-verdict {subject}`. Omit `body` entirely for GET data feeds (weather, earthquakes, …).
 
 ## Tools (15 total)
 
