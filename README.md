@@ -186,3 +186,4 @@ Optional paid kit ($39): the [buyer-side agent kit](https://payperbyte.gumroad.c
 - **[x402.payperbyte.io/feeds](https://x402.payperbyte.io/feeds)** — live feed catalog
 - **[Model Context Protocol](https://modelcontextprotocol.io/)** — MCP spec
 - **[MCP TypeScript SDK](https://github.com/modelcontextprotocol/typescript-sdk)**
+- **[gold-402](https://github.com/Haustorium12/gold-402)** — curated directory of live x402 services (PayPerByte is listed)
