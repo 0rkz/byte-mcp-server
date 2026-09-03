@@ -11,7 +11,15 @@ interface PublisherSearchResult {
 interface FeedInfo {
   publisher: string;
   topic: string;
+  /**
+   * DEPRECATED (misnamed): for gateway-fronted feeds this is the per-call
+   * price in µUSDC, identical to pricePerCall. Use pricePerCall. Removed
+   * next release.
+   */
   pricePerKB: string;
+  /** Price of one call, atomic µUSDC (6 decimals). Identical to
+   * pricePerKB above — same source value, just named correctly. */
+  pricePerCall: string;
   frequency: number;
 }
 
@@ -73,12 +81,20 @@ export async function listFeeds(): Promise<FeedInfo[]> {
   };
 
   const feeds = payload.feeds ?? [];
-  return feeds.map((f) => ({
-    publisher: f.publisher ?? "",
-    topic: f.id ?? f.endpoint ?? "",
-    pricePerKB: f.price ?? f.priceAtomic ?? "",
-    frequency: Number.isFinite(Number(f.updateFrequency))
-      ? Number(f.updateFrequency)
-      : 0,
-  }));
+  return feeds.map((f) => {
+    // pricePerCall is the price of one call (atomic µUSDC). For
+    // gateway-fronted feeds this is the same source value as the
+    // DEPRECATED pricePerKB alias below — resolve once so both fields
+    // are always identical.
+    const priceValue = f.price ?? f.priceAtomic ?? "";
+    return {
+      publisher: f.publisher ?? "",
+      topic: f.id ?? f.endpoint ?? "",
+      pricePerKB: priceValue,
+      pricePerCall: priceValue,
+      frequency: Number.isFinite(Number(f.updateFrequency))
+        ? Number(f.updateFrequency)
+        : 0,
+    };
+  });
 }

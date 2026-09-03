@@ -354,7 +354,7 @@ server.registerTool(
 server.registerTool(
   "byte_list_feeds",
   {
-    description: "List all active data feeds in the PayPerByte catalog with topics, price-per-KB, and frequency.",
+    description: "List all active data feeds in the PayPerByte catalog with topics, price-per-call, and frequency (pricePerKB is a deprecated alias).",
     inputSchema: {},
     outputSchema: {
       feeds: z
@@ -363,7 +363,8 @@ server.registerTool(
             .object({
               publisher: z.string().optional().describe("Publisher address for the feed"),
               topic: z.string().optional().describe("Topic identifier"),
-              pricePerKB: z.string().optional().describe("Price per KB in USDC (decimal string)"),
+              pricePerKB: z.string().optional().describe("DEPRECATED (misnamed): for gateway-fronted feeds this is the per-call price in µUSDC, identical to pricePerCall. Use pricePerCall. Removed next release."),
+              pricePerCall: z.string().optional().describe("Price of one call, atomic µUSDC (6 decimals), decimal string."),
               frequency: z.number().optional().describe("Expected publish cadence in seconds"),
             })
             .passthrough(),
