@@ -80,12 +80,119 @@ trap 'rm -f "$STAMP"' EXIT
 echo "[deploy] building…"
 npm run build
 
-# Assert every artifact THIS BUILD ships, pinned to the paths the units load —
-# not dist/index.js by habit. byte-mcp's ExecStart loads dist/index.js.
-for a in dist/index.js; do
-  [ -s "$a" ] || { echo "[deploy] ABORT: build did not produce $a"; exit 1; }
-  [ "$a" -nt "$STAMP" ] || { echo "[deploy] ABORT: $a is older than this build — the compile did not refresh it"; exit 1; }
+# Assert every artifact THIS BUILD ships, driven from the COMMITTED SOURCE LIST —
+# not dist/index.js by habit, and not a hand-written list of names.
+#
+# byte-mcp's ExecStart is `node dist/index.js --http`, but index.js is
+# only the ENTRY POINT: it imports ./lib/catalog.js, ./lib/config.js, ./lib/verify.js and six
+# ./tools/*.js modules, which in turn pull ./lib/contracts.js.
+# discovery-api's 2026-09-02 pricing fix (89ce272) touched only src/lib/feeds.ts, so
+# it compiled entirely into dist/lib/feeds.js while dist/index.js stayed byte-
+# identical. An entry-point-only assertion passes a build that never refreshed
+# feeds.js. A hand-enumerated list is the same bug in slower motion: it goes stale
+# the first time a module is added, silently, with nothing failing to say so.
+#
+# Driving from `git ls-files` instead of from `find dist` is deliberate. A dist/
+# glob can only assert files that ARE there — it cannot notice an artifact that was
+# never emitted, which is the failure that matters most. The source list catches
+# never-emitted AND stale, needs no maintenance when a module is added, and ignores
+# orphan .js left behind by a renamed source (dead files nothing loads, which a
+# dist/ glob would abort on forever until someone wiped dist/).
+#
+# FOUR pathspecs, not one (FD pass 1, HIGH, fail-open): `src/*.ts` does NOT match
+# .mts/.cts/.tsx — those end in "mts"/"cts"/"tsx", not ".ts" — yet tsc compiles all
+# three into loadable artifacts. A single-pattern guard reports success while
+# shipping a stale one, the very class this block claims to close. Measured
+# emission under each repo's real tsconfig, so the mapping is not a guess:
+#   .ts -> .js   .tsx -> .js   .mts -> .mjs   .cts -> .cjs
+# Declaration files emit NOTHING and must be skipped in all three flavours.
+#
+# Requiring freshness on all of them is safe here: `npm run build` is plain `tsc`
+# with no `incremental` and no tsBuildInfo, so every run re-emits every output.
+# Verified empirically 2026-09-02 in a scratch rsync, never in the live tree.
+# tsconfig.json pins rootDir=src and outDir=dist, so src/X -> dist/X is exact.
+
+# The ExecStart target gets BOTH assertions, unconditionally and by name.
+# It is covered by the loop below only while `src/index.ts` happens to be tracked;
+# rename the entry source, move it, or exclude it and the loop stops covering it
+# while this line keeps holding. Asserting it separately costs one line and
+# removes that dependency — the earlier revision of this guard demoted it to `-s`
+# alone and FD (pass 2, HIGH) demonstrated a stale 2019 dist/index.js passing.
+#
+# KNOWN, DELIBERATE LIMIT (FD pass 3 MEDIUM, pass 4 MEDIUM-1/2 — documented rather
+# than enforced, founder's call 2026-09-03): ENTRY is a LITERAL, and nothing here
+# checks it against what byte-mcp actually runs. Repoint that unit's ExecStart, or
+# its WorkingDirectory to another tree, and this guard keeps certifying
+# dist/index.js in THIS repo while the unit loads something else. An enforced
+# cross-check was written and rejected for now because it matched only the
+# WorkingDirectory-RELATIVE ExecStart form: 22 of the 29 byte-* units on this box
+# use the ABSOLUTE form, so normalising byte-mcp to the house majority would have
+# bricked this script with a message blaming the wrong thing. Enforcing it needs
+# both forms AND a WorkingDirectory assertion, which belongs in the guard wave
+# that is redesigning post-deploy verification across all five scripts.
+# If you repoint ExecStart or WorkingDirectory, update ENTRY here by hand.
+ENTRY=dist/index.js
+[ -s "$ENTRY" ] || { echo "[deploy] ABORT: build did not produce $ENTRY — the unit's ExecStart target"; exit 1; }
+[ "$ENTRY" -nt "$STAMP" ] || { echo "[deploy] ABORT: $ENTRY is older than this build — the unit's ExecStart target was not refreshed"; exit 1; }
+
+# `git ls-files` recurses: git pathspec `*` crosses `/`, so src/lib/feeds.ts is
+# matched. Do NOT "fix" this to src/**/*.ts — that changes the semantics.
+# core.quotePath=false stops git escaping NON-ASCII bytes (src/umläut.ts then
+# comes through literally). It does NOT stop C-quoting for `"`, `\`, TAB or
+# newline — those paths still arrive as "src/tab\there.ts", quotes and all.
+# That is handled inside the loop rather than pretended away.
+SOURCES=$(git -c core.quotePath=false ls-files 'src/*.ts' 'src/*.tsx' 'src/*.mts' 'src/*.cts') || { echo "[deploy] ABORT: cannot enumerate source modules (git failed)"; exit 1; }
+[ -n "$SOURCES" ] || { echo "[deploy] ABORT: no committed TypeScript under src/ — refusing to certify a build with no source"; exit 1; }
+
+# Newline-only IFS so a path containing a SPACE stays one word, and `set -f` so a
+# glob character in a filename is not pathname-expanded mid-loop. (A TAB does not
+# need IFS help — git quotes tabbed paths, which the backstop below rejects.)
+# Without these, `src/lib/rate limits.ts` iterates as two words and the guard
+# aborts forever naming two paths that never existed (FD pass 1, MEDIUM). POSIX sh
+# has no `read -r -d ''`, so this is the available way to iterate safely.
+FD_OLD_IFS=$IFS
+IFS='
+'
+set -f
+
+for s in $SOURCES; do
+  # Declaration files compile to no .js at all — required skip, not an optimisation.
+  case "$s" in *.d.ts|*.d.mts|*.d.cts) continue ;; esac
+
+  # A C-quoted path would survive the ${s#src/} strip unchanged and then demand
+  # an artifact that can never exist — a permanent, unactionable ABORT. Refuse it
+  # by name instead (FD pass 2, MEDIUM). Fail-closed either way; this one says why.
+  case "$s" in
+    src/*) ;;
+    *)
+      echo "[deploy] ABORT: git returned a C-quoted path ($s) — that filename contains a"
+      echo "[deploy] double quote, backslash, tab or newline. This guard cannot map it to"
+      echo "[deploy] an artifact path; rename the file."
+      exit 1
+      ;;
+  esac
+
+  rel=${s#src/}
+  case "$rel" in
+    *.mts) a="dist/${rel%.mts}.mjs" ;;
+    *.cts) a="dist/${rel%.cts}.cjs" ;;
+    # `.tsx -> .js` assumes `jsx` is unset or a transform mode, which is true in
+    # this repo's tsconfig. Setting `jsx: preserve` (or react-native) makes tsc
+    # emit .jsx instead, and this arm must change with it (FD pass 2, LOW).
+    *.tsx) a="dist/${rel%.tsx}.js" ;;
+    *)     a="dist/${rel%.ts}.js" ;;
+  esac
+
+  [ -s "$a" ] || { echo "[deploy] ABORT: $s did not compile to a non-empty $a — this build is incomplete"; exit 1; }
+  [ "$a" -nt "$STAMP" ] || {
+    echo "[deploy] ABORT: $a is older than this build — the compile did not refresh it."
+    echo "[deploy] It would ship stale code for $s. Fix: rm -rf dist && npm run build."
+    exit 1
+  }
 done
+
+set +f
+IFS=$FD_OLD_IFS
 
 echo "[deploy] guard passed — restarting byte-mcp"
 systemctl --user restart byte-mcp
