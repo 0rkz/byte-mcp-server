@@ -36,12 +36,20 @@ export async function listFeeds() {
     }
     const payload = (await response.json());
     const feeds = payload.feeds ?? [];
-    return feeds.map((f) => ({
-        publisher: f.publisher ?? "",
-        topic: f.id ?? f.endpoint ?? "",
-        pricePerKB: f.price ?? f.priceAtomic ?? "",
-        frequency: Number.isFinite(Number(f.updateFrequency))
-            ? Number(f.updateFrequency)
-            : 0,
-    }));
+    return feeds.map((f) => {
+        // pricePerCall is the price of one call (atomic µUSDC). For
+        // gateway-fronted feeds this is the same source value as the
+        // DEPRECATED pricePerKB alias below — resolve once so both fields
+        // are always identical.
+        const priceValue = f.price ?? f.priceAtomic ?? "";
+        return {
+            publisher: f.publisher ?? "",
+            topic: f.id ?? f.endpoint ?? "",
+            pricePerKB: priceValue,
+            pricePerCall: priceValue,
+            frequency: Number.isFinite(Number(f.updateFrequency))
+                ? Number(f.updateFrequency)
+                : 0,
+        };
+    });
 }
