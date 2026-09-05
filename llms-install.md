@@ -43,13 +43,13 @@ If a feed list / stats come back, the server is set up correctly.
 `byte_buy_data` buys one packet from any feed. GET data feeds (weather, earthquakes, …) need only `feed`; any feed whose `method` includes POST (live list: https://x402.payperbyte.io/feeds) takes the query as a JSON `body` and the call switches from GET to POST. The **verdict oracles** — feeds that return a signed ALLOW/WARN/BLOCK — are `merchant-screen`, `address-reputation`, `sanctions-screen`, `pkg-verdict`, `reasoning-verdict`:
 
 ```jsonc
-// screen a merchant/counterparty before settling (real $0.10 on Base mainnet — needs PRIVATE_KEY)
+// screen a merchant/counterparty before settling (real USDC on Base mainnet at the 402-quoted price — needs PRIVATE_KEY)
 { "feed": "merchant-screen", "body": { "domain": "example.com", "address": "0x1234…abcd", "observed_price_atomic": "100000" } }
 ```
 
 The result includes the signed verdict in `data` plus an inline `verification` block (`{ verified, hashMatch, signerMatch, reason }`) — act only when `verification.verified` is `true`; the receipt proves provenance and integrity, not correctness. Other bodies: `address-reputation {domain,address}`, `sanctions-screen {address|name}`, `pkg-verdict {ecosystem,package}`, `reasoning-verdict {subject}`.
 
-Cheapest way to see the same verify-before-act loop before spending on a verdict: `{ "feed": "weather" }` ($0.005) or `{ "feed": "earthquakes" }` ($0.003) — no `body` needed, plain GET data feeds.
+Cheapest way to see the same verify-before-act loop before spending on a verdict: `{ "feed": "weather" }` or `{ "feed": "earthquakes" }` (current prices at https://x402.payperbyte.io/feeds) — no `body` needed, plain GET data feeds.
 
 ## Notes
 

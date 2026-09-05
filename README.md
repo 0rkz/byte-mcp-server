@@ -8,7 +8,7 @@ A [Model Context Protocol](https://modelcontextprotocol.io/) server that gives A
 
 > **Two rails — read this before setting `PRIVATE_KEY`.**
 >
-> - **x402 pay-per-call (`byte_buy_data`): Base mainnet (`eip155:8453`), REAL USDC.** Paid feeds settle real money — the flagship [Merchant Screen Oracle](https://x402.payperbyte.io/feeds/merchant-screen) is $0.10 per verdict: a signed ALLOW/WARN/BLOCK check on a merchant's domain and payout address, backed by a signed EIP-712 attestation over the exact response bytes, run before an agent settles an x402 payment to it. Authenticity and delivery-integrity, not a correctness guarantee on the verdict itself — and on the domain, address and price you supply; it does not observe or constrain the address you ultimately settle to. Use a dedicated wallet holding only what you intend to spend.
+> - **x402 pay-per-call (`byte_buy_data`): Base mainnet (`eip155:8453`), REAL USDC.** Paid feeds settle real money — every price is quoted in the 402 challenge and listed per feed at https://x402.payperbyte.io/feeds. Example: the [Merchant Screen Oracle](https://x402.payperbyte.io/feeds/merchant-screen) returns a signed ALLOW/WARN/BLOCK check on a merchant's domain and payout address, backed by a signed EIP-712 attestation over the exact response bytes, run before an agent settles an x402 payment to it. Authenticity and delivery-integrity, not a correctness guarantee on the verdict itself — and on the domain, address and price you supply; it does not observe or constrain the address you ultimately settle to. Use a dedicated wallet holding only what you intend to spend.
 > - **On-chain subscribe/publish/query layer (BYTE Library contracts + indexer): Arbitrum Sepolia testnet (chain `421614`), MockUSDC.** Mainnet for this layer is gated on an external security audit. The EIP-712 attestation signing domain stays anchored at `421614` regardless of which rail you paid on.
 >
 > One `PRIVATE_KEY` serves both rails. Never reuse a key holding funds you can't afford to spend.
@@ -22,8 +22,8 @@ npx -y byte-mcp-server
 Wire it into your MCP client (Claude Desktop config below), then your agent can:
 
 - **Discover** feeds: *"List the PayPerByte catalog"* / *"Search publishers for weather"*
-- **Screen a counterparty before you pay it** (x402, no setup): *"Screen this domain and payout address before I settle"* → $0.10 real USDC on Base mainnet, signed ALLOW/WARN/BLOCK verdict from the Merchant Screen Oracle with an attestation receipt
-- **Try it cheap first**: *"Get the weather"* / *"Any earthquakes over M4 today?"* → $0.005 / $0.003 real USDC, same attestation receipt on every response — the cheapest way to see verify-before-act work before spending on a verdict
+- **Screen a counterparty before you pay it** (x402, no setup): *"Screen this domain and payout address before I settle"* → real USDC on Base mainnet at the price the 402 challenge quotes, signed ALLOW/WARN/BLOCK verdict from the Merchant Screen Oracle with an attestation receipt
+- **Try it cheap first**: *"Get the weather"* / *"Any earthquakes over M4 today?"* → real USDC at each feed's listed price (https://x402.payperbyte.io/feeds), same attestation receipt on every response — the cheapest way to see verify-before-act work before spending on a verdict
 - **Subscribe** to a stream (testnet): *"Subscribe me to the earthquakes feed"* → auto-approves MockUSDC for ongoing settlement on Arbitrum Sepolia
 - **Query a fact-oracle** (testnet): post a signed EIP-712 question to a registered fact-oracle publisher for an on-chain signed answer with citations — *when a fact-oracle publisher is live (none is broadcasting today; the tool times out until one registers and broadcasts)*
 
@@ -48,7 +48,7 @@ The same primitive ships as two packages you can drop into your own stack:
 
 | Mode | Tool | Rail | Best for | Pricing |
 |---|---|---|---|---|
-| **Buy** (x402) | `byte_buy_data` | **Base mainnet — real USDC** | One-off needs (single snapshot or verdict for *this* user query) | Per-feed, quoted in the 402 challenge ($0.10 flagship; most feeds cents or less) |
+| **Buy** (x402) | `byte_buy_data` | **Base mainnet — real USDC** | One-off needs (single snapshot or verdict for *this* user query) | Per-feed, quoted in the 402 challenge; live list with prices: https://x402.payperbyte.io/feeds |
 | **Subscribe** | `byte_subscribe` | Arbitrum Sepolia — testnet MockUSDC | Continuous streams (every weather update, every new earthquake) | $0.003 / KB per delivery |
 
 Buy is zero-setup, pay-as-you-go, and live with real settlement; subscribe delivers every broadcast on the audit-gated testnet layer. Pick by access pattern.
@@ -71,7 +71,7 @@ The paid response returns the signed verdict **and** an inline verify-before-act
 {
   "feed": "merchant-screen",
   "paid": true,
-  "price": "$0.100000",
+  "price": "$0.100000",   // illustrative — the amount the 402 challenge quoted at buy time
   "txHash": "0x…",
   "data": { "answer": { "verdict": "ALLOW", "reasons": ["…"] }, "attestation": { "…": "…" } },
   "verification": { "verified": true, "hashMatch": true, "signerMatch": true,
