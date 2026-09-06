@@ -775,7 +775,7 @@ server.registerTool(
         .max(10000)
         .optional()
         .describe(
-          "Max response payload bytes you're willing to pay for (defaults to 2000, ≈$1 at $0.0005/byte). Publisher refuses if can't fit answer."
+          "Max response payload bytes you're willing to pay for (defaults to 2000). Billed at the publisher's registered price-per-KB — read it with byte_get_publisher or byte_search_publishers before asking. Publisher refuses if can't fit answer."
         ),
       topic_filter: z
         .string()
@@ -879,7 +879,7 @@ server.registerTool(
       .object({
         feed: z.string().optional().describe("Echoed feed slug"),
         paid: z.boolean().optional().describe("True if an x402 payment was made (false on free/cached feeds)"),
-        price: z.string().optional().describe("USDC paid for this packet (e.g. '$0.003000'); omitted on free feeds"),
+        price: z.string().optional().describe("USDC paid for this packet as a 6-decimal dollar string (format example: '$0.001234'); omitted on free feeds"),
         txHash: z.string().optional().describe("x402 settlement transaction hash"),
         payer: z.string().optional().describe("Wallet that signed the EIP-3009 authorization"),
         status: z.number().optional().describe("HTTP status of the (post-payment) gateway response"),
