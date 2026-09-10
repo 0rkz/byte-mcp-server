@@ -1,5 +1,33 @@
 # Changelog
 
+## 0.13.0 — 2026-09-09
+
+**Release of work already on main since 0.12.3 (published 2026-08-21).** No new tools; the
+two served tool-schema descriptions below are what an agent actually reads, which is why this
+is a minor and not a patch.
+
+- **Served schema copy carries no typed prices.** `byte_query_fact.max_byte_cost` said
+  "≈$1 at $0.0005/byte"; it now points at the publisher's registered price-per-KB and names
+  `byte_get_publisher` / `byte_search_publishers` as where to read it. `byte_buy_data`'s output
+  `price` example was `'$0.003000'` — equal to a live feed price at the time — and is now a
+  format-only example. `byte_buy_data`'s tool description also dropped a hardcoded feed name
+  and price.
+- **README and SKILL.md derive every price** from the 402 challenge and the live feed list
+  (https://x402.payperbyte.io/feeds) instead of repeating numbers that drift when the catalog
+  changes. The "flagship" label is gone from both.
+- **`byte_list_feeds` returns `pricePerCall`**; `pricePerKB` remains as a deprecated alias and
+  resolves from the same source value, so the two fields are always identical.
+- **Dependencies.** The package's audit surface went from 8 advisories at 0.12.3 to 0: a
+  lockfile refresh (viem 2.55.19) cleared six, raising the `qs` override floor to `^6.16.0`
+  cleared one, and `hono` 4.13.7 cleared the last. Of those, only the `qs` override is a
+  `package.json` change and therefore ships; lockfiles are not published. `overrides` are
+  honoured only when this package is the root project, so installing it as a dependency
+  resolves exactly as before.
+- **Docs.** One reciprocal directory link added to the README Links section.
+
+Note: 0.12.0 through 0.12.3 were released without CHANGELOG entries. This entry covers what
+changed since 0.12.3 only; it does not reconstruct those four releases.
+
 ## 0.11.9 — 2026-07-03
 
 **Docs / metadata sync.** README install snippets now use `payperbyte` as the MCP server key (retiring the old `byte-library` slug), and the verdict-tier pricing copy is synced to $0.10 (the x402-fetch default-client cap). No tool, schema, or settlement-code changes.
