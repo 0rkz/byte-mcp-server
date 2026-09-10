@@ -45,8 +45,15 @@ ROOT=$(git rev-parse --show-toplevel 2>/dev/null) || { echo "[deploy] ABORT: can
 # other non-build tooling, so an abort naming scripts/ may point at an edit to
 # one of those rather than to anything that reaches dist/. That is deliberate —
 # over-inclusion costs a commit, under-inclusion costs an unreviewed deploy.
-git diff --quiet HEAD -- src/ scripts/ tsconfig.json package.json package-lock.json .gitignore 2>/dev/null
-rc=$?
+# `rc=0; cmd || rc=$?` — NOT a bare `cmd` followed by `rc=$?`. Under `set -e` a
+# bare `git diff --quiet` returning 1 exits the script IMMEDIATELY, before the
+# next line runs, so every branch below it was DEAD CODE and the guard aborted
+# with no message at all: one echo, then rc=1, no reason. Measured 2026-09-09
+# (LOCAL c314e5) in both ported copies; the x402-gateway original never had it
+# because it used `|| { echo …; exit 1; }`, which is a condition context.
+# A fail-closed guard that will not say WHY is a guard people route around.
+rc=0
+git diff --quiet HEAD -- src/ scripts/ tsconfig.json package.json package-lock.json .gitignore .npmrc 2>/dev/null || rc=$?
 if [ $rc -ne 0 ]; then
   # Distinguish "diff found changes" (rc 1) from "git failed" (anything else),
   # so a broken repo is never reported as uncommitted work.
@@ -62,7 +69,7 @@ fi
 # Inline as `[ -z "$(git ls-files …)" ]` this is FAIL-OPEN: a git error yields
 # empty stdout, the test passes, and the deploy proceeds believing there is
 # nothing untracked — the exact blindness the check exists to close.
-UNTRACKED=$(git ls-files --others --exclude-standard -- src/ scripts/ tsconfig.json package.json package-lock.json .gitignore) || { echo "[deploy] ABORT: cannot enumerate untracked source (git failed)"; exit 1; }
+UNTRACKED=$(git ls-files --others --exclude-standard -- src/ scripts/ tsconfig.json package.json package-lock.json .gitignore .npmrc) || { echo "[deploy] ABORT: cannot enumerate untracked source (git failed)"; exit 1; }
 if [ -n "$UNTRACKED" ]; then
   echo "[deploy] ABORT: uncommitted UNTRACKED file(s) under the guarded paths — commit or stash first:"
   echo "$UNTRACKED" | sed 's/^/  /'
@@ -74,6 +81,46 @@ fi
 # earlier build, and in at least one of these repos dist/ is committed, so the
 # existence test would be unconditionally true. Require the file to be NEWER
 # than a marker taken immediately before the build.
+# ── DEPENDENCY GUARD ─────────────────────────────────────────────────────────
+# WHY (measured 2026-09-09, LOCAL c314e5): this script never installed anything.
+# `npm run build` is bare `tsc`, which compiles against whatever node_modules
+# already holds. So a commit that changes ONLY package.json + package-lock.json —
+# the exact shape of every Dependabot bump — passed every provenance check,
+# rebuilt cleanly, restarted cleanly, printed the success banner, and shipped the
+# OLD dependency tree. On that date three services were still running ws 8.18.3,
+# axios 1.16.0 and qs 6.15.2 AFTER their bumps had been committed, pushed and
+# "deployed". Nothing in the output said so. The deploy was never wrong about the
+# code; it was silent about the dependencies, which is worse — a security fix
+# reports success while the vulnerable version stays live.
+#
+# `npm ci`, never `npm install`: ci REFUSES to run when package.json and the lock
+# disagree, and it never rewrites the lock. An install that can silently edit the
+# lockfile mid-deploy is not a guard, it is a second way to ship something nobody
+# reviewed.
+#
+# ⚠️ This deletes and reinstalls node_modules while the unit is STILL RUNNING.
+# Measured window is ~1s and the restart below clears anything that trips, but a
+# lazy require() during it can fail. Founder-accepted 2026-09-09 over stop-first,
+# which trades a small fault window for a guaranteed outage. If that trade ever
+# changes, stop the unit here and start it after the build — do not "improve"
+# this by dropping the install.
+[ -f package-lock.json ] || { echo "[deploy] ABORT: no package-lock.json — npm ci cannot pin a dependency tree"; exit 1; }
+if [ -n "${DEPLOY_DRY_RUN:-}" ]; then
+  echo "[deploy] DRY RUN: dependency changes npm ci would apply —"
+  npm ci --dry-run --no-audit --no-fund --include=dev 2>&1 | sed 's/^/  /'
+  echo "[deploy] DRY RUN: would then build, restart byte-mcp, and assert installed == lock."
+  echo "[deploy] DRY RUN: nothing was installed, built or restarted."
+  exit 0
+fi
+echo "[deploy] installing dependencies from package-lock.json…"
+npm ci --no-audit --no-fund --include=dev || {
+  echo "[deploy] ABORT: npm ci failed — nothing was built or restarted."
+  echo "[deploy]   Most often this means package.json and package-lock.json disagree."
+  echo "[deploy]   Fix on a dev checkout with 'npm install', COMMIT the updated lock, then redeploy."
+  echo "[deploy]   Do NOT run 'npm install' here: it rewrites the lock during a deploy."
+  exit 1
+}
+
 STAMP=$(mktemp)
 trap 'rm -f "$STAMP"' EXIT
 
@@ -206,4 +253,40 @@ systemctl --user is-active --quiet byte-mcp || {
   exit 1
 }
 systemctl --user --no-pager status byte-mcp | head -5
+# ── RUNNING-TREE ASSERTION (Ndev HIGH-1 + LOW-3, 2026-09-09) ─────────────────
+# assert-deps.mjs below reads ./node_modules — THIS tree. Nothing so far proves
+# the unit runs from here: its WorkingDirectory is set in the unit file, which
+# this script never reads, so "installed == lock in the RUNNING tree" held only
+# by convention. Read the PROCESS instead of the unit file — /proc/PID/cwd is
+# what the kernel says, and it sidesteps the 2026-09-03 objection to parsing
+# ExecStart syntax. Placed AFTER the restart on purpose: the PID here is the new
+# process, so the check covers the tree that process actually loaded from.
+DEPLOY_PID=$(systemctl --user show -p MainPID --value byte-mcp 2>/dev/null || echo 0)
+if [ -z "$DEPLOY_PID" ] || [ "$DEPLOY_PID" = "0" ]; then
+  echo "[deploy] ABORT: byte-mcp reports no MainPID after restart — cannot prove which tree it runs from"
+  exit 1
+fi
+DEPLOY_CWD=$(readlink -f "/proc/$DEPLOY_PID/cwd" 2>/dev/null) || { echo "[deploy] ABORT: cannot read /proc/$DEPLOY_PID/cwd — cannot prove which tree byte-mcp runs from"; exit 1; }
+[ "$DEPLOY_CWD" = "$(pwd -P)" ] || { echo "[deploy] ABORT: byte-mcp runs from $DEPLOY_CWD, not $(pwd -P) — this deploy guarded a different tree"; exit 1; }
+
+# `is-active` one moment after a restart also passes a unit that is crash-LOOPING
+# under Restart=always: it dies, systemd revives it, and each snapshot looks
+# active. Re-read MainPID after a pause — a changed PID means it restarted again.
+sleep 2
+DEPLOY_PID2=$(systemctl --user show -p MainPID --value byte-mcp 2>/dev/null || echo 0)
+[ "$DEPLOY_PID2" = "$DEPLOY_PID" ] || { echo "[deploy] ABORT: byte-mcp restarted again (PID $DEPLOY_PID -> $DEPLOY_PID2) — it is crash-looping, not running"; exit 1; }
+
+# ── INSTALLED-vs-LOCK ASSERTION ──────────────────────────────────────────────
+# `npm ci` exiting 0 is necessary but not sufficient: a partial write, a
+# postinstall that mutates node_modules, or a directory left by an interrupted
+# earlier run all survive a zero exit. Assert what is actually on disk, after the
+# restart, so the claim covers the tree the running process loaded from.
+# Exit 2 (cannot verify) is treated exactly like exit 1 here — "I could not check"
+# must never reach the success banner.
+node scripts/assert-deps.mjs --quiet || {
+  echo "[deploy] ABORT: the installed dependency tree does not match package-lock.json."
+  echo "[deploy]   byte-mcp has already restarted and is serving the artifact above."
+  echo "[deploy]   Investigate before declaring this deploy done."
+  exit 1
+}
 echo "✅ byte-mcp deployed (committed source verified, artifact rebuilt, unit active)"
