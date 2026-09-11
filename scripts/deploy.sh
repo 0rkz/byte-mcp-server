@@ -253,22 +253,60 @@ systemctl --user is-active --quiet byte-mcp || {
   exit 1
 }
 systemctl --user --no-pager status byte-mcp | head -5
-# ── RUNNING-TREE ASSERTION (Ndev HIGH-1 + LOW-3, 2026-09-09) ─────────────────
+# ── RUNNING-TREE ASSERTION (Ndev HIGH-1 + LOW-3, 2026-09-09; MEDIUM-1 2026-09-11) ─
 # assert-deps.mjs below reads ./node_modules — THIS tree. Nothing so far proves
 # the unit runs from here: its WorkingDirectory is set in the unit file, which
 # this script never reads, so "installed == lock in the RUNNING tree" held only
-# by convention. Read the PROCESS instead of the unit file — /proc/PID/cwd is
-# what the kernel says, and it sidesteps the 2026-09-03 objection to parsing
-# ExecStart syntax. Placed AFTER the restart on purpose: the PID here is the new
-# process, so the check covers the tree that process actually loaded from.
+# by convention. Read the PROCESS instead of the unit file — /proc is what the
+# kernel says, and it sidesteps the 2026-09-03 objection to parsing ExecStart
+# syntax. Placed AFTER the restart on purpose: the PID here is the new process.
+#
+# TWO facts are needed; CWD ALONE IS NOT ENOUGH (VER 3 MEDIUM-1, 2026-09-10).
+# Node resolves node_modules from the SCRIPT's directory, not from cwd, so an
+# absolute ExecStart pointing outside this repo passes a cwd-only check while
+# assert-deps certifies a tree the service never loaded — the exact false-green
+# this guard exists to prevent. Not hypothetical: on 2026-09-11 the pre-fix
+# check returned 0 against a fixture whose cwd was this tree and whose script
+# lived in a different one. Hence both of:
+#   1. /proc/PID/cwd is this tree          — pins where the process RUNS.
+#   2. the argv script path, IF ABSOLUTE, is under this tree — pins where it
+#      LOADS from. A relative path resolves against cwd, which (1) already
+#      pinned, so it needs no further proof.
+# LIMIT, stated rather than papered over: "first argv token not starting with -"
+# is a heuristic, not a node argument parser. `node -r ./boot.js dist/index.js`
+# would mistake the preload for the script. No unit here uses that form, and an
+# absent or unreadable script path ABORTS rather than passing quietly — wrong in
+# the safe direction. This pins the LOAD PATH only; whether the bytes in that
+# tree match the lock is what assert-deps below checks.
 DEPLOY_PID=$(systemctl --user show -p MainPID --value byte-mcp 2>/dev/null || echo 0)
 if [ -z "$DEPLOY_PID" ] || [ "$DEPLOY_PID" = "0" ]; then
   echo "[deploy] ABORT: byte-mcp reports no MainPID after restart — cannot prove which tree it runs from"
   exit 1
 fi
+DEPLOY_TREE=$(pwd -P)
 DEPLOY_CWD=$(readlink -f "/proc/$DEPLOY_PID/cwd" 2>/dev/null) || { echo "[deploy] ABORT: cannot read /proc/$DEPLOY_PID/cwd — cannot prove which tree byte-mcp runs from"; exit 1; }
-[ "$DEPLOY_CWD" = "$(pwd -P)" ] || { echo "[deploy] ABORT: byte-mcp runs from $DEPLOY_CWD, not $(pwd -P) — this deploy guarded a different tree"; exit 1; }
+[ "$DEPLOY_CWD" = "$DEPLOY_TREE" ] || { echo "[deploy] ABORT: byte-mcp runs from $DEPLOY_CWD, not $DEPLOY_TREE — this deploy guarded a different tree"; exit 1; }
 
+DEPLOY_ARGV=$(tr '\0' '\n' < "/proc/$DEPLOY_PID/cmdline" 2>/dev/null) || { echo "[deploy] ABORT: cannot read /proc/$DEPLOY_PID/cmdline — cannot prove which tree byte-mcp loaded from"; exit 1; }
+DEPLOY_SCRIPT=$(printf '%s\n' "$DEPLOY_ARGV" | awk 'NR > 1 && $0 != "" && $0 !~ /^-/ { print; exit }')
+if [ -z "$DEPLOY_SCRIPT" ]; then
+  echo "[deploy] ABORT: byte-mcp argv carries no script path — cannot prove which tree it loaded from"
+  exit 1
+fi
+case "$DEPLOY_SCRIPT" in
+  /*)
+    DEPLOY_ROOT=$(readlink -f "$(dirname "$DEPLOY_SCRIPT")" 2>/dev/null) || DEPLOY_ROOT=""
+    case "$DEPLOY_ROOT" in
+      "$DEPLOY_TREE" | "$DEPLOY_TREE"/*) : ;;
+      *)
+        echo "[deploy] ABORT: byte-mcp loaded $DEPLOY_SCRIPT, which is outside $DEPLOY_TREE."
+        echo "[deploy]   Node resolves node_modules from the script's directory, so the"
+        echo "[deploy]   assertion below would certify a tree this service never loaded."
+        exit 1
+        ;;
+    esac
+    ;;
+esac
 # `is-active` one moment after a restart also passes a unit that is crash-LOOPING
 # under Restart=always: it dies, systemd revives it, and each snapshot looks
 # active. Re-read MainPID after a pause — a changed PID means it restarted again.
