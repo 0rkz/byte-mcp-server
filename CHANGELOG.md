@@ -16,7 +16,10 @@ is a minor and not a patch.
   (https://x402.payperbyte.io/feeds) instead of repeating numbers that drift when the catalog
   changes. The "flagship" label is gone from both.
 - **`byte_list_feeds` returns `pricePerCall`**; `pricePerKB` remains as a deprecated alias and
-  resolves from the same source value, so the two fields are always identical.
+  resolves from the same source value, so the two fields are always identical. Both carry the
+  gateway catalog's price string verbatim — a dollar-formatted value such as `$0.0050`, not
+  atomic units — and the schema descriptions now say exactly that instead of asserting a unit
+  this server never converts to.
 - **Dependencies.** The package's audit surface went from 8 advisories at 0.12.3 to 0: a
   lockfile refresh (viem 2.55.19) cleared six, raising the `qs` override floor to `^6.16.0`
   cleared one, and `hono` 4.13.7 cleared the last. Of those, only the `qs` override is a

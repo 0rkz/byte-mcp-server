@@ -320,8 +320,8 @@ function createMcpServer() {
                 .object({
                 publisher: z.string().optional().describe("Publisher address for the feed"),
                 topic: z.string().optional().describe("Topic identifier"),
-                pricePerKB: z.string().optional().describe("DEPRECATED (misnamed): for gateway-fronted feeds this is the per-call price in µUSDC, identical to pricePerCall. Use pricePerCall. Removed next release."),
-                pricePerCall: z.string().optional().describe("Price of one call, atomic µUSDC (6 decimals), decimal string."),
+                pricePerKB: z.string().optional().describe("DEPRECATED (misnamed): identical to pricePerCall — the same gateway-reported per-call price, not a per-KB rate. Use pricePerCall. Removed next release."),
+                pricePerCall: z.string().optional().describe("Per-call price exactly as the gateway catalog reports it — a dollar-formatted string (examples: '$0.0050', '$0.100'); empty string if the catalog omits a price. This server does not normalize or convert it, so do not assume atomic units. The 402 challenge is the source of truth for what you will actually pay."),
                 frequency: z.number().optional().describe("Expected publish cadence in seconds"),
             })
                 .passthrough())

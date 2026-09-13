@@ -37,10 +37,11 @@ export async function listFeeds() {
     const payload = (await response.json());
     const feeds = payload.feeds ?? [];
     return feeds.map((f) => {
-        // pricePerCall is the price of one call (atomic µUSDC). For
-        // gateway-fronted feeds this is the same source value as the
-        // DEPRECATED pricePerKB alias below — resolve once so both fields
-        // are always identical.
+        // Per-call price passed through verbatim from the gateway catalog:
+        // `price` is a dollar-formatted string (e.g. "$0.0050"), `priceAtomic`
+        // is µUSDC. We do NOT normalize — whichever the catalog supplies is what
+        // both fields carry, so the description must not assert a unit. Resolve
+        // once so pricePerKB and pricePerCall are always identical.
         const priceValue = f.price ?? f.priceAtomic ?? "";
         return {
             publisher: f.publisher ?? "",

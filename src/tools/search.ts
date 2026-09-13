@@ -12,12 +12,14 @@ interface FeedInfo {
   publisher: string;
   topic: string;
   /**
-   * DEPRECATED (misnamed): for gateway-fronted feeds this is the per-call
-   * price in µUSDC, identical to pricePerCall. Use pricePerCall. Removed
-   * next release.
+   * DEPRECATED (misnamed): identical to pricePerCall — the same
+   * gateway-reported per-call price, not a per-KB rate. Use pricePerCall.
+   * Removed next release.
    */
   pricePerKB: string;
-  /** Price of one call, atomic µUSDC (6 decimals). Identical to
+  /** Per-call price exactly as the gateway catalog reports it — a
+   * dollar-formatted string (examples: "$0.0050", "$0.100"), or "" when the
+   * catalog omits a price. Not normalized or converted here. Identical to
    * pricePerKB above — same source value, just named correctly. */
   pricePerCall: string;
   frequency: number;
@@ -82,10 +84,11 @@ export async function listFeeds(): Promise<FeedInfo[]> {
 
   const feeds = payload.feeds ?? [];
   return feeds.map((f) => {
-    // pricePerCall is the price of one call (atomic µUSDC). For
-    // gateway-fronted feeds this is the same source value as the
-    // DEPRECATED pricePerKB alias below — resolve once so both fields
-    // are always identical.
+    // Per-call price passed through verbatim from the gateway catalog:
+    // `price` is a dollar-formatted string (e.g. "$0.0050"), `priceAtomic`
+    // is µUSDC. We do NOT normalize — whichever the catalog supplies is what
+    // both fields carry, so the description must not assert a unit. Resolve
+    // once so pricePerKB and pricePerCall are always identical.
     const priceValue = f.price ?? f.priceAtomic ?? "";
     return {
       publisher: f.publisher ?? "",
