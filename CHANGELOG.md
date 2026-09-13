@@ -1,5 +1,53 @@
 # Changelog
 
+## Unreleased
+
+**Docs-only version-claims sweep.** 0.13.0 is already published and immutable, so nothing
+here is in the published 0.13.0 tarball — these land in the next release.
+
+- **`smithery.yaml` says `current 0.13.0`** (was `current 0.11.3`, stale since 0.11.x). The four
+  `since 0.10.0` / `v0.10.x+` markers in that file are historical facts and are deliberately unchanged.
+- **New release gate `scripts/check-version-claims.mjs`, wired into the release path** (`npm run
+  check:versions`, run by `prepublishOnly` before the build and as a CI step — a failing check blocks
+  the publish). Rule: every version token must equal `package.json` **or** carry an explicit historical
+  marker (`since X`, `added in X`, `vX+`); anything else fails. Stated as an allowlist on purpose —
+  an earlier form tried to detect "current" phrasings and 11 of 13 planted variants passed silently.
+  The naive alternative — force every version token to equal `package.json` — would instead have
+  rewritten this repo's four true `since`/`vX+` markers into false ones.
+  `as of` is deliberately NOT a historical marker: it states currency, not history, and was smuggling
+  stale claims through the allowlist. Current-state words cancel a marker in both directions, and a
+  version owned by something else (an IP, `node 20.20.2`, a dependency) is skipped rather than
+  blocking the publish — a false block is worse than a miss here, because the reflex it trains is
+  `--ignore-scripts`, which disables the gate outright. Unrecognised cases still fail loud and the
+  error names the `[not-a-release-version]` escape hatch.
+  Its header documents the limit honestly: the phrase lists are enumerations and cannot be closed, so
+  the gate is a high-value tripwire for the realistic failure (a bare version token left behind when
+  `package.json` moves) rather than a proof of correctness.
+- **The gate ships with its own test harness** (`test/check-version-claims.test.mjs`, `npm run
+  test:gate`, also a CI step). Every row in it is an attack that actually broke an earlier version of
+  the gate, or a true statement an earlier version wrongly blocked — 21 must-fail, 21 must-pass.
+- **`byte_buy_data`'s documented success gate is correct.** README said
+  `verification.verified === true`; the tool emits `gatewayVerified` (`verified` belongs to
+  `byte_verify_payload`). The example's `reason` string is now the one the code actually emits.
+- **The Claude Desktop example no longer points `INDEXER_URL` at `http://localhost:8080`**, which
+  broke the indexer-backed tools for anyone pasting it (`byte_search_publishers`,
+  `byte_list_my_subscriptions`, `byte_subscription_health`, `byte_query_fact`). The hosted default
+  has been correct since 0.10.4 (2026-05-25) — the example, not the default, was the defect.
+- **Subscribe pricing is described as per-publisher** (read from the publisher's on-chain schema)
+  instead of a flat `$0.003/KB`, which the code never fixed.
+- **`observed_price_atomic` examples are placeholders**, not the literal `"100000"` ($0.10).
+- **Scope language tightened** in SKILL.md: the attestation is evidence of authenticity, not a
+  guarantee about content, and `verified: false` no longer claims tampering is the only cause.
+- **`MAX_PAYMENT_USDC` is documented in SKILL.md** — it was in the README and `.env.example` but not
+  in the agent-facing skill file, and it is the only spend guard the package ships.
+- Dead Smithery badge image (HTTP 500) replaced with a plain link; install command name aligned
+  across README and SKILL.md.
+- **`claude-desktop-config.json` and `.env.example` carried the same `INDEXER_URL=localhost:8080`
+  ghost**; `.env.example` also labelled it "default shown below" and listed a `faucet` tool that does
+  not exist. Both corrected.
+- `llms-install.md` carried the same `verification.verified` and "Cheapest way" claims as the README;
+  both corrected there too.
+
 ## 0.13.0 — 2026-09-09
 
 **Release of work already on main since 0.12.3 (published 2026-08-21).** No new tools; the

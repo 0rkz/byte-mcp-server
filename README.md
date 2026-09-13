@@ -2,7 +2,7 @@
 
 <!-- mcp-name: io.github.0rkz/byte-protocol -->
 
-[![smithery badge](https://smithery.ai/badge/byte/byte-library)](https://smithery.ai/servers/byte/byte-library) [![0rkz/byte-mcp-server MCP server](https://glama.ai/mcp/servers/0rkz/byte-mcp-server/badges/score.svg)](https://glama.ai/mcp/servers/0rkz/byte-mcp-server)
+[Smithery listing](https://smithery.ai/servers/byte/byte-library) · [![0rkz/byte-mcp-server MCP server](https://glama.ai/mcp/servers/0rkz/byte-mcp-server/badges/score.svg)](https://glama.ai/mcp/servers/0rkz/byte-mcp-server)
 
 A [Model Context Protocol](https://modelcontextprotocol.io/) server that gives AI agents direct access to **[PayPerByte](https://www.payperbyte.io)** — cryptographically attested, provenance-verifiable data feeds for AI agents (the `X-BYTE-Attestation` receipt proves delivery-integrity — these are exactly the bytes PayPerByte served and attested under the BYTE Library domain — not that an independent data publisher signed them, and not that the data is correct). Agents discover feeds, pay-per-call via x402 (settled in **USDC on Base mainnet**), or subscribe to on-chain streams (Arbitrum Sepolia testnet). Every paid x402 response carries an EIP-712 `PayloadAttestation` receipt (`X-BYTE-Attestation` header) the agent verifies before acting. No tokens, no API keys, no off-chain accounts.
 
@@ -23,7 +23,7 @@ Wire it into your MCP client (Claude Desktop config below), then your agent can:
 
 - **Discover** feeds: *"List the PayPerByte catalog"* / *"Search publishers for weather"*
 - **Screen a counterparty before you pay it** (x402, no setup): *"Screen this domain and payout address before I settle"* → real USDC on Base mainnet at the price the 402 challenge quotes, signed ALLOW/WARN/BLOCK verdict from the Merchant Screen Oracle with an attestation receipt
-- **Try it cheap first**: *"Get the weather"* / *"Any earthquakes over M4 today?"* → real USDC at each feed's listed price (https://x402.payperbyte.io/feeds), same attestation receipt on every response — the cheapest way to see verify-before-act work before spending on a verdict
+- **Try it cheap first**: *"Get the weather"* / *"Any earthquakes over M4 today?"* → real USDC at each feed's listed price (https://x402.payperbyte.io/feeds), same attestation receipt on every response — a low-cost way to see verify-before-act work before spending on a verdict
 - **Subscribe** to a stream (testnet): *"Subscribe me to the earthquakes feed"* → auto-approves MockUSDC for ongoing settlement on Arbitrum Sepolia
 - **Query a fact-oracle** (testnet): post a signed EIP-712 question to a registered fact-oracle publisher for an on-chain signed answer with citations — *when a fact-oracle publisher is live (none is broadcasting today; the tool times out until one registers and broadcasts)*
 
@@ -49,7 +49,7 @@ The same primitive ships as two packages you can drop into your own stack:
 | Mode | Tool | Rail | Best for | Pricing |
 |---|---|---|---|---|
 | **Buy** (x402) | `byte_buy_data` | **Base mainnet — real USDC** | One-off needs (single snapshot or verdict for *this* user query) | Per-feed, quoted in the 402 challenge; live list with prices: https://x402.payperbyte.io/feeds |
-| **Subscribe** | `byte_subscribe` | Arbitrum Sepolia — testnet MockUSDC | Continuous streams (every weather update, every new earthquake) | $0.003 / KB per delivery |
+| **Subscribe** | `byte_subscribe` | Arbitrum Sepolia — testnet MockUSDC | Continuous streams (every weather update, every new earthquake) | Per-publisher, set in the publisher's on-chain schema — read it with `byte_get_publisher` |
 
 Buy is zero-setup, pay-as-you-go, and live with real settlement; subscribe delivers every broadcast on the audit-gated testnet layer. Pick by access pattern.
 
@@ -61,7 +61,7 @@ GET data feeds need only a `feed`. Any feed whose `method` includes POST (live l
 // byte_buy_data tool call — screen a merchant/counterparty before settling
 {
   "feed": "merchant-screen",
-  "body": { "domain": "example.com", "address": "0x1234…abcd", "observed_price_atomic": "100000" }
+  "body": { "domain": "example.com", "address": "0x1234…abcd", "observed_price_atomic": "<atomic price the MERCHANT you are screening quoted you>" }
 }
 ```
 
@@ -74,12 +74,12 @@ The paid response returns the signed verdict **and** an inline verify-before-act
   "price": "$0.100000",   // illustrative — the amount the 402 challenge quoted at buy time
   "txHash": "0x…",
   "data": { "answer": { "verdict": "ALLOW", "reasons": ["…"] }, "attestation": { "…": "…" } },
-  "verification": { "verified": true, "hashMatch": true, "signerMatch": true,
-                    "reason": "receipt verified — bytes intact AND signed by the pinned gateway attester (safe to act)" }
+  "verification": { "gatewayVerified": true, "hashMatch": true, "signerMatch": true,
+                    "reason": "gateway delivery verified — these exact bytes were signed by the pinned gateway attester […receipt deadline note appended]" }
 }
 ```
 
-Act only when `verification.verified === true` — the receipt proves provenance and integrity, not correctness. Other POST bodies: `address-reputation {domain,address}`, `sanctions-screen {address|name}`, `pkg-verdict {ecosystem,package[,version]}`, `reasoning-verdict {subject}`. Omit `body` entirely for GET data feeds (weather, earthquakes, …).
+Act only when `verification.gatewayVerified === true` — the receipt proves the gateway delivered these exact bytes, not that the data is correct. Other POST bodies: `address-reputation {domain,address}`, `sanctions-screen {address|name}`, `pkg-verdict {ecosystem,package[,version]}`, `reasoning-verdict {subject}`. Omit `body` entirely for GET data feeds (weather, earthquakes, …).
 
 ## Tools (15 total)
 
@@ -95,7 +95,7 @@ Act only when `verification.verified === true` — the receipt proves provenance
 | `byte_list_my_subscriptions` | All active subscriptions for a wallet — last 7d/30d messages + USDC spend |
 | `byte_subscription_health` | Content-drift signal for a publisher: stable / moderate / significant / unknown |
 | `byte_get_token_balances` | USDC + ETH balances on Arbitrum Sepolia |
-| `byte_verify_payload` | **Verify-before-act.** Recompute `keccak256` of the bytes your agent received and check them against the publisher's on-chain EIP-712 `PayloadAttestation` — anchor with an `expectedHash` you hold or the settlement `txHash` (which also recovers the signer and confirms it's the named publisher). If `verified: false`, the data was tampered/corrupted in transit — don't act on it |
+| `byte_verify_payload` | **Verify-before-act.** Recompute `keccak256` of the bytes your agent received and check them against the publisher's on-chain EIP-712 `PayloadAttestation` — anchor with an `expectedHash` you hold or the settlement `txHash` (which also recovers the signer and confirms it's the named publisher). If `verified: false`, don't act on the data — either the bytes differ from what was attested, or verification wasn't possible (no attestation found, signer mismatch, or neither `expectedHash` nor `txHash` supplied). The `reason` field says which |
 
 ### Subscribe to a stream (requires `PRIVATE_KEY`)
 
@@ -127,8 +127,7 @@ Edit `~/.config/claude/claude_desktop_config.json` (Linux) or `~/Library/Applica
       "args": ["-y", "byte-mcp-server"],
       "env": {
         "PRIVATE_KEY": "0x...",
-        "RPC_URL": "https://sepolia-rollup.arbitrum.io/rpc",
-        "INDEXER_URL": "http://localhost:8080"
+        "RPC_URL": "https://sepolia-rollup.arbitrum.io/rpc"
       }
     }
   }

@@ -21,6 +21,12 @@ jobs:
       - name: Install
         run: npm ci || npm install
 
+      - name: Version-claim gate
+        run: npm run check:versions
+
+      - name: Version-claim gate self-test
+        run: npm run test:gate
+
       - name: Build
         run: npm run build
 

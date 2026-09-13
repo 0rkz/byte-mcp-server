@@ -44,12 +44,12 @@ If a feed list / stats come back, the server is set up correctly.
 
 ```jsonc
 // screen a merchant/counterparty before settling (real USDC on Base mainnet at the 402-quoted price — needs PRIVATE_KEY)
-{ "feed": "merchant-screen", "body": { "domain": "example.com", "address": "0x1234…abcd", "observed_price_atomic": "100000" } }
+{ "feed": "merchant-screen", "body": { "domain": "example.com", "address": "0x1234…abcd", "observed_price_atomic": "<atomic price the MERCHANT you are screening quoted you>" } }
 ```
 
-The result includes the signed verdict in `data` plus an inline `verification` block (`{ verified, hashMatch, signerMatch, reason }`) — act only when `verification.verified` is `true`; the receipt proves provenance and integrity, not correctness. Other bodies: `address-reputation {domain,address}`, `sanctions-screen {address|name}`, `pkg-verdict {ecosystem,package}`, `reasoning-verdict {subject}`.
+The result includes the signed verdict in `data` plus an inline `verification` block (`{ gatewayVerified, hashMatch, signerMatch, reason }`) — act only when `verification.gatewayVerified` is `true`; it proves the gateway delivered these exact bytes, not that the data is correct. Other bodies: `address-reputation {domain,address}`, `sanctions-screen {address|name}`, `pkg-verdict {ecosystem,package}`, `reasoning-verdict {subject}`.
 
-Cheapest way to see the same verify-before-act loop before spending on a verdict: `{ "feed": "weather" }` or `{ "feed": "earthquakes" }` (current prices at https://x402.payperbyte.io/feeds) — no `body` needed, plain GET data feeds.
+A low-cost way to see the same verify-before-act loop before spending on a verdict: `{ "feed": "weather" }` or `{ "feed": "earthquakes" }` (current prices at https://x402.payperbyte.io/feeds) — no `body` needed, plain GET data feeds.
 
 ## Notes
 

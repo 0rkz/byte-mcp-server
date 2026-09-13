@@ -10,7 +10,7 @@ description: >-
   weather, earthquakes, or a cited evidence-pack fact-check
   oracle. The differentiator is verify-before-act: every payload carries an
   EIP-712 PayloadAttestation, so the agent can prove the exact bytes and the
-  publisher before trusting the data. x402 pay-per-call settles real USDC on
+  publisher that signed them — authenticity, not correctness of the data. x402 pay-per-call settles real USDC on
   Base mainnet; the on-chain subscription/attestation layer is Arbitrum Sepolia
   testnet (audit-gated). No external-traction claims.
 ---
@@ -68,7 +68,7 @@ reliably. Note that paid x402 calls spend **real USDC** — see Status.
 | Mode | Tool | Rail | Best for | Price |
 |---|---|---|---|---|
 | Buy (x402) | `byte_buy_data` | Base mainnet — **real USDC** | One-off snapshot or verdict for *this* query — zero setup | Per-feed, quoted in the 402 challenge (live list: https://x402.payperbyte.io/feeds) |
-| Subscribe | `byte_subscribe` | Arbitrum Sepolia — testnet MockUSDC | Continuous stream — every update delivered | $0.003/KB per delivery |
+| Subscribe | `byte_subscribe` | Arbitrum Sepolia — testnet MockUSDC | Continuous stream — every update delivered | Per-publisher, from the publisher's on-chain schema (`byte_get_publisher`) |
 
 Pick by access pattern. Buy is pay-as-you-go with no allowance and settles real
 money; subscribe delivers every broadcast on the audit-gated testnet layer.
@@ -110,12 +110,15 @@ spends real Base-mainnet USDC; the rest are testnet): `byte_subscribe`,
 npx -y byte-mcp-server
 ```
 
-- Claude Code: `claude mcp add byte-library -- npx -y byte-mcp-server`
+- Claude Code: `claude mcp add payperbyte -- npx -y byte-mcp-server`
 - Hosted remote (streamable-HTTP): `https://mcp.payperbyte.io/mcp`
 - Read-only tools work with no config. Add `PRIVATE_KEY` (dedicated wallet —
   buys spend real Base-mainnet USDC) to enable subscribe / publish / buy /
   query, and optionally `RPC_URL` (default
   `https://sepolia-rollup.arbitrum.io/rpc`, the testnet read layer).
+- **Spend cap:** set `MAX_PAYMENT_USDC` (decimal USDC, e.g. `0.25`) to refuse any
+  402 quote above it *before* signing. Unset means uncapped — a dedicated thin
+  wallet remains the hard backstop.
 
 ## Without MCP (raw x402 HTTP)
 
@@ -139,4 +142,6 @@ Hit the gateway directly:
 
 Feeds are informational and not financial, legal, or medical advice — each
 response carries an `X-BYTE-Disclaimer-Category` header. The verify-before-act
-step is what makes a payload safe to act on; skipping it forfeits the guarantee.
+step is what establishes that the bytes are the ones the publisher signed; skipping
+it leaves you with unverified data. It is evidence of authenticity, not a
+guarantee about the content.

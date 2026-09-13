@@ -49,11 +49,13 @@
     "start": "node dist/index.js",
     "dev": "tsc --watch",
     "test": "node test/e2e.mjs",
-    "prepublishOnly": "npm run build",
+    "prepublishOnly": "npm run check:versions && npm run build",
     "probe:buy": "npm run build && node probe/buy.mjs",
     "probe:dry": "npm run build && node probe/buy.mjs --dry-run",
     "probe:duck": "node probe/duck.mjs",
-    "probe": "npm run build && node probe/pipeline.mjs"
+    "probe": "npm run build && node probe/pipeline.mjs",
+    "check:versions": "node scripts/check-version-claims.mjs",
+    "test:gate": "node --test test/check-version-claims.test.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
